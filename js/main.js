@@ -11,6 +11,15 @@ const App = {
         document.getElementById('speler-naam').addEventListener('keydown', e => {
             if (e.key === 'Enter') this.startIntro();
         });
+
+        const saveInfo = GameState.leesSaveInfo();
+        if (saveInfo) {
+            document.getElementById('save-naam-display').textContent = saveInfo.naam;
+            document.getElementById('save-beurt-display').textContent = saveInfo.beurt;
+            document.getElementById('save-sectie').style.display = 'block';
+        }
+
+        window.addEventListener('beforeunload', () => state.slaOp());
     },
 
     maakSterren() {
@@ -31,6 +40,7 @@ const App = {
 
     setupEventListeners() {
         document.getElementById('start-knop').addEventListener('click', () => this.startIntro());
+        document.getElementById('doorgaan-knop')?.addEventListener('click', () => this.doorgaan());
         document.querySelectorAll('.tab').forEach(tab => {
             tab.addEventListener('click', () => {
                 state.activeTab = tab.dataset.tab;
@@ -38,15 +48,25 @@ const App = {
             });
         });
         document.getElementById('opnieuw-knop').addEventListener('click', () => {
+            state.wisSave();
             state.reset();
             UI.toonScherm('intro-scherm');
             document.getElementById('speler-naam').value = '';
+            document.getElementById('save-sectie').style.display = 'none';
         });
     },
 
     startIntro() {
+        // Wis oude save: speler start bewust een nieuw spel
+        state.wisSave();
         state.speler.naam = document.getElementById('speler-naam').value.trim() || 'Kapitein';
         UI.renderSchipSelectie();
+    },
+
+    doorgaan() {
+        if (!state.laadOp()) return;
+        UI.toonScherm('spel-scherm');
+        UI.renderSpel();
     },
 
     selecteerSchip(schipId) {
@@ -104,6 +124,7 @@ const App = {
             // Geen event — ga direct naar fase 2 dan aankomst
             this._startFase2(() => {
                 state.aankomst();
+                if (state.fase === 'einde') { state.wisSave(); } else { state.slaOp(); }
                 const planNaam = PLANETEN.find(p => p.id === state.locatie)?.naam ?? '';
                 this._setReisStatus(`✓ Aangekomen op ${planNaam}!`, 'kleur-groen');
                 document.getElementById('reis-voortgang-balk').style.width = '100%';
@@ -149,6 +170,7 @@ const App = {
 
             // Altijd aankomst na event (1 stap per reis)
             state.aankomst();
+            if (state.fase === 'einde') { state.wisSave(); } else { state.slaOp(); }
             const planNaam = PLANETEN.find(p => p.id === state.locatie)?.naam ?? '';
             this._startFase2(() => {
                 this._setReisStatus(`✓ Aangekomen op ${planNaam}!`, 'kleur-groen');

@@ -903,6 +903,84 @@ class GameState {
     formatteerKrediet(bedrag) {
         return new Intl.NumberFormat('nl-NL').format(Math.round(bedrag)) + ' cr.';
     }
+
+    // =========================================================================
+    // OPSLAAN & LADEN (localStorage)
+    // =========================================================================
+
+    slaOp() {
+        if (this.fase === 'intro' || this.fase === 'schipSelectie') return;
+        try {
+            const data = {
+                versie: 1,
+                fase: this.fase === 'reis' ? 'spel' : this.fase,
+                speler: this.speler,
+                schip: this.schip,
+                lading: this.lading,
+                schipBeschadigd: this.schipBeschadigd,
+                locatie: this.locatie,
+                beurt: this.beurt,
+                planetPrijzen: this.planetPrijzen,
+                vorigePrijzen: this.vorigePrijzen,
+                aandeelKoersen: this.aandeelKoersen,
+                vorigeKoersen: this.vorigeKoersen,
+                aandelenPortefeuille: this.aandelenPortefeuille,
+                logboek: this.logboek,
+                activeTab: 'handel',
+                gekochteUpgrades: this.gekochteUpgrades,
+                tipsGezien: this.tipsGezien,
+                statistieken: this.statistieken,
+                aankoopPrijzen: this.aankoopPrijzen,
+                aankoopAantallen: this.aankoopAantallen,
+                aandeelGeschiedenis: this.aandeelGeschiedenis,
+                bezochteplaneten: [...this.bezochteplaneten],
+                achievements: [...this.achievements],
+                _laatsteWinst: this._laatsteWinst,
+                _oitLeningGehad: this._oitLeningGehad,
+                _piratenOntkomingen: this._piratenOntkomingen,
+                _aangekomendMetLageBrandstof: this._aangekomendMetLageBrandstof,
+                aandeelAankoopPrijzen: this.aandeelAankoopPrijzen,
+                aandeelAankoopAantallen: this.aandeelAankoopAantallen,
+                passagiers: this.passagiers,
+                passagiersWachtend: this.passagiersWachtend,
+                brandstof: this.brandstof,
+                brandstofPrijzen: this.brandstofPrijzen,
+                eindeReden: this.eindeReden || null,
+            };
+            localStorage.setItem('gazillionaire_save', JSON.stringify(data));
+        } catch(e) {}
+    }
+
+    laadOp() {
+        try {
+            const raw = localStorage.getItem('gazillionaire_save');
+            if (!raw) return false;
+            const data = JSON.parse(raw);
+            if (!data || data.versie !== 1) return false;
+            Object.assign(this, data);
+            this.bezochteplaneten = new Set(data.bezochteplaneten || ['nexoria']);
+            this.achievements = new Set(data.achievements || []);
+            this.reisData = null;
+            this.geselecteerdePlaneet = null;
+            return true;
+        } catch(e) {
+            return false;
+        }
+    }
+
+    wisSave() {
+        localStorage.removeItem('gazillionaire_save');
+    }
+
+    static leesSaveInfo() {
+        try {
+            const raw = localStorage.getItem('gazillionaire_save');
+            if (!raw) return null;
+            const data = JSON.parse(raw);
+            if (!data || data.versie !== 1 || data.fase === 'einde') return null;
+            return { naam: data.speler?.naam ?? 'Kapitein', beurt: data.beurt ?? 0 };
+        } catch(e) { return null; }
+    }
 }
 
 // Singleton
