@@ -102,6 +102,7 @@ const UI = {
 
         const brandstofNodig = state.berekenBrandstofVerbruik(state.locatie, dest.id);
         const heeftGenoeg = state.brandstof >= brandstofNodig;
+        const afstand = Math.round(state.berekenAfstand(state.locatie, dest.id));
         container.innerHTML = `<div class="bestemming-paneel">
             <div class="bestemming-label">Bestemming
                 <button class="bestemming-wijzig" onclick="App.selecteerBestemming('')">✕ Wijzig</button>
@@ -111,7 +112,11 @@ const UI = {
                 <strong>${dest.naam}</strong>
                 ${dest.isGevaarlijk ? '<span class="kleur-rood" style="font-size:0.78em">⚠ Gevaarlijk</span>' : ''}
             </div>
-            <div class="brandstof-vereist ${heeftGenoeg ? '' : 'brandstof-tekort'}" style="margin-top:8px">
+            <div class="kleur-dimmed" style="font-size:0.82em;margin:6px 0 8px">${dest.beschrijving}</div>
+            <div class="bestemming-meta-rij">
+                <span class="kleur-dimmed">Afstand</span><span>${afstand} lj</span>
+            </div>
+            <div class="brandstof-vereist ${heeftGenoeg ? '' : 'brandstof-tekort'}" style="margin-top:6px">
                 <span class="bestemming-sub-label">Brandstofkosten</span>
                 <div>⛽ ${brandstofNodig} l
                 ${heeftGenoeg
@@ -132,8 +137,12 @@ const UI = {
 
         const el = id => document.getElementById(id);
         el('kapitein-display').textContent = `👤 ${state.speler?.naam ?? '---'}`;
-        const beschadigd = state.schipBeschadigd ? ' ⚠' : '';
-        el('schip-naam-display').textContent = `🚀 ${state.schip?.naam ?? '---'}${beschadigd}`;
+        const hp = state.schipHP ?? 0;
+        const maxHP = state.schip?.maxHP ?? 0;
+        const hpPct = maxHP > 0 ? hp / maxHP : 1;
+        const hpKleur = hpPct >= 0.8 ? 'var(--groen)' : hpPct >= 0.5 ? 'var(--oranje)' : 'var(--rood)';
+        const schipEl = el('schip-naam-display');
+        schipEl.innerHTML = `🚀 ${state.schip?.naam ?? '---'} <span style="color:${hpKleur};font-size:0.9em">❤ ${hp}/${maxHP}</span>`;
 
         const geladen = state.getLadingGewicht?.() ?? 0;
         const maxLading = state.schip?.laadruimte ?? 0;
@@ -198,10 +207,15 @@ const UI = {
             case 'schip-naam-display': {
                 const template = typeof SCHEPEN !== 'undefined' ? SCHEPEN.find(s => s.id === state.schip?.id) : null;
                 const sterren = '★'.repeat(state.schip.snelheid) + '☆'.repeat(Math.max(0, 5 - state.schip.snelheid));
+                const hp = state.schipHP ?? 0;
+                const maxHP = state.schip?.maxHP ?? 0;
+                const hpPct = maxHP > 0 ? Math.round(hp / maxHP * 100) : 100;
+                const hpKleur = hpPct >= 80 ? 'var(--groen)' : hpPct >= 50 ? 'var(--oranje)' : 'var(--rood)';
                 return `<div class="tt-label">${state.schip.naam}</div>
                     ${template ? `<div class="tt-beschr">${template.beschrijving}</div>` : ''}
                     <div class="tt-rij"><span>Snelheid</span><span class="tt-ster">${sterren}</span></div>
-                    ${state.schipBeschadigd ? '<div class="tt-schade">⚠ Schip beschadigd — repareer in de haven!</div>' : ''}`;
+                    <div class="tt-rij"><span>HP</span><span style="color:${hpKleur}">${hp}/${maxHP} (${hpPct}%)</span></div>
+                    ${hpPct < 50 ? '<div class="tt-schade">⚠ Lage HP — repareer zo snel mogelijk!</div>' : ''}`;
             }
             case 'cargo-display': {
                 const geladen = GOEDEREN.filter(g => (state.lading[g.id] || 0) > 0);
@@ -608,14 +622,29 @@ const UI = {
         const planeet = PLANETEN.find(p => p.id === state.locatie);
         let html = '<div class="haven-raster">';
 
-        // === REPARATIE (volle breedte, alleen als beschadigd) ===
-        if (state.schipBeschadigd) {
-            html += `<div class="haven-blok haven-blok-vol-breed">
-                <div class="haven-blok-header">🔧 Scheepsreparatie</div>
-                <div class="haven-blok-inhoud">
-                    <div class="kleur-rood" style="margin-bottom:10px">⚠ Je schip heeft schade. Dit vertraagt je reizen tot je repareert.</div>
-                    <button class="knop gevaar" onclick="App.repareerSchip()">Repareer nu (350 credits)</button>
-                </div></div>`;
+        // === REPARATIE (volle breedte, altijd zichtbaar) ===
+        {
+            const hp = state.schipHP ?? 0;
+            const maxHP = state.schip?.maxHP ?? 0;
+            const hpPct = maxHP > 0 ? Math.round(hp / maxHP * 100) : 100;
+            const hpKleur = hpPct >= 80 ? 'var(--groen)' : hpPct >= 50 ? 'var(--oranje)' : 'var(--rood)';
+            const repKosten = state.berekenReparatieKosten();
+            const isTechton = state.locatie === 'techton';
+            const kanBetalen = state.speler.krediet >= repKosten;
+            let repHtml = `<div style="display:flex;align-items:center;gap:14px;margin-bottom:8px">
+                <span style="font-size:1.1em;color:${hpKleur};font-weight:bold">❤ ${hp}/${maxHP}</span>
+                <div class="lading-balk-container" style="flex:1;margin:0"><div class="lading-balk" style="width:${hpPct}%;background:${hpKleur}"></div></div>
+                <span class="kleur-dimmed" style="font-size:0.82em">${hpPct}%</span>
+            </div>`;
+            if (repKosten === 0) {
+                repHtml += `<div class="kleur-groen" style="font-size:0.88em">✓ Schip is in topconditie.</div>`;
+            } else {
+                repHtml += `<div class="kleur-${hpPct < 50 ? 'rood' : 'oranje'}" style="margin-bottom:8px;font-size:0.88em">⚠ ${maxHP - hp} HP schade</div>`;
+                if (isTechton) repHtml += `<div class="kleur-groen" style="font-size:0.8em;margin-bottom:6px">★ Techton-korting: 50% goedkoper!</div>`;
+                repHtml += `<button class="knop ${hpPct < 50 ? 'gevaar' : 'primair'} klein" onclick="App.repareerSchip()" ${!kanBetalen ? 'disabled' : ''}>Repareer volledig (${state.formatteerKrediet(repKosten)})</button>`;
+                if (!kanBetalen) repHtml += `<div class="kleur-rood" style="font-size:0.8em;margin-top:5px">Onvoldoende credits</div>`;
+            }
+            html += `<div class="haven-blok haven-blok-vol-breed"><div class="haven-blok-header">🔧 Scheepsconditie</div><div class="haven-blok-inhoud">${repHtml}</div></div>`;
         }
 
         // === PASSAGIERS ===

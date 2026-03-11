@@ -13,12 +13,16 @@ class GameState {
         this.reset();
     }
 
+    get schipBeschadigd() {
+        return (this.schipHP ?? 0) < (this.schip?.maxHP ?? 0);
+    }
+
     reset() {
         this.fase = 'intro'; // intro | schipSelectie | spel | reis | einde
         this.speler = { naam: 'Kapitein', krediet: START_KREDIET, schuld: 0 };
         this.schip = null;
         this.lading = {};
-        this.schipBeschadigd = false;
+        this.schipHP = 0;
         this.locatie = 'nexoria';
         this.beurt = 0;
         this.planetPrijzen = {};
@@ -90,6 +94,7 @@ class GameState {
             maxLaadruimte: schipTemplate.laadruimte,
         };
         this.speler.krediet -= schipTemplate.prijs;
+        this.schipHP = schipTemplate.maxHP;
         this.fase = 'spel';
         this.initPrijzen();
         this.initAandelen();
@@ -246,6 +251,13 @@ class GameState {
         this.controleerRente();
 
         this._simuleerConcurrenten();
+
+        // Passieve HP slijtage per rit
+        if (this.schip && this.schipHP > 0) {
+            const kritisch = this.schipHP < Math.round((this.schip.maxHP ?? 40) * 0.3);
+            const extra = kritisch ? Math.floor(Math.random() * 6) + 3 : 0;
+            this.schipHP = Math.max(1, this.schipHP - 1 - extra);
+        }
 
         const eventId = this.reisData.events[this.reisData.stap - 1];
 
@@ -593,19 +605,21 @@ class GameState {
             case 'defect': {
                 if (keuzeId === 'repareer') {
                     const kosten = 400;
+                    const herstel = Math.min(20, (this.schip?.maxHP ?? 40) - this.schipHP);
                     if (this.verzekering?.actief) {
-                        this.schipBeschadigd = false;
-                        resultaat.bericht = `Reparatie (${this.formatteerKrediet(kosten)}) volledig gedekt door je verzekering! 🛡️`;
+                        this.schipHP = Math.min(this.schip?.maxHP ?? 40, this.schipHP + herstel);
+                        resultaat.bericht = `Noodreparatie (${this.formatteerKrediet(kosten)}) gedekt door je verzekering! +${herstel} HP 🛡️`;
                     } else {
                         this.speler.krediet -= kosten;
                         resultaat.kredietDelta = -kosten;
-                        this.schipBeschadigd = false;
-                        resultaat.bericht = `Reparatie voltooid voor ${this.formatteerKrediet(kosten)}. Je schip is weer volledig operationeel.`;
+                        this.schipHP = Math.min(this.schip?.maxHP ?? 40, this.schipHP + herstel);
+                        resultaat.bericht = `Noodreparatie voltooid voor ${this.formatteerKrediet(kosten)}. +${herstel} HP hersteld.`;
                     }
                 } else {
-                    this.schipBeschadigd = true;
+                    const schade = Math.floor(Math.random() * 8) + 12; // 12-20 HP
+                    this.schipHP = Math.max(1, this.schipHP - schade);
                     resultaat.schade = true;
-                    resultaat.bericht = 'Je reist door met het defect. Je schip is beschadigd en vliegt langzamer! Repareer zo snel mogelijk.';
+                    resultaat.bericht = `Je reist door met het defect. Schip loopt ${schade} HP schade op (nu ${this.schipHP} HP). Repareer zo snel mogelijk!`;
                 }
                 break;
             }
@@ -673,15 +687,16 @@ class GameState {
             }
 
             case 'asteroiden': {
-                const schade = Math.max(50, Math.round(this.speler.krediet * 0.05 + Math.random() * 200));
-                this.schipBeschadigd = true;
+                const hpSchade = Math.floor(Math.random() * 12) + 15; // 15-26 HP
+                const kredietSchade = Math.max(50, Math.round(this.speler.krediet * 0.04 + Math.random() * 150));
+                this.schipHP = Math.max(1, this.schipHP - hpSchade);
                 resultaat.schade = true;
                 if (this.verzekering?.actief) {
-                    resultaat.bericht = `Keiharde klappen! Rompschade van ${this.formatteerKrediet(schade)} — je verzekering dekt de reparatiekosten! 🛡️ (Schip nog beschadigd)`;
+                    resultaat.bericht = `Keiharde klappen! −${hpSchade} HP rompschade. Creditverlies (${this.formatteerKrediet(kredietSchade)}) gedekt door verzekering! 🛡️`;
                 } else {
-                    this.speler.krediet -= schade;
-                    resultaat.kredietDelta = -schade;
-                    resultaat.bericht = `Keiharde klappen! Schade aan de romp. Je verliest ${this.formatteerKrediet(schade)} aan noodreparaties en het schip is beschadigd.`;
+                    this.speler.krediet -= kredietSchade;
+                    resultaat.kredietDelta = -kredietSchade;
+                    resultaat.bericht = `Keiharde klappen! −${hpSchade} HP rompschade en ${this.formatteerKrediet(kredietSchade)} noodreparatiekosten. Schip: ${this.schipHP} HP.`;
                 }
                 break;
             }
@@ -993,12 +1008,21 @@ class GameState {
         return { succes: true };
     }
 
+    berekenReparatieKosten() {
+        const schade = (this.schip?.maxHP ?? 0) - (this.schipHP ?? 0);
+        if (schade <= 0) return 0;
+        const prijs = this.locatie === 'techton' ? 6 : 12;
+        return schade * prijs;
+    }
+
     repareerSchip() {
-        const kosten = 350;
+        const kosten = this.berekenReparatieKosten();
+        if (kosten === 0) return { succes: false, reden: 'Je schip heeft geen schade.' };
         if (this.speler.krediet < kosten) return { succes: false, reden: 'Onvoldoende krediet voor reparatie.' };
+        const gerepareerd = (this.schip?.maxHP ?? 0) - this.schipHP;
         this.speler.krediet -= kosten;
-        this.schipBeschadigd = false;
-        this.voegBerichtToe(`Schip gerepareerd voor ${this.formatteerKrediet(kosten)}.`, 'succes');
+        this.schipHP = this.schip.maxHP;
+        this.voegBerichtToe(`Schip volledig gerepareerd (+${gerepareerd} HP) voor ${this.formatteerKrediet(kosten)}.`, 'succes');
         return { succes: true };
     }
 
@@ -1025,7 +1049,7 @@ class GameState {
             ...nieuwSchip,
             heeftRadar: this.schip.heeftRadar,
         };
-        this.schipBeschadigd = false;
+        this.schipHP = nieuwSchip.maxHP;
 
         // Herbereken eenmalige upgrades
         this.gekochteUpgrades = upgradesNieuw;
@@ -1242,7 +1266,7 @@ class GameState {
                 speler: this.speler,
                 schip: this.schip,
                 lading: this.lading,
-                schipBeschadigd: this.schipBeschadigd,
+                schipHP: this.schipHP,
                 locatie: this.locatie,
                 beurt: this.beurt,
                 planetPrijzen: this.planetPrijzen,
@@ -1300,6 +1324,9 @@ class GameState {
             if (Array.isArray(this.passagiers)) this.passagiers = this.passagiers.length;
             if (!this.passagiersTicketprijs) this.passagiersTicketprijs = 0;
             if (!this.wachtendePassagiers) { this.wachtendePassagiers = {}; this.initPassagiers(); }
+            // Migratie: old saves had schipBeschadigd boolean, new system uses schipHP
+            delete this.schipBeschadigd;
+            if (!this.schipHP || this.schipHP === 0) this.schipHP = this.schip?.maxHP ?? 40;
             return true;
         } catch(e) {
             return false;

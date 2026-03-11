@@ -120,6 +120,7 @@ const SCHEPEN = [
         kleur: '#888',
         passagiersCapaciteit: 4,
         brandstofTank: 80,
+        maxHP: 40,
     },
     {
         id: 'handelaar',
@@ -133,6 +134,7 @@ const SCHEPEN = [
         kleur: '#4a9eff',
         passagiersCapaciteit: 8,
         brandstofTank: 110,
+        maxHP: 60,
     },
     {
         id: 'vleugelschipper',
@@ -146,6 +148,7 @@ const SCHEPEN = [
         kleur: '#ff6b35',
         passagiersCapaciteit: 12,
         brandstofTank: 70,
+        maxHP: 50,
     },
 ];
 

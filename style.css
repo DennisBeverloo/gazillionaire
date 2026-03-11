@@ -1368,6 +1368,12 @@ body[data-planeet="mortex"]  { --planet-accent: #8b0000; }
     font-family: var(--font-data);
     font-size: 1.05em;
 }
+.bestemming-meta-rij {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-data);
+    font-size: 0.85em;
+}
 
 /* ===== BRANDSTOF SECTIE ===== */
 .brandstof-sectie {
