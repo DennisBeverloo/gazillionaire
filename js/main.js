@@ -305,15 +305,21 @@ const App = {
     // UPGRADES & SCHIP
     // =========================================================================
 
+    _snapBrandstofPct() {
+        return state.schip?.brandstofTank ? Math.round(state.brandstof / state.schip.brandstofTank * 100) : 0;
+    },
+
     koopBrandstof() {
         const n = parseInt(document.getElementById('brandstof-aantal')?.value) || 10;
+        const pctVoor = this._snapBrandstofPct();
         const res = state.koopBrandstof(n);
-        if (!res.succes) this._fout(res.reden); else { UI._animeerBrandstof = true; UI.renderSpel(); }
+        if (!res.succes) this._fout(res.reden); else { UI._animeerBrandstof = true; UI._brandstofPctVoor = pctVoor; UI.renderSpel(); }
     },
 
     vulTankVol() {
+        const pctVoor = this._snapBrandstofPct();
         const res = state.vulTankVol();
-        if (!res.succes) this._fout(res.reden); else { UI._animeerBrandstof = true; UI.renderSpel(); }
+        if (!res.succes) this._fout(res.reden); else { UI._animeerBrandstof = true; UI._brandstofPctVoor = pctVoor; UI.renderSpel(); }
     },
 
     koopMaxBrandstof() {
@@ -321,8 +327,9 @@ const App = {
         const vrij = state.schip.brandstofTank - state.brandstof;
         const maxAantal = Math.min(vrij, Math.floor(state.speler.krediet / prijs));
         if (maxAantal <= 0) return;
+        const pctVoor = this._snapBrandstofPct();
         const res = state.koopBrandstof(maxAantal);
-        if (!res.succes) this._fout(res.reden); else { UI._animeerBrandstof = true; UI.renderSpel(); }
+        if (!res.succes) this._fout(res.reden); else { UI._animeerBrandstof = true; UI._brandstofPctVoor = pctVoor; UI.renderSpel(); }
     },
 
     boardPassagiers() {
