@@ -139,7 +139,7 @@ const UI = {
         const maxLading = state.schip?.laadruimte ?? 0;
         el('cargo-display').textContent = `📦 ${geladen}/${maxLading} ton`;
 
-        const pax = state.passagiers?.length ?? 0;
+        const pax = state.passagiers ?? 0;
         const maxPax = state.schip?.passagiersCapaciteit ?? 0;
         el('passagiers-display').textContent = `🧳 ${pax}/${maxPax}`;
 
@@ -211,14 +211,14 @@ const UI = {
                         : geladen.map(g => `<div class="tt-rij"><span>${g.icoon} ${g.naam}</span><span>${state.lading[g.id]}×</span></div>`).join('')}`;
             }
             case 'passagiers-display': {
-                const pax = state.passagiers || [];
+                const pax = state.passagiers ?? 0;
+                const prijs = state.passagiersTicketprijs ?? 0;
+                const wachtend = state.wachtendePassagiers?.[state.locatie]?.aantal ?? 0;
                 return `<div class="tt-label">Passagiers</div>
-                    ${pax.length === 0
-                        ? '<div class="tt-leeg">Geen passagiers aan boord</div>'
-                        : pax.map(p => {
-                            const best = PLANETEN.find(pl => pl.id === p.bestemming)?.naam ?? p.bestemming;
-                            return `<div class="tt-rij"><span>👤 ${p.naam} → ${best}</span><span class="tt-prijs">${state.formatteerKrediet(p.vergoeding)}</span></div>`;
-                          }).join('')}`;
+                    <div class="tt-rij"><span>Aan boord</span><span class="tt-prijs">${pax}</span></div>
+                    ${pax > 0 ? `<div class="tt-rij"><span>Ticketprijs</span><span class="tt-prijs">${state.formatteerKrediet(prijs)}/pp</span></div>
+                    <div class="tt-rij"><span>Verwachte inkomsten</span><span class="tt-prijs kleur-groen">+${state.formatteerKrediet(pax * prijs)}</span></div>` : ''}
+                    <div class="tt-rij"><span>Wachtend hier</span><span class="tt-prijs">${wachtend}</span></div>`;
             }
             case 'brandstof-display': {
                 const prijs = state.brandstofPrijzen?.[state.locatie] ?? '?';
@@ -620,32 +620,20 @@ const UI = {
 
         // === PASSAGIERS ===
         const maxPax = state.schip?.passagiersCapaciteit || 0;
-        const wachtend = state.passagiersWachtend?.[state.locatie] || [];
-        const aanBoord = state.passagiers || [];
+        const aanBoord = state.passagiers ?? 0;
+        const wachtendObj = state.wachtendePassagiers?.[state.locatie] || { aantal: 0, prijs: 0 };
         let paxHtml = '';
         if (maxPax === 0) {
             paxHtml = `<div class="kleur-dimmed" style="font-size:0.85em">Je huidige schip heeft geen passagiersruimte.</div>`;
         } else {
-            paxHtml = `<div style="font-size:0.85em;margin-bottom:6px">Aan boord: <strong>${aanBoord.length}/${maxPax}</strong></div>`;
-            if (aanBoord.length > 0) {
-                paxHtml += '<div class="passagiers-lijst">';
-                aanBoord.forEach(p => {
-                    const bestNaam = PLANETEN.find(pl => pl.id === p.bestemming)?.naam ?? p.bestemming;
-                    paxHtml += `<div class="passagier-rij aan-boord"><span>👤 ${p.naam}</span><span class="kleur-dimmed">→ ${bestNaam}</span><span class="kleur-goud">+${state.formatteerKrediet(p.vergoeding)}</span></div>`;
-                });
-                paxHtml += '</div>';
-            }
-            if (wachtend.length > 0) {
-                paxHtml += '<div class="sectie-sub-header">Wachten op vervoer</div><div class="passagiers-lijst">';
-                wachtend.forEach((p, i) => {
-                    const bestNaam = PLANETEN.find(pl => pl.id === p.bestemming)?.naam ?? p.bestemming;
-                    const kanNemen = aanBoord.length < maxPax;
-                    paxHtml += `<div class="passagier-rij"><span>👤 ${p.naam}</span><span class="kleur-dimmed">→ ${bestNaam}</span><span class="kleur-goud">${state.formatteerKrediet(p.vergoeding)}</span><button class="knop succes klein" ${!kanNemen ? 'disabled' : ''} onclick="App.neemPassagierAanBoord(${i})">Neem mee</button></div>`;
-                });
-                paxHtml += '</div>';
-            } else if (aanBoord.length === 0) {
-                paxHtml += '<div class="kleur-dimmed" style="font-size:0.83em">Geen passagiers wachten hier op vervoer.</div>';
-            }
+            const verwacht = aanBoord > 0 ? aanBoord * (state.passagiersTicketprijs || 0) : null;
+            paxHtml = `<div class="pax-info-raster">
+                <div class="pax-info-rij"><span class="kleur-dimmed">Aan boord</span><strong>${aanBoord}/${maxPax}</strong></div>
+                <div class="pax-info-rij"><span class="kleur-dimmed">Wachtend</span><strong>${wachtendObj.aantal}</strong></div>
+                <div class="pax-info-rij"><span class="kleur-dimmed">Ticketprijs</span><strong class="kleur-groen">${state.formatteerKrediet(wachtendObj.prijs)}/pp</strong></div>
+                ${verwacht !== null ? `<div class="pax-info-rij"><span class="kleur-dimmed">Bij aankomst</span><strong class="kleur-goud">+${state.formatteerKrediet(verwacht)}</strong></div>` : ''}
+            </div>
+            <div class="kleur-dimmed" style="font-size:0.8em;margin-top:10px">Passagiers stappen automatisch in bij vertrek en betalen bij aankomst.</div>`;
         }
         html += `<div class="haven-blok"><div class="haven-blok-header">🧳 Passagiers</div><div class="haven-blok-inhoud">${paxHtml}</div></div>`;
 
@@ -661,7 +649,7 @@ const UI = {
                 mktHtml = `<div class="kleur-groen" style="font-size:0.88em">✓ Campagne actief voor <strong>${selPNaam}</strong> — extra passagiers wachten bij aankomst.</div>`;
             } else {
                 const kanBetalen = state.speler.krediet >= mKosten;
-                mktHtml = `<div style="font-size:0.85em;margin-bottom:8px">Reclamecampagne voor <strong>${selPNaam}</strong>. Bij aankomst wachten 5 extra passagiers op je.</div>
+                mktHtml = `<div style="font-size:0.85em;margin-bottom:8px">Reclamecampagne voor <strong>${selPNaam}</strong>. Bij aankomst: +8 wachtende passagiers en hogere ticketprijs (+50 cr/pp).</div>
                     <button class="knop primair klein" onclick="App.koopMarketing('${selP}')" ${(!kanBetalen || heeftAndereCampagne) ? 'disabled' : ''}>Start campagne (${state.formatteerKrediet(mKosten)})</button>
                     ${heeftAndereCampagne ? `<div class="kleur-dimmed" style="font-size:0.8em;margin-top:6px">⚠ Al een actieve campagne.</div>` : ''}`;
             }

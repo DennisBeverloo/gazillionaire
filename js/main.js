@@ -151,6 +151,7 @@ const App = {
         const res = state.reisNaar(planeetId);
         if (!res || res === false) return;
         if (res.succes === false) { this._fout(res.reden); return; }
+        state.boardPassagiers();
         state.geselecteerdePlaneet = null;
 
         UI.toonScherm('reis-scherm');
@@ -363,11 +364,6 @@ const App = {
     // =========================================================================
     // PASSAGIERS
     // =========================================================================
-
-    neemPassagierAanBoord(index) {
-        const res = state.neemPassagierAanBoord(index);
-        if (!res.succes) this._fout(res.reden); else UI.renderSpel();
-    },
 
     koopMarketing(planeetId) {
         const res = state.koopMarketing(planeetId);

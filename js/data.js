@@ -118,7 +118,7 @@ const SCHEPEN = [
         laadruimte: 30,
         schild: 1,
         kleur: '#888',
-        passagiersCapaciteit: 0,
+        passagiersCapaciteit: 4,
         brandstofTank: 80,
     },
     {
@@ -131,7 +131,7 @@ const SCHEPEN = [
         laadruimte: 50,
         schild: 2,
         kleur: '#4a9eff',
-        passagiersCapaciteit: 2,
+        passagiersCapaciteit: 8,
         brandstofTank: 110,
     },
     {
@@ -144,7 +144,7 @@ const SCHEPEN = [
         laadruimte: 35,
         schild: 1,
         kleur: '#ff6b35',
-        passagiersCapaciteit: 4,
+        passagiersCapaciteit: 12,
         brandstofTank: 70,
     },
 ];

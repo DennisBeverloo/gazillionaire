@@ -66,8 +66,9 @@ class GameState {
         this.nettoWaardeGeschiedenisSpeler = [];
 
         // Passagiers
-        this.passagiers = [];               // [{bestemming, vergoeding, naam}] — on board
-        this.passagiersWachtend = {};       // {planeetId: [{bestemming, vergoeding, naam}]}
+        this.passagiers = 0;               // aantal aan boord (int)
+        this.passagiersTicketprijs = 0;    // prijs per passagier voor huidige rit
+        this.wachtendePassagiers = {};     // {planeetId: { aantal: int, prijs: int }}
 
         // Brandstof
         this.brandstof = 0;                 // huidige brandstof
@@ -318,29 +319,30 @@ class GameState {
         this.reisData = null;
         this.bezochteplaneten.add(this.locatie);
 
-        // Lever passagiers af die hun bestemming bereikt hebben
+        // Lever passagiers af
         let passagiersInfo = null;
-        const aangekomenen = this.passagiers.filter(p => p.bestemming === this.locatie);
-        if (aangekomenen.length > 0) {
-            const totaal = aangekomenen.reduce((s, p) => s + p.vergoeding, 0);
+        if (this.passagiers > 0) {
+            const totaal = this.passagiers * this.passagiersTicketprijs;
             this.speler.krediet += totaal;
-            this.statistieken.passagiersAfgeleverd += aangekomenen.length;
-            this.passagiers = this.passagiers.filter(p => p.bestemming !== this.locatie);
-            this.voegBerichtToe(`${aangekomenen.length} passagier(s) afgeleverd. +${this.formatteerKrediet(totaal)}`, 'goud');
-            passagiersInfo = { aantal: aangekomenen.length, totaal, namen: aangekomenen.map(p => p.naam) };
+            this.statistieken.passagiersAfgeleverd += this.passagiers;
+            passagiersInfo = { aantal: this.passagiers, totaal };
+            this.voegBerichtToe(`${this.passagiers} passagier(s) afgeleverd. +${this.formatteerKrediet(totaal)}`, 'goud');
+            this.passagiers = 0;
+            this.passagiersTicketprijs = 0;
         }
 
         if (this.brandstof < 10) this._aangekomendMetLageBrandstof = true;
         this.voegBerichtToe(`Aangekomen op ${planeet.naam}! Brandstof: ${this.brandstof}/${this.schip.brandstofTank}`, 'succes');
 
         // Controleer marketingcampagne — geldt alleen als we op de geplande planeet aankomen
-        let marketingBonus = 0;
+        let bonusAantal = 0, bonusPrijs = 0;
         if (this.marketingActief && this.marketingActief.planeet === this.locatie) {
-            marketingBonus = 5;
-            this.voegBerichtToe(`📢 Reclamecampagne actief! Er wachten extra passagiers op je.`, 'info');
+            bonusAantal = 8;
+            bonusPrijs = 50;
+            this.voegBerichtToe(`📢 Reclamecampagne actief! Meer passagiers en hogere ticketprijs.`, 'info');
             this.marketingActief = null;
         }
-        this.genereerPassagiersVoorPlaneet(this.locatie, marketingBonus);
+        this.genereerPassagiersVoorPlaneet(this.locatie, bonusAantal, bonusPrijs);
 
         // Planeet aankomst event
         const aankomstEvent = this._bepaalAankomstEvent();
@@ -402,40 +404,28 @@ class GameState {
         this.voegBerichtToe(`${event.icoon} ${event.naam}: ${event.beschrijving}`, 'waarschuwing');
     }
 
-    genereerPassagiersVoorPlaneet(planeetId, bonusAantal = 0) {
-        const andere = PLANETEN.filter(p => p.id !== planeetId);
-        const namen = ['Lyra Voss', 'Dr. Kael', 'Handelaar Rin', 'Senator Dara', 'Engr. Mika', 'Wren Zo', 'Kapitein Sura', 'Agent Nox'];
-        const aantal = Math.floor(Math.random() * 4) + 2 + bonusAantal;
-        const passagiers = [];
-        for (let i = 0; i < aantal; i++) {
-            const best = andere[Math.floor(Math.random() * andere.length)];
-            const afstand = this.berekenAfstand(planeetId, best.id);
-            const vergoeding = Math.round(80 + afstand * 3.5 + Math.random() * 120);
-            passagiers.push({
-                bestemming: best.id,
-                vergoeding,
-                naam: namen[Math.floor(Math.random() * namen.length)],
-            });
-        }
-        this.passagiersWachtend[planeetId] = passagiers;
+    genereerPassagiersVoorPlaneet(planeetId, bonusAantal = 0, bonusPrijs = 0) {
+        const aantal = Math.floor(Math.random() * 6) + 3 + bonusAantal;  // 3-8 wachtend
+        const prijs  = Math.round(150 + Math.random() * 100 + bonusPrijs);
+        this.wachtendePassagiers[planeetId] = { aantal, prijs };
     }
 
     initPassagiers() {
-        PLANETEN.forEach(p => { this.passagiersWachtend[p.id] = []; });
+        PLANETEN.forEach(p => { this.wachtendePassagiers[p.id] = { aantal: 0, prijs: 0 }; });
         this.genereerPassagiersVoorPlaneet(this.locatie);
     }
 
-    neemPassagierAanBoord(index) {
-        const wachtend = this.passagiersWachtend[this.locatie] || [];
-        if (!wachtend[index]) return { succes: false, reden: 'Passagier niet gevonden.' };
-        const maxPax = this.schip.passagiersCapaciteit || 0;
-        if (this.passagiers.length >= maxPax) return { succes: false, reden: 'Geen passagiersplaatsen beschikbaar!' };
-        const pax = wachtend.splice(index, 1)[0];
-        this.passagiers.push(pax);
-        const best = PLANETEN.find(p => p.id === pax.bestemming)?.naam ?? pax.bestemming;
-        this.voegBerichtToe(`${pax.naam} aan boord. Bestemming: ${best}. Vergoeding: ${this.formatteerKrediet(pax.vergoeding)}`, 'info');
-        this.controleerAchievements();
-        return { succes: true };
+    boardPassagiers() {
+        const cap = this.schip?.passagiersCapaciteit || 0;
+        if (cap === 0) return;
+        const wachtend = this.wachtendePassagiers[this.locatie] || { aantal: 0, prijs: 0 };
+        const instappers = Math.min(wachtend.aantal, cap - this.passagiers);
+        if (instappers > 0) {
+            this.passagiers += instappers;
+            this.passagiersTicketprijs = wachtend.prijs;
+            this.wachtendePassagiers[this.locatie].aantal -= instappers;
+            this.voegBerichtToe(`${instappers} passagier(s) aan boord. Ticketprijs: ${this.formatteerKrediet(wachtend.prijs)}/pp`, 'info');
+        }
     }
 
     // =========================================================================
@@ -454,7 +444,7 @@ class GameState {
         const planeetNaam = PLANETEN.find(p => p.id === planeetId)?.naam ?? planeetId;
         this.speler.krediet -= kosten;
         this.marketingActief = { planeet: planeetId, kosten };
-        this.voegBerichtToe(`📢 Reclamecampagne gestart voor ${planeetNaam} (${this.formatteerKrediet(kosten)}). +5 extra passagiers bij aankomst!`, 'info');
+        this.voegBerichtToe(`📢 Reclamecampagne gestart voor ${planeetNaam} (${this.formatteerKrediet(kosten)}). Bij aankomst: +8 passagiers en hogere ticketprijs!`, 'info');
         return { succes: true };
     }
 
@@ -741,10 +731,10 @@ class GameState {
             case 'lifter': {
                 if (keuzeId === 'meenemen') {
                     const maxPax = this.schip.passagiersCapaciteit || 0;
-                    if (this.passagiers.length < maxPax) {
-                        const vergoeding = this._lifterVergoeding || Math.round(100 + Math.random() * 200);
-                        this.passagiers.push({ bestemming: this.reisData?.naar ?? '', vergoeding, naam: 'Lifter' });
-                        resultaat.bericht = `Lifter aan boord! Vergoeding bij aankomst: ${this.formatteerKrediet(vergoeding)}.`;
+                    if (this.passagiers < maxPax) {
+                        this.passagiers += 1;
+                        if (this.passagiersTicketprijs === 0) this.passagiersTicketprijs = Math.round(150 + Math.random() * 100);
+                        resultaat.bericht = `Lifter aan boord! Betaalt bij aankomst: ${this.formatteerKrediet(this.passagiersTicketprijs)}.`;
                     } else {
                         resultaat.bericht = 'Je schip heeft geen vrije passagiersplaatsen.';
                     }
@@ -1279,7 +1269,8 @@ class GameState {
                 aandeelAankoopPrijzen: this.aandeelAankoopPrijzen,
                 aandeelAankoopAantallen: this.aandeelAankoopAantallen,
                 passagiers: this.passagiers,
-                passagiersWachtend: this.passagiersWachtend,
+                passagiersTicketprijs: this.passagiersTicketprijs,
+                wachtendePassagiers: this.wachtendePassagiers,
                 brandstof: this.brandstof,
                 brandstofPrijzen: this.brandstofPrijzen,
                 eindeReden: this.eindeReden || null,
@@ -1305,6 +1296,10 @@ class GameState {
             this.reisData = null;
             this.geselecteerdePlaneet = null;
             if (!this.upgradeNiveaus) this.upgradeNiveaus = { motor: 0, ruim: 0, brandstofTank: 0, passagiers: 0 };
+            // Migratie: old saves had passagiers as array
+            if (Array.isArray(this.passagiers)) this.passagiers = this.passagiers.length;
+            if (!this.passagiersTicketprijs) this.passagiersTicketprijs = 0;
+            if (!this.wachtendePassagiers) { this.wachtendePassagiers = {}; this.initPassagiers(); }
             return true;
         } catch(e) {
             return false;
