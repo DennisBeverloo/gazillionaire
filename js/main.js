@@ -133,12 +133,14 @@ const App = {
     klikPlaneet(planeetId) {
         if (planeetId === state.locatie) return;
         state.geselecteerdePlaneet = planeetId;
-        state.activeTab = 'haven';
-        UI.renderSpel();
-        setTimeout(() => {
-            const rij = document.querySelector(`[data-planeet="${planeetId}"]`);
-            if (rij) rij.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }, 80);
+        UI.renderBestemmingPaneel();
+        UI.renderKaart();
+    },
+
+    selecteerBestemming(planeetId) {
+        state.geselecteerdePlaneet = planeetId || null;
+        UI.renderBestemmingPaneel();
+        UI.renderKaart();
     },
 
     // =========================================================================

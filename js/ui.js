@@ -80,7 +80,23 @@ const UI = {
     renderBestemmingPaneel() {
         const container = document.getElementById('bestemming-paneel-container');
         if (!container) return;
-        if (!state.geselecteerdePlaneet) { container.innerHTML = ''; return; }
+
+        // Geen bestemming geselecteerd: toon dropdown
+        if (!state.geselecteerdePlaneet) {
+            const opties = PLANETEN
+                .filter(p => p.id !== state.locatie)
+                .map(p => `<option value="${p.id}">${p.naam}${p.isGevaarlijk ? ' ⚠' : ''}</option>`)
+                .join('');
+            container.innerHTML = `<div class="bestemming-paneel">
+                <div class="bestemming-label">Bestemming</div>
+                <select class="bestemming-dropdown" onchange="App.selecteerBestemming(this.value)">
+                    <option value="">— Kies je bestemming —</option>
+                    ${opties}
+                </select>
+            </div>`;
+            return;
+        }
+
         const dest = PLANETEN.find(p => p.id === state.geselecteerdePlaneet);
         if (!dest) { container.innerHTML = ''; return; }
 
@@ -100,17 +116,17 @@ const UI = {
             .slice(0, 3).map(g => `${g.icoon} ${g.naam}`);
 
         container.innerHTML = `<div class="bestemming-paneel">
+            <div class="bestemming-label">Bestemming
+                <button class="bestemming-wijzig" onclick="App.selecteerBestemming('')">✕ Wijzig</button>
+            </div>
             <div class="bestemming-paneel-naam">
                 <span class="planeet-bol" style="background:${dest.kleur};width:13px;height:13px"></span>
                 <strong>${dest.naam}</strong>
                 ${dest.isGevaarlijk ? '<span class="kleur-rood" style="font-size:0.78em">⚠ Gevaarlijk</span>' : ''}
             </div>
-            <p class="kleur-dimmed" style="font-size:0.8em;margin:5px 0 6px;line-height:1.35">${dest.beschrijving}</p>
             <div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0">
                 ${goedkoop.length ? `<span class="badge-groen">↓ ${goedkoop.join(', ')}</span>` : ''}
                 ${duur.length ? `<span class="badge-rood">↑ ${duur.join(', ')}</span>` : ''}
-                ${dest.heeftBank ? '<span class="kleur-dimmed" style="font-size:0.8em">🏦 Bank</span>' : ''}
-                ${dest.heeftWerf ? '<span class="kleur-dimmed" style="font-size:0.8em">🛠 Werf</span>' : ''}
             </div>
             <div class="brandstof-vereist ${heeftGenoeg ? '' : 'brandstof-tekort'}">
                 ⛽ ${brandstofNodig} l
@@ -145,6 +161,15 @@ const UI = {
         const brandstof = state.brandstof ?? 0;
         const maxBrandstof = state.schip?.brandstofTank ?? 0;
         el('brandstof-display').textContent = `⛽ ${brandstof}/${maxBrandstof} l`;
+
+        const kredietEl = el('krediet-display');
+        kredietEl.textContent = `💰 ${state.formatteerKrediet(state.speler.krediet)}`;
+        kredietEl.classList.toggle('krediet-negatief', state.speler.krediet < 0);
+
+        const rest = MAX_BEURTEN - state.beurt;
+        const beurtEl = el('beurt-display');
+        beurtEl.textContent = `Beurt ${state.beurt}/${MAX_BEURTEN}`;
+        beurtEl.style.color = rest <= 20 ? 'var(--rood)' : rest <= 40 ? 'var(--oranje)' : '';
     },
 
     // =========================================================================
@@ -153,7 +178,9 @@ const UI = {
 
     initTopBalkTooltips() {
         const tooltip = document.getElementById('top-tooltip');
-        const ids = ['schip-naam-display', 'cargo-display', 'passagiers-display', 'brandstof-display'];
+
+        // Top balk hover items
+        const ids = ['schip-naam-display', 'cargo-display', 'passagiers-display', 'brandstof-display', 'krediet-display'];
         ids.forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
@@ -166,6 +193,18 @@ const UI = {
                 this._positioneerTooltip(tooltip, el);
             });
             el.addEventListener('mouseleave', () => tooltip.classList.add('verborgen'));
+        });
+
+        // Planeet-tag [data-tip] delegatie (sidebar wordt dynamisch her-rendered)
+        document.addEventListener('mouseover', e => {
+            const tag = e.target.closest('[data-tip]');
+            if (!tag) return;
+            tooltip.innerHTML = `<div class="tt-label">${tag.textContent.trim()}</div><div class="tt-beschr">${tag.dataset.tip}</div>`;
+            tooltip.classList.remove('verborgen');
+            this._positioneerTooltip(tooltip, tag);
+        });
+        document.addEventListener('mouseout', e => {
+            if (e.target.closest('[data-tip]')) tooltip.classList.add('verborgen');
         });
     },
 
@@ -204,6 +243,15 @@ const UI = {
                     <div class="tt-rij"><span>Niveau</span><span style="color:${kleur}">${state.brandstof}/${state.schip.brandstofTank} l (${pct}%)</span></div>
                     <div class="tt-rij"><span>Prijs hier</span><span class="tt-prijs">${prijs} cr/l</span></div>`;
             }
+            case 'krediet-display': {
+                const schuld = state.speler?.schuld ?? 0;
+                return `<div class="tt-label">Saldo</div>
+                    <div class="tt-rij"><span>Credits</span><span class="tt-prijs">${state.formatteerKrediet(state.speler.krediet)}</span></div>
+                    ${schuld > 0 ? `
+                    <div class="tt-rij"><span>Lening</span><span style="color:var(--rood)">${state.formatteerKrediet(schuld)}</span></div>
+                    <div class="tt-rij"><span>Rente</span><span style="color:var(--oranje)">${(RENTE_PERCENTAGE * 100).toFixed(0)}% per ${RENTE_INTERVAL} beurten</span></div>
+                    ` : ''}`;
+            }
         }
         return null;
     },
@@ -226,10 +274,10 @@ const UI = {
 
         const imgSrc = `assets/planet-${planeet.id}.png`;
         const tags = [];
-        if (planeet.heeftBank)  tags.push('<span class="planeet-tag">💳 Bank</span>');
-        if (planeet.heeftWerf)  tags.push('<span class="planeet-tag">🛸 Scheepswerf</span>');
-        if (planeet.specialiteit?.length) tags.push('<span class="planeet-tag kleur-groen">↓ Goedkoop</span>');
-        if (planeet.vraag?.length)        tags.push('<span class="planeet-tag kleur-oranje">↑ Gevraagd</span>');
+        if (planeet.heeftBank)  tags.push('<span class="planeet-tag" data-tip="Hier kun je geld lenen of een bestaande lening (gedeeltelijk) aflossen.">💳 Bank</span>');
+        if (planeet.heeftWerf)  tags.push('<span class="planeet-tag" data-tip="Hier kun je je schip repareren en upgrades installeren.">🛸 Scheepswerf</span>');
+        if (planeet.specialiteit?.length) tags.push('<span class="planeet-tag kleur-groen" data-tip="Deze planeet produceert bepaalde goederen — die zijn hier goedkoper te koop.">↓ Goedkoop</span>');
+        if (planeet.vraag?.length)        tags.push('<span class="planeet-tag kleur-oranje" data-tip="Bepaalde goederen zijn hier erg gewild en worden voor een hogere prijs opgekocht.">↑ Gevraagd</span>');
 
         container.innerHTML = `
             <div class="planeet-info-kaart" style="background-image:url('${imgSrc}');--planeet-kleur:${planeet.kleur}">
@@ -574,57 +622,6 @@ const UI = {
         const container = document.getElementById('haven-tab');
         const planeet = PLANETEN.find(p => p.id === state.locatie);
         let html = '';
-
-        // === REIZEN ===
-        html += '<div class="sectie-header">🚀 Reisplanner</div>';
-        html += '<div class="planeet-reislijst">';
-
-        const gesorteerd = PLANETEN.filter(p => p.id !== state.locatie);
-
-        // Precompute per-good average price for relative cheap/expensive badges
-        const goedGem = {};
-        GOEDEREN.forEach(g => {
-            goedGem[g.id] = PLANETEN.reduce((sum, pl) => sum + state.getPrijs(pl.id, g.id), 0) / PLANETEN.length;
-        });
-
-        gesorteerd.forEach(p => {
-            const isSel = state.geselecteerdePlaneet === p.id;
-            const goedkoop = GOEDEREN
-                .filter(g => state.getPrijs(p.id, g.id) < goedGem[g.id] * 0.88)
-                .sort((a, b) => (state.getPrijs(p.id, a.id) / goedGem[a.id]) - (state.getPrijs(p.id, b.id) / goedGem[b.id]))
-                .slice(0, 3).map(g => g.naam);
-            const duur = GOEDEREN
-                .filter(g => state.getPrijs(p.id, g.id) > goedGem[g.id] * 1.12)
-                .sort((a, b) => (state.getPrijs(p.id, b.id) / goedGem[b.id]) - (state.getPrijs(p.id, a.id) / goedGem[a.id]))
-                .slice(0, 3).map(g => g.naam);
-
-            const goedkoopEmoji = GOEDEREN
-                .filter(g => state.getPrijs(p.id, g.id) < goedGem[g.id] * 0.88)
-                .sort((a, b) => (state.getPrijs(p.id, a.id) / goedGem[a.id]) - (state.getPrijs(p.id, b.id) / goedGem[b.id]))
-                .slice(0, 3).map(g => `${g.icoon} ${g.naam}`);
-            const duurEmoji = GOEDEREN
-                .filter(g => state.getPrijs(p.id, g.id) > goedGem[g.id] * 1.12)
-                .sort((a, b) => (state.getPrijs(p.id, b.id) / goedGem[b.id]) - (state.getPrijs(p.id, a.id) / goedGem[a.id]))
-                .slice(0, 3).map(g => `${g.icoon} ${g.naam}`);
-
-            html += `<div class="planeet-rij ${isSel ? 'geselecteerd' : ''}" data-planeet="${p.id}" onclick="App.klikPlaneet('${p.id}')">
-                <div class="planeet-rij-foto" style="--planeet-kleur:${p.kleur}">
-                    <img src="assets/planet-${p.id}.png" alt="${p.naam}" onerror="this.style.opacity='0'">
-                </div>
-                <div class="planeet-rij-inhoud">
-                    <div class="planeet-rij-hoofdlijn">
-                        <strong class="planeet-rij-naam">${p.naam}</strong>
-                        ${p.isGevaarlijk ? '<span class="kleur-rood" style="font-size:0.75em">⚠ Gevaarlijk</span>' : ''}
-                        <button class="knop dimmed klein" onclick="event.stopPropagation();App.klikPlaneet('${p.id}')">Kies →</button>
-                    </div>
-                    <div class="planeet-rij-details">
-                        ${goedkoopEmoji.length ? `<span class="badge-groen">↓ ${goedkoopEmoji.join(', ')}</span>` : ''}
-                        ${duurEmoji.length ? `<span class="badge-rood">↑ ${duurEmoji.join(', ')}</span>` : ''}
-                    </div>
-                </div>
-            </div>`;
-        });
-        html += '</div>';
 
         // === REPARATIE (indien beschadigd) ===
         if (state.schipBeschadigd) {

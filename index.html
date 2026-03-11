@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gazillionaire</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>">
-    <link rel="stylesheet" href="style.css?v=2.6.4">
+    <link rel="stylesheet" href="style.css?v=2.6.5">
 </head>
 <body>
 
@@ -63,7 +63,7 @@
      ============================================================ -->
 <div id="spel-scherm" class="scherm">
 
-    <!-- Top balk: logo | kapitein | schip | cargo | passagiers | brandstof -->
+    <!-- Top balk: logo | kapitein | schip | cargo | passagiers | brandstof — rechts: credits | beurt | ⚙ -->
     <div id="top-balk">
         <span class="game-logo">✦ GAZILLIONAIRE</span>
         <span class="scheidslijn">|</span>
@@ -76,6 +76,9 @@
         <span id="passagiers-display">🧳 0/0</span>
         <span class="scheidslijn">|</span>
         <span id="brandstof-display">⛽ 0/0 l</span>
+        <span id="krediet-display">💰 0 credits</span>
+        <span class="scheidslijn">|</span>
+        <span id="beurt-display">Beurt 0/150</span>
         <button class="top-instellingen-knop" onclick="UI.toonInstellingen()" title="Instellingen">⚙</button>
     </div>
 
@@ -231,9 +234,9 @@
 <div id="transactie-toast"></div>
 
 <!-- Scripts -->
-<script src="js/data.js?v=2.6.4"></script>
-<script src="js/state.js?v=2.6.4"></script>
-<script src="js/ui.js?v=2.6.4"></script>
-<script src="js/main.js?v=2.6.4"></script>
+<script src="js/data.js?v=2.6.5"></script>
+<script src="js/state.js?v=2.6.5"></script>
+<script src="js/ui.js?v=2.6.5"></script>
+<script src="js/main.js?v=2.6.5"></script>
 </body>
 </html>

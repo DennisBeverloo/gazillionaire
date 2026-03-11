@@ -290,7 +290,15 @@ html, body {
     z-index: 20;
     backdrop-filter: blur(8px);
 }
-.top-instellingen-knop { margin-left: auto; }
+#krediet-display { margin-left: auto; }
+#krediet-display, #beurt-display {
+    font-family: var(--font-data);
+    font-size: 0.85em;
+    white-space: nowrap;
+}
+#krediet-display { color: var(--goud); cursor: default; border-radius: 4px; padding: 2px 4px; transition: background 0.15s; }
+#krediet-display:hover { background: rgba(255,255,255,0.07); }
+#beurt-display { color: var(--tekst-dim); }
 
 /* Top balk tooltips */
 .top-tooltip {
@@ -1489,6 +1497,9 @@ body[data-planeet="mortex"]  { --planet-accent: #8b0000; }
 
 /* ===== BESTEMMING LABEL ===== */
 .bestemming-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     font-size: 0.68em;
     text-transform: uppercase;
     letter-spacing: 0.12em;
@@ -1496,3 +1507,34 @@ body[data-planeet="mortex"]  { --planet-accent: #8b0000; }
     font-family: var(--font-data);
     margin-bottom: 6px;
 }
+.bestemming-wijzig {
+    background: none;
+    border: none;
+    color: var(--tekst-dim);
+    font-size: 1em;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    transition: color 0.2s;
+    text-transform: none;
+    letter-spacing: 0;
+}
+.bestemming-wijzig:hover { color: var(--rood); }
+.bestemming-dropdown {
+    width: 100%;
+    background: var(--bg-diep);
+    border: 1px solid var(--rand-actief);
+    border-radius: 6px;
+    color: var(--tekst);
+    font-family: var(--font-data);
+    font-size: 0.88em;
+    padding: 8px 10px;
+    cursor: pointer;
+    outline: none;
+}
+.bestemming-dropdown:focus { border-color: var(--accent); }
+.bestemming-dropdown option { background: var(--bg-diep); }
+
+/* Planeet-tag tooltip cursor */
+.planeet-tag[data-tip] { cursor: help; }
+.planeet-tag[data-tip]:hover { opacity: 0.85; }
