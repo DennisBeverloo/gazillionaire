@@ -1172,7 +1172,7 @@ html, body {
 .ranglijst-lijst { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
 .ranglijst-rij {
     display: grid;
-    grid-template-columns: 36px 1fr auto auto;
+    grid-template-columns: 36px 1fr auto;
     align-items: center;
     gap: 6px;
     padding: 7px 10px;
@@ -1187,7 +1187,7 @@ html, body {
 }
 .ranglijst-pos { font-size: 1.1em; text-align: center; }
 .ranglijst-naam { font-weight: 500; }
-.ranglijst-type { color: var(--tekst-dim); font-size: 0.82em; text-align: right; }
+.ranglijst-type { color: var(--tekst-dim); font-size: 0.78em; font-weight: normal; margin-left: 5px; }
 .ranglijst-waarde { font-family: var(--font-data); color: var(--goud); text-align: right; white-space: nowrap; }
 
 /* ===== VERMOGENSGRAFIEK ===== */

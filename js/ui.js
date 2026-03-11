@@ -975,8 +975,7 @@ const UI = {
             const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`;
             html += `<div class="ranglijst-rij${d.isSpeler ? ' ranglijst-speler' : ''}">
                 <span class="ranglijst-pos">${medal}</span>
-                <span class="ranglijst-naam" style="color:${d.kleur}">${d.icoon} ${d.naam}</span>
-                <span class="ranglijst-type">${d.type}</span>
+                <span class="ranglijst-naam" style="color:${d.kleur}">${d.icoon} ${d.naam} <span class="ranglijst-type">${d.type}</span></span>
                 <span class="ranglijst-waarde">${state.formatteerKrediet(d.waarde)}</span>
             </div>`;
         });

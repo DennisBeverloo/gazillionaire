@@ -33,7 +33,7 @@ class GameState {
         this.gekochteUpgrades = [];
         this.geselecteerdePlaneet = null; // for map click
         this.tipsGezien = {};
-        this.statistieken = { handelstransacties: 0, gereisd: 0, eventsMeegemaakt: 0, passagiersAfgeleverd: 0 };
+        this.statistieken = { handelstransacties: 0, gereisd: 0, eventsMeegemaakt: 0, passagiersAfgeleverd: 0, verkopen: 0 };
 
         // Nieuwe velden
         this.aankoopPrijzen = {};       // gemiddelde aankoopprijs per goed
@@ -45,6 +45,8 @@ class GameState {
         this._oitLeningGehad = false;
         this._piratenOntkomingen = 0;
         this._aangekomendMetLageBrandstof = false;
+        this._beursWinstTotaal = 0;
+        this._beursBesteDeal = 0;
 
         // Aandeel aankoopprijs tracking
         this.aandeelAankoopPrijzen = {};    // weighted avg purchase price per stock
@@ -902,6 +904,7 @@ class GameState {
         this.lading[goedId] -= aantal;
         this.speler.krediet += totaal;
         this.statistieken.handelstransacties++;
+        this.statistieken.verkopen = (this.statistieken.verkopen ?? 0) + 1;
 
         // Werk aankoopregistratie bij
         this.aankoopAantallen[goedId] = Math.max(0, (this.aankoopAantallen[goedId] || 0) - aantal);
@@ -1127,6 +1130,11 @@ class GameState {
             delete this.aandeelAankoopAantallen[aandeelId];
         }
 
+        if (winst !== null && winst > 0) {
+            this._beursWinstTotaal = (this._beursWinstTotaal ?? 0) + winst;
+            if (winst > (this._beursBesteDeal ?? 0)) this._beursBesteDeal = winst;
+        }
+
         const naam = AANDELEN.find(a => a.id === aandeelId).naam;
         let winstTekst = '';
         if (winst !== null) {
@@ -1266,6 +1274,8 @@ class GameState {
                 _oitLeningGehad: this._oitLeningGehad,
                 _piratenOntkomingen: this._piratenOntkomingen,
                 _aangekomendMetLageBrandstof: this._aangekomendMetLageBrandstof,
+                _beursWinstTotaal: this._beursWinstTotaal,
+                _beursBesteDeal: this._beursBesteDeal,
                 aandeelAankoopPrijzen: this.aandeelAankoopPrijzen,
                 aandeelAankoopAantallen: this.aandeelAankoopAantallen,
                 passagiers: this.passagiers,
