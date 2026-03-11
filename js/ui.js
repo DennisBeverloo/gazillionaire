@@ -612,6 +612,29 @@ const UI = {
             }
         }
 
+        // === MARKETING ===
+        const selP = state.geselecteerdePlaneet;
+        if (maxPax > 0 && selP && selP !== state.locatie) {
+            const mKosten = state.berekenMarketingKosten(selP);
+            const selPNaam = PLANETEN.find(p => p.id === selP)?.naam ?? selP;
+            const isActief = state.marketingActief?.planeet === selP;
+            const heeftAndereCampagne = state.marketingActief && state.marketingActief.planeet !== selP;
+
+            html += `<div class="sectie-header" style="margin-top:18px">📢 Marketing</div>`;
+            if (isActief) {
+                html += `<div class="info-balk kleur-groen">✓ Campagne actief voor <strong>${selPNaam}</strong> — bij aankomst wachten er extra passagiers op je.</div>`;
+            } else {
+                const kanBetalen = state.speler.krediet >= mKosten;
+                html += `<div class="lening-sectie">
+                    <div style="margin-bottom:8px;font-size:0.85em">Start een reclamecampagne gericht op <strong>${selPNaam}</strong>. Bij aankomst wachten 2 extra passagiers op je. Geldt alleen als je daar daadwerkelijk landt.</div>
+                    <button class="knop primair klein" onclick="App.koopMarketing('${selP}')" ${(!kanBetalen || heeftAndereCampagne) ? 'disabled' : ''}>
+                        Start campagne (${state.formatteerKrediet(mKosten)})
+                    </button>
+                    ${heeftAndereCampagne ? `<div class="kleur-dimmed" style="font-size:0.8em;margin-top:6px">⚠ Al een actieve campagne voor ${PLANETEN.find(p => p.id === state.marketingActief.planeet)?.naam ?? '???'}.</div>` : ''}
+                </div>`;
+            }
+        }
+
         // === BRANDSTOF ===
         const bPrijs = state.brandstofPrijzen[state.locatie] || 12;
         const tank = state.schip?.brandstofTank || 80;
@@ -944,6 +967,21 @@ const UI = {
             // Automatische afhandeling — verwerk direct en toon resultaat
             const res = state.verwerkevent(event.id, null);
             if (res.bericht) document.getElementById('event-gevolg').textContent = res.bericht;
+
+            // Update bestemmingsweergave bij omleiding
+            if (res.omleiding) {
+                const nieuwePlaneet = PLANETEN.find(p => p.id === res.omleiding);
+                if (nieuwePlaneet) {
+                    const img   = document.getElementById('reis-planeet-naar-img');
+                    const kleur = document.getElementById('reis-planeet-naar-kleur');
+                    const naam  = document.getElementById('reis-naar-naam');
+                    const best  = document.getElementById('reis-bestemming');
+                    if (img)   { img.src = `assets/planet-${nieuwePlaneet.id}.png`; img.alt = nieuwePlaneet.naam; }
+                    if (kleur) kleur.style.background = `radial-gradient(circle at 35% 35%, ${nieuwePlaneet.kleur}cc, ${nieuwePlaneet.kleur}44 60%, transparent)`;
+                    if (naam)  naam.textContent = nieuwePlaneet.naam;
+                    if (best)  best.textContent = nieuwePlaneet.naam;
+                }
+            }
 
             const btn = document.createElement('button');
             btn.className = 'knop primair';

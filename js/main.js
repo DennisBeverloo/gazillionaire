@@ -306,6 +306,11 @@ const App = {
         if (!res.succes) this._fout(res.reden); else UI.renderSpel();
     },
 
+    koopMarketing(planeetId) {
+        const res = state.koopMarketing(planeetId);
+        if (!res.succes) this._fout(res.reden); else UI.renderSpel();
+    },
+
     // =========================================================================
     // AANDELEN
     // =========================================================================

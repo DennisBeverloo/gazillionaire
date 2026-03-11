@@ -50,6 +50,9 @@ class GameState {
         this.aandeelAankoopPrijzen = {};    // weighted avg purchase price per stock
         this.aandeelAankoopAantallen = {};  // quantities for weighted avg
 
+        // Marketing
+        this.marketingActief = null;        // { planeet: planeetId, kosten } of null
+
         // Passagiers
         this.passagiers = [];               // [{bestemming, vergoeding, naam}] — on board
         this.passagiersWachtend = {};       // {planeetId: [{bestemming, vergoeding, naam}]}
@@ -246,7 +249,15 @@ class GameState {
 
         if (this.brandstof < 10) this._aangekomendMetLageBrandstof = true;
         this.voegBerichtToe(`Aangekomen op ${planeet.naam}! Brandstof: ${this.brandstof}/${this.schip.brandstofTank}`, 'succes');
-        this.genereerPassagiersVoorPlaneet(this.locatie);
+
+        // Controleer marketingcampagne — geldt alleen als we op de geplande planeet aankomen
+        let marketingBonus = 0;
+        if (this.marketingActief && this.marketingActief.planeet === this.locatie) {
+            marketingBonus = 2;
+            this.voegBerichtToe(`📢 Reclamecampagne actief! Er wachten extra passagiers op je.`, 'info');
+            this.marketingActief = null;
+        }
+        this.genereerPassagiersVoorPlaneet(this.locatie, marketingBonus);
 
         // Planeet aankomst event
         const aankomstEvent = this._bepaalAankomstEvent();
@@ -305,10 +316,10 @@ class GameState {
         this.voegBerichtToe(`${event.icoon} ${event.naam}: ${event.beschrijving}`, 'waarschuwing');
     }
 
-    genereerPassagiersVoorPlaneet(planeetId) {
+    genereerPassagiersVoorPlaneet(planeetId, bonusAantal = 0) {
         const andere = PLANETEN.filter(p => p.id !== planeetId);
         const namen = ['Lyra Voss', 'Dr. Kael', 'Handelaar Rin', 'Senator Dara', 'Engr. Mika', 'Wren Zo', 'Kapitein Sura', 'Agent Nox'];
-        const aantal = Math.floor(Math.random() * 3) + 1;
+        const aantal = Math.floor(Math.random() * 3) + 1 + bonusAantal;
         const passagiers = [];
         for (let i = 0; i < aantal; i++) {
             const best = andere[Math.floor(Math.random() * andere.length)];
@@ -338,6 +349,26 @@ class GameState {
         const best = PLANETEN.find(p => p.id === pax.bestemming)?.naam ?? pax.bestemming;
         this.voegBerichtToe(`${pax.naam} aan boord. Bestemming: ${best}. Vergoeding: ${this.formatteerKrediet(pax.vergoeding)}`, 'info');
         this.controleerAchievements();
+        return { succes: true };
+    }
+
+    // =========================================================================
+    // MARKETING
+    // =========================================================================
+
+    berekenMarketingKosten(planeetId) {
+        const afstand = this.berekenAfstand(this.locatie, planeetId);
+        return Math.round(200 + afstand * 8);
+    }
+
+    koopMarketing(planeetId) {
+        if ((this.schip?.passagiersCapaciteit || 0) <= 0) return { succes: false, reden: 'Je schip heeft geen passagiersruimte.' };
+        const kosten = this.berekenMarketingKosten(planeetId);
+        if (this.speler.krediet < kosten) return { succes: false, reden: 'Onvoldoende krediet!' };
+        const planeetNaam = PLANETEN.find(p => p.id === planeetId)?.naam ?? planeetId;
+        this.speler.krediet -= kosten;
+        this.marketingActief = { planeet: planeetId, kosten };
+        this.voegBerichtToe(`📢 Reclamecampagne gestart voor ${planeetNaam} (${this.formatteerKrediet(kosten)}). +2 extra passagiers bij aankomst!`, 'info');
         return { succes: true };
     }
 
@@ -620,6 +651,28 @@ class GameState {
                     resultaat.bericht = `Koelsysteemstoring! ${verloren}× ${goed.naam} zijn bedorven en verloren gegaan.`;
                 } else {
                     resultaat.bericht = 'Koelsysteemstoring, maar je had geen kwetsbare lading. Mazzel!';
+                }
+                break;
+            }
+
+            case 'haven_gesloten':
+            case 'noodlanding': {
+                const geplandNaar = this.reisData?.naar;
+                const van = this.reisData?.van;
+                const alternatieven = PLANETEN.filter(p => p.id !== van && p.id !== geplandNaar);
+                if (alternatieven.length > 0) {
+                    // Kies dichtstbijzijnde alternatief (tov geplande bestemming)
+                    alternatieven.sort((a, b) =>
+                        this.berekenAfstand(geplandNaar, a.id) - this.berekenAfstand(geplandNaar, b.id));
+                    const nieuwDoel = alternatieven[0];
+                    this.reisData.naar = nieuwDoel.id;
+                    resultaat.omleiding = nieuwDoel.id;
+                    const geplandNaam = PLANETEN.find(p => p.id === geplandNaar)?.naam ?? geplandNaar;
+                    resultaat.bericht = eventId === 'haven_gesloten'
+                        ? `De haven van ${geplandNaam} is gesloten vanwege quarantaine. Noodkoers naar ${nieuwDoel.naam}!`
+                        : `Kritische motorstoringen! Noodlanding op ${nieuwDoel.naam} — ${geplandNaam} is niet meer haalbaar.`;
+                } else {
+                    resultaat.bericht = 'Problemen onderweg, maar er is geen alternatieve bestemming beschikbaar.';
                 }
                 break;
             }
@@ -1009,6 +1062,7 @@ class GameState {
                 brandstof: this.brandstof,
                 brandstofPrijzen: this.brandstofPrijzen,
                 eindeReden: this.eindeReden || null,
+                marketingActief: this.marketingActief || null,
             };
             localStorage.setItem('gazillionaire_save', JSON.stringify(data));
         } catch(e) {}
