@@ -132,7 +132,12 @@ const App = {
                     UI.toonScherm('spel-scherm');
                     state.activeTab = 'handel';
                     UI.renderSpel();
-                    if (state.fase === 'einde') UI.toonEindeScherm();
+                    if (state.fase === 'einde') {
+                        UI.toonEindeScherm();
+                    } else if (state.huidigAankomstEvent) {
+                        UI.toonAankomstPopup(state.huidigAankomstEvent);
+                        state.huidigAankomstEvent = null;
+                    }
                 }, 1100);
             });
 
@@ -179,7 +184,12 @@ const App = {
                     UI.toonScherm('spel-scherm');
                     state.activeTab = 'handel';
                     UI.renderSpel();
-                    if (state.fase === 'einde') UI.toonEindeScherm();
+                    if (state.fase === 'einde') {
+                        UI.toonEindeScherm();
+                    } else if (state.huidigAankomstEvent) {
+                        UI.toonAankomstPopup(state.huidigAankomstEvent);
+                        state.huidigAankomstEvent = null;
+                    }
                 }, 1100);
             });
         };
@@ -252,7 +262,10 @@ const App = {
         const nieuw = SCHEPEN.find(s => s.id === schipId);
         const verkoopwaarde = Math.round(SCHEPEN.find(s => s.id === state.schip.id).prijs * 0.60);
         const netto = nieuw.prijs - verkoopwaarde;
-        if (!confirm(`Wil je de ${state.schip.naam} inruilen voor een ${nieuw.naam}?\nNetto betaling: ${state.formatteerKrediet(Math.max(0, netto))}`)) return;
+        const betalingTekst = netto >= 0
+            ? `Netto betaling: ${state.formatteerKrediet(netto)}`
+            : `Je ontvangt: ${state.formatteerKrediet(-netto)} (goedkoper schip)`;
+        if (!confirm(`Wil je de ${state.schip.naam} inruilen voor een ${nieuw.naam}?\n${betalingTekst}`)) return;
         const res = state.koopSchip(schipId);
         if (!res.succes) this._fout(res.reden); else UI.renderSpel();
     },
@@ -281,9 +294,34 @@ const App = {
         if (!res.succes) this._fout(res.reden); else UI.renderSpel();
     },
 
+    koopAandeelN(id, n) {
+        const res = state.koopAandeel(id, n);
+        if (!res.succes) this._fout(res.reden); else UI.renderSpel();
+    },
+
+    koopAandeelMax(id) {
+        const koers = state.aandeelKoersen[id];
+        const maxN = Math.floor(state.speler.krediet / koers);
+        if (maxN <= 0) return;
+        const res = state.koopAandeel(id, maxN);
+        if (!res.succes) this._fout(res.reden); else UI.renderSpel();
+    },
+
     verkoopAandeel(id) {
         const n = parseInt(document.getElementById(`verkoop-aandeel-${id}`)?.value) || 1;
         const res = state.verkoopAandeel(id, n);
+        if (!res.succes) this._fout(res.reden); else UI.renderSpel();
+    },
+
+    verkoopAandeelN(id, n) {
+        const res = state.verkoopAandeel(id, n);
+        if (!res.succes) this._fout(res.reden); else UI.renderSpel();
+    },
+
+    verkoopAandeelAlles(id) {
+        const bezit = state.aandelenPortefeuille[id] || 0;
+        if (bezit <= 0) return;
+        const res = state.verkoopAandeel(id, bezit);
         if (!res.succes) this._fout(res.reden); else UI.renderSpel();
     },
 

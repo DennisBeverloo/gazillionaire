@@ -415,6 +415,72 @@ html, body {
     overflow: hidden;
 }
 
+/* Planeet info kaart */
+#planeet-info-container {
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--rand);
+}
+.planeet-info-kaart {
+    display: flex;
+    gap: 10px;
+    padding: 10px 12px;
+    align-items: flex-start;
+}
+.planeet-afbeelding-wrap {
+    position: relative;
+    width: 72px;
+    height: 72px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 1px solid var(--rand);
+    background: var(--bg-diep);
+}
+.planeet-afbeelding {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.planeet-kleur-fallback {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+}
+.geen-afbeelding .planeet-kleur-fallback {
+    /* Fallback zichtbaar als img niet laadt */
+}
+.planeet-info-tekst {
+    flex: 1;
+    min-width: 0;
+}
+.planeet-info-naam {
+    font-family: var(--font-titel);
+    font-size: 0.95em;
+    letter-spacing: 0.08em;
+    margin-bottom: 4px;
+}
+.planeet-info-beschr {
+    font-size: 0.73em;
+    color: var(--tekst-dim);
+    line-height: 1.45;
+    margin-bottom: 6px;
+}
+.planeet-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+.planeet-tag {
+    font-size: 0.68em;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--rand);
+    color: var(--tekst-dim);
+    white-space: nowrap;
+}
+
 /* Kaart */
 #kaart-container {
     padding: 12px 12px 8px;
@@ -578,6 +644,35 @@ html, body {
 .upgrade-kaart h4 { font-family: var(--font-data); color: var(--accent); font-size: 0.88em; margin-bottom: 5px; }
 .upgrade-kaart p { color: var(--tekst-dim); font-size: 0.78em; margin-bottom: 8px; line-height: 1.4; }
 .upgrade-prijs { color: var(--goud); font-family: var(--font-data); font-size: 0.88em; margin-bottom: 7px; }
+.upgrade-categorie-header {
+    font-family: var(--font-titel);
+    font-size: 0.7em;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin: 14px 0 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid rgba(0,212,255,0.18);
+}
+.upgrade-vereist {
+    font-size: 0.73em;
+    color: var(--oranje);
+    margin-bottom: 6px;
+    font-style: italic;
+}
+
+/* Aandelen knoppen */
+.aandeel-knoppen-koop, .aandeel-knoppen-verkoop {
+    display: flex;
+    gap: 4px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+}
+.aandeel-bedrijf-beschrijving {
+    font-size: 0.75em;
+    color: var(--tekst-dim);
+    margin-top: 2px;
+}
 
 /* Lening sectie */
 .lening-sectie {
@@ -655,6 +750,17 @@ html, body {
     backdrop-filter: blur(4px);
 }
 #event-popup.verborgen { display: none; }
+#aankomst-popup {
+    position: fixed; inset: 0;
+    z-index: 100;
+    background: rgba(0,0,0,0.70);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+}
+#aankomst-popup.verborgen { display: none; }
+.aankomst-popup-inhoud { border-color: var(--goud); box-shadow: 0 0 60px rgba(0,0,0,0.6), 0 0 24px rgba(255,215,0,0.1); }
 .popup-inhoud {
     background: var(--bg-paneel);
     border: 1px solid var(--rand-actief);

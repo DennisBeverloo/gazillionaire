@@ -54,6 +54,7 @@ const UI = {
 
     renderSpel() {
         this.updateTopBalk();
+        this.renderPlaneetInfo();
         this.renderKaart();
         this.renderSchipStats();
         this.renderBestemmingPaneel();
@@ -92,11 +93,11 @@ const UI = {
         const goedkoop = GOEDEREN
             .filter(g => state.getPrijs(dest.id, g.id) < goedGem[g.id] * 0.88)
             .sort((a, b) => (state.getPrijs(dest.id, a.id) / goedGem[a.id]) - (state.getPrijs(dest.id, b.id) / goedGem[b.id]))
-            .slice(0, 3).map(g => g.naam);
+            .slice(0, 3).map(g => `${g.icoon} ${g.naam}`);
         const duur = GOEDEREN
             .filter(g => state.getPrijs(dest.id, g.id) > goedGem[g.id] * 1.12)
             .sort((a, b) => (state.getPrijs(dest.id, b.id) / goedGem[b.id]) - (state.getPrijs(dest.id, a.id) / goedGem[a.id]))
-            .slice(0, 3).map(g => g.naam);
+            .slice(0, 3).map(g => `${g.icoon} ${g.naam}`);
 
         container.innerHTML = `<div class="bestemming-paneel">
             <div class="bestemming-paneel-naam">
@@ -150,6 +151,35 @@ const UI = {
     // GALAXY KAART (SVG)
     // =========================================================================
 
+    renderPlaneetInfo() {
+        const container = document.getElementById('planeet-info-container');
+        if (!container) return;
+        const planeet = PLANETEN.find(p => p.id === state.locatie);
+        if (!planeet) { container.innerHTML = ''; return; }
+
+        const imgSrc = `assets/planet-${planeet.id}.png`;
+        const tags = [];
+        if (planeet.heeftBank)  tags.push('<span class="planeet-tag">💳 Bank</span>');
+        if (planeet.heeftWerf)  tags.push('<span class="planeet-tag">🛸 Scheepswerf</span>');
+        if (planeet.specialiteit?.length) tags.push('<span class="planeet-tag kleur-groen">↓ Goedkoop</span>');
+        if (planeet.vraag?.length)        tags.push('<span class="planeet-tag kleur-oranje">↑ Gevraagd</span>');
+
+        container.innerHTML = `
+            <div class="planeet-info-kaart">
+                <div class="planeet-afbeelding-wrap">
+                    <img src="${imgSrc}" alt="${planeet.naam}"
+                         class="planeet-afbeelding"
+                         onerror="this.parentElement.classList.add('geen-afbeelding');this.remove()">
+                    <div class="planeet-kleur-fallback" style="background:radial-gradient(circle at 35% 35%, ${planeet.kleur}cc, ${planeet.kleur}44 60%, transparent)"></div>
+                </div>
+                <div class="planeet-info-tekst">
+                    <div class="planeet-info-naam" style="color:${planeet.kleur}">${planeet.naam}</div>
+                    <div class="planeet-info-beschr">${planeet.beschrijving}</div>
+                    ${tags.length ? `<div class="planeet-tags">${tags.join('')}</div>` : ''}
+                </div>
+            </div>`;
+    },
+
     renderKaart() {
         const svg = document.getElementById('galaxy-kaart');
         const W = 290, H = 195;
@@ -179,6 +209,22 @@ const UI = {
                     line.setAttribute('stroke-width', '0.5');
                     svg.appendChild(line);
                 }
+            }
+        }
+
+        // Geselecteerde bestemming — gele stippellijn
+        if (state.geselecteerdePlaneet && !state.reisData) {
+            const van  = PLANETEN.find(p => p.id === state.locatie);
+            const naar = PLANETEN.find(p => p.id === state.geselecteerdePlaneet);
+            if (van && naar) {
+                const destLijn = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                destLijn.setAttribute('x1', van.x  / 100 * W); destLijn.setAttribute('y1', van.y  / 100 * H);
+                destLijn.setAttribute('x2', naar.x / 100 * W); destLijn.setAttribute('y2', naar.y / 100 * H);
+                destLijn.setAttribute('stroke', '#ffd700');
+                destLijn.setAttribute('stroke-width', '1.5');
+                destLijn.setAttribute('stroke-dasharray', '4,3');
+                destLijn.setAttribute('opacity', '0.9');
+                svg.appendChild(destLijn);
             }
         }
 
@@ -568,26 +614,39 @@ const UI = {
 
         // === UPGRADES ===
         html += '<div class="sectie-header" style="margin-top:18px">⚙ Scheepsupgrades</div>';
-        html += '<div class="upgrade-raster">';
-        UPGRADES.forEach(upg => {
-            const inst          = state.gekochteUpgrades.includes(upg.id);
-            const vereistMist   = upg.vereist && !state.gekochteUpgrades.includes(upg.vereist);
-            const kanAfrekenen  = state.speler.krediet >= upg.prijs;
-            let btnLabel = 'Installeer';
-            if (inst)          btnLabel = '✓ Geïnstalleerd';
-            else if (vereistMist) btnLabel = `Vereist: ${UPGRADES.find(u=>u.id===upg.vereist)?.naam}`;
-            else if (!kanAfrekenen) btnLabel = 'Onvoldoende credits';
+        const upgradeCategorieen = [
+            { id: 'motor',    naam: '⚙️ Aandrijving' },
+            { id: 'ruim',     naam: '📦 Vrachtruim' },
+            { id: 'schild',   naam: '🛡️ Verdediging' },
+            { id: 'brandstof',naam: '⛽ Brandstof' },
+            { id: 'extra',    naam: '📡 Extra' },
+        ];
+        upgradeCategorieen.forEach(cat => {
+            const catUpgrades = UPGRADES.filter(u => u.categorie === cat.id);
+            if (catUpgrades.length === 0) return;
+            html += `<div class="upgrade-categorie-header">${cat.naam}</div>`;
+            html += '<div class="upgrade-raster">';
+            catUpgrades.forEach(upg => {
+                const inst         = state.gekochteUpgrades.includes(upg.id);
+                const vereistNaam  = upg.vereist ? UPGRADES.find(u=>u.id===upg.vereist)?.naam : null;
+                const vereistMist  = upg.vereist && !state.gekochteUpgrades.includes(upg.vereist);
+                const kanAfrekenen = state.speler.krediet >= upg.prijs;
+                const btnDisabled  = inst || vereistMist || !kanAfrekenen;
+                const btnLabel     = !kanAfrekenen && !vereistMist && !inst ? 'Onvoldoende cr.' : 'Installeer';
 
-            html += `<div class="upgrade-kaart ${inst ? 'al-geinstalleerd' : ''}">
-                <div style="font-size:1.4em;margin-bottom:5px">${upg.icoon}</div>
-                <h4>${upg.naam}</h4>
-                <p>${upg.beschrijving}</p>
-                <div class="upgrade-prijs">${state.formatteerKrediet(upg.prijs)}</div>
-                ${inst ? `<span class="kleur-groen" style="font-size:0.8em">✓ Actief</span>`
-                       : `<button class="knop primair klein" ${vereistMist||!kanAfrekenen?'disabled':''} onclick="App.koopUpgrade('${upg.id}')">${btnLabel}</button>`}
-            </div>`;
+                html += `<div class="upgrade-kaart ${inst ? 'al-geinstalleerd' : ''}">
+                    <div style="font-size:1.4em;margin-bottom:5px">${upg.icoon}</div>
+                    <h4>${upg.naam}</h4>
+                    <p>${upg.beschrijving}</p>
+                    <div class="upgrade-prijs">${state.formatteerKrediet(upg.prijs)}</div>
+                    ${vereistNaam ? `<div class="upgrade-vereist">Vereist: ${vereistNaam}</div>` : ''}
+                    ${inst
+                        ? `<span class="kleur-groen" style="font-size:0.8em">✓ Actief</span>`
+                        : `<button class="knop primair klein" ${btnDisabled?'disabled':''} onclick="App.koopUpgrade('${upg.id}')">${btnLabel}</button>`}
+                </div>`;
+            });
+            html += '</div>';
         });
-        html += '</div>';
 
         // === SCHEEPSWERF (only on planets with werf) ===
         if (planeet.heeftWerf) {
@@ -673,21 +732,22 @@ const UI = {
             html += `<div class="aandeel-kaart">
                 <div class="aandeel-kaart-top">
                     <span>${a.icoon}</span>
-                    <span class="aandeel-kaart-naam">${a.naam}</span>
+                    <div>
+                        <span class="aandeel-kaart-naam">${a.naam}</span>
+                        <div class="aandeel-bedrijf-beschrijving">${a.beschrijving}</div>
+                    </div>
                 </div>
                 <div class="aandeel-koers-groot">${koers} cr.</div>
                 <div class="aandeel-delta ${dKlas}">${dTeken}${delta} cr. (${dTeken}${dPct}%)</div>
                 ${this._renderSparkline(a.id)}
                 ${portfolioHtml}
-                <div class="aandeel-actie-rij">
-                    <div class="actie-rij">
-                        <input class="aantal-invoer" type="number" min="1" max="${Math.max(1,maxK)}" value="1" id="koop-aandeel-${a.id}" style="width:50px">
-                        <button class="knop succes klein" onclick="App.koopAandeel('${a.id}')" ${maxK<=0?'disabled':''}>Koop</button>
-                    </div>
-                    <div class="actie-rij">
-                        <input class="aantal-invoer" type="number" min="1" max="${Math.max(1,bezit)}" value="1" id="verkoop-aandeel-${a.id}" style="width:50px">
-                        <button class="knop gevaar klein" onclick="App.verkoopAandeel('${a.id}')" ${bezit<=0?'disabled':''}>Verkoop</button>
-                    </div>
+                <div class="aandeel-knoppen-koop">
+                    ${[1,10,100].map(n => `<button class="knop succes klein" onclick="App.koopAandeelN('${a.id}',${n})" ${maxK<n?'disabled':''}>+${n}</button>`).join('')}
+                    <button class="knop succes klein" onclick="App.koopAandeelMax('${a.id}')" ${maxK<=0?'disabled':''}>Max</button>
+                </div>
+                <div class="aandeel-knoppen-verkoop">
+                    ${[1,10,100].map(n => `<button class="knop gevaar klein" onclick="App.verkoopAandeelN('${a.id}',${n})" ${bezit<n?'disabled':''}>-${n}</button>`).join('')}
+                    <button class="knop gevaar klein" onclick="App.verkoopAandeelAlles('${a.id}')" ${bezit<=0?'disabled':''}>Alles</button>
                 </div>
             </div>`;
         });
@@ -857,6 +917,7 @@ const UI = {
                 this.verbergEventPopup();
                 if (state.fase === 'einde') { UI.toonEindeScherm(); return; }
                 state.aankomst();
+                if (state.fase === 'einde') { state.wisSave(); } else { state.slaOp(); }
                 const planNaam = PLANETEN.find(p => p.id === state.locatie)?.naam ?? '';
                 App._startFase2(() => {
                     App._setReisStatus(`✓ Aangekomen op ${planNaam}!`, 'kleur-groen');
@@ -865,7 +926,12 @@ const UI = {
                         UI.toonScherm('spel-scherm');
                         state.activeTab = 'handel';
                         UI.renderSpel();
-                        if (state.fase === 'einde') UI.toonEindeScherm();
+                        if (state.fase === 'einde') {
+                            UI.toonEindeScherm();
+                        } else if (state.huidigAankomstEvent) {
+                            UI.toonAankomstPopup(state.huidigAankomstEvent);
+                            state.huidigAankomstEvent = null;
+                        }
                     }, 1100);
                 });
             };
@@ -876,6 +942,28 @@ const UI = {
     verbergEventPopup() {
         document.getElementById('event-popup').classList.add('verborgen');
         document.getElementById('event-gevolg').textContent = '';
+    },
+
+    toonAankomstPopup(event) {
+        const popup = document.getElementById('aankomst-popup');
+        if (!popup) return;
+        document.getElementById('aankomst-event-icoon').textContent = event.icoon;
+        document.getElementById('aankomst-event-naam').textContent = event.naam;
+        document.getElementById('aankomst-event-beschrijving').textContent = event.beschrijving;
+
+        const gestolenDiv = document.getElementById('aankomst-event-gestolen');
+        if (event._gestelenTekst) {
+            gestolenDiv.textContent = `Gestolen: ${event._gestelenTekst}`;
+            gestolenDiv.style.display = 'block';
+        } else {
+            gestolenDiv.style.display = 'none';
+        }
+
+        popup.classList.remove('verborgen');
+    },
+
+    verbergAankomstPopup() {
+        document.getElementById('aankomst-popup').classList.add('verborgen');
     },
 
     toonEventResultaat(bericht) {

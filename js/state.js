@@ -3,7 +3,7 @@
 // =============================================================================
 
 const MAX_BEURTEN = 150;
-const START_KREDIET = 2000;
+const START_KREDIET = 10000;
 const MAX_SCHULD = 8000;
 const RENTE_PERCENTAGE = 0.05;
 const RENTE_INTERVAL = 20;
@@ -29,6 +29,7 @@ class GameState {
         this.logboek = [];
         this.activeTab = 'handel';
         this.reisData = null; // { naar, stappen, stap, events }
+        this.huidigAankomstEvent = null;
         this.gekochteUpgrades = [];
         this.geselecteerdePlaneet = null; // for map click
         this.tipsGezien = {};
@@ -103,8 +104,9 @@ class GameState {
         return Math.max(5, Math.round(goed.basisPrijs * (0.55 + Math.random() * 0.9))); // 55–145% van basis
     }
 
-    updatePrijzen() {
+    updatePrijzen(uitgeslotenPlaneet = null) {
         PLANETEN.forEach(planeet => {
+            if (uitgeslotenPlaneet && planeet.id === uitgeslotenPlaneet) return;
             GOEDEREN.forEach(goed => {
                 const huidig = this.planetPrijzen[planeet.id][goed.id];
                 this.vorigePrijzen[planeet.id][goed.id] = huidig;
@@ -207,7 +209,7 @@ class GameState {
 
         this.reisData.stap++;
         this.beurt++;
-        this.updatePrijzen();
+        this.updatePrijzen(this.reisData.naar);
         this.updateAandeelKoersen();
         this.updateBrandstofPrijzen();
         this.controleerRente();
@@ -243,8 +245,61 @@ class GameState {
         if (this.brandstof < 10) this._aangekomendMetLageBrandstof = true;
         this.voegBerichtToe(`Aangekomen op ${planeet.naam}! Brandstof: ${this.brandstof}/${this.schip.brandstofTank}`, 'succes');
         this.genereerPassagiersVoorPlaneet(this.locatie);
+
+        // Planeet aankomst event
+        const aankomstEvent = this._bepaalAankomstEvent();
+        if (aankomstEvent) {
+            this._pasAankomstEventToe(aankomstEvent);
+        }
+        this.huidigAankomstEvent = aankomstEvent;
+
         this.controleerAchievements();
         this.controleerSpelEinde();
+    }
+
+    _bepaalAankomstEvent() {
+        if (typeof PLANEET_EVENTS === 'undefined') return null;
+        for (const event of PLANEET_EVENTS) {
+            if (Math.random() < event.kans) return event;
+        }
+        return null;
+    }
+
+    _pasAankomstEventToe(event) {
+        const pid = this.locatie;
+        const eff = event.effect;
+        if (eff.type === 'prijsVerhoging' || eff.type === 'prijsVerlaging') {
+            eff.goederen.forEach(gid => {
+                if (this.planetPrijzen[pid]?.[gid] !== undefined) {
+                    const goed = GOEDEREN.find(g => g.id === gid);
+                    const min = Math.max(5, Math.round(goed.basisPrijs * 0.15));
+                    const max = Math.round(goed.basisPrijs * 4.5);
+                    this.planetPrijzen[pid][gid] = Math.max(min, Math.min(max,
+                        Math.round(this.planetPrijzen[pid][gid] * eff.factor)));
+                }
+            });
+        } else if (eff.type === 'kortingAlles') {
+            GOEDEREN.forEach(goed => {
+                this.planetPrijzen[pid][goed.id] = Math.max(5,
+                    Math.round(this.planetPrijzen[pid][goed.id] * eff.factor));
+            });
+        } else if (eff.type === 'ladingStelen') {
+            const gestolen = [];
+            GOEDEREN.forEach(goed => {
+                const n = this.lading[goed.id] || 0;
+                if (n > 0) {
+                    const verlies = Math.max(1, Math.floor(n * eff.fractie));
+                    this.lading[goed.id] = n - verlies;
+                    gestolen.push(`${verlies}× ${goed.icoon} ${goed.naam}`);
+                }
+            });
+            if (gestolen.length > 0) {
+                event._gestelenTekst = gestolen.join(', ');
+            } else {
+                return; // Niets te stelen — event toch tonen maar zonder detail
+            }
+        }
+        this.voegBerichtToe(`${event.icoon} ${event.naam}: ${event.beschrijving}`, 'waarschuwing');
     }
 
     genereerPassagiersVoorPlaneet(planeetId) {

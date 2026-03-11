@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gazillionaire</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>">
-    <link rel="stylesheet" href="style.css?v=1.5">
+    <link rel="stylesheet" href="style.css?v=1.7">
 </head>
 <body>
 
@@ -44,7 +44,7 @@
         </div>
         <button class="knop primair groot" id="start-knop">Begin de reis &rarr;</button>
     </div>
-    <span class="versie-label">v1.5</span>
+    <span class="versie-label">v1.7</span>
 </div>
 
 <!-- ============================================================
@@ -101,8 +101,9 @@
             </div>
         </div>
 
-        <!-- Rechts: melkwegkaart + schipstatus -->
+        <!-- Rechts: planeetinfo + melkwegkaart + schipstatus -->
         <div id="zij-paneel">
+            <div id="planeet-info-container"></div>
             <div id="kaart-container">
                 <h3>Melkwegkaart</h3>
                 <svg id="galaxy-kaart" viewBox="0 0 296 200" preserveAspectRatio="xMidYMid meet"></svg>
@@ -164,13 +165,26 @@
     </div>
 </div>
 
+<!-- ============================================================
+     AANKOMST EVENT POPUP (planeetlanding event)
+     ============================================================ -->
+<div id="aankomst-popup" class="verborgen">
+    <div class="popup-inhoud aankomst-popup-inhoud">
+        <span id="aankomst-event-icoon" class="event-icoon"></span>
+        <h3 id="aankomst-event-naam"></h3>
+        <p id="aankomst-event-beschrijving"></p>
+        <div id="aankomst-event-gestolen" class="event-gevolg" style="display:none"></div>
+        <button class="knop primair" onclick="UI.verbergAankomstPopup()">Begrepen →</button>
+    </div>
+</div>
+
 <!-- Achievement toast notification -->
 <div id="achievement-toast"></div>
 
 <!-- Scripts -->
-<script src="js/data.js?v=1.5"></script>
-<script src="js/state.js?v=1.5"></script>
-<script src="js/ui.js?v=1.5"></script>
-<script src="js/main.js?v=1.5"></script>
+<script src="js/data.js?v=1.7"></script>
+<script src="js/state.js?v=1.7"></script>
+<script src="js/ui.js?v=1.7"></script>
+<script src="js/main.js?v=1.7"></script>
 </body>
 </html>
