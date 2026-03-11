@@ -390,6 +390,9 @@ const UI = {
             const minPrijs  = Math.min(...allePrijzen);
             const maxPrijs  = Math.max(...allePrijzen);
             const prijsKlas = prijs === minPrijs ? 'kleur-groen' : prijs === maxPrijs ? 'kleur-rood' : '';
+            const tipMin    = Math.max(5, Math.round(goed.basisPrijs * 0.25));
+            const tipMax    = Math.round(goed.basisPrijs * 2.2);
+            const tipHtml   = `<span class="goed-tip">${goed.beschrijving}<br><span class="goed-tip-prijs">Bereik: ${tipMin}–${tipMax} cr &nbsp;·&nbsp; basis ${goed.basisPrijs} cr</span></span>`;
 
             let trendTd = '';
             if (state.schip?.heeftRadar) {
@@ -424,7 +427,7 @@ const UI = {
             }
 
             html += `<tr>
-                <td><span class="goed-icoon">${goed.icoon}</span> ${goed.naam}</td>
+                <td><span class="goed-icoon">${goed.icoon}</span><span class="goed-tip-wrap">${goed.naam}${tipHtml}</span></td>
                 <td class="${prijsKlas}" style="font-family:var(--font-data)">${state.formatteerKrediet(prijs)}</td>
                 ${state.schip?.heeftRadar ? trendTd : ''}
                 <td style="font-family:var(--font-data)">${ladingTd}</td>
@@ -475,8 +478,11 @@ const UI = {
             const allePrijzen = PLANETEN.map(p => state.getPrijs(p.id, goed.id));
             const minPrijs = Math.min(...allePrijzen);
             const maxPrijs = Math.max(...allePrijzen);
+            const tipMin2 = Math.max(5, Math.round(goed.basisPrijs * 0.25));
+            const tipMax2 = Math.round(goed.basisPrijs * 2.2);
+            const tipHtml2 = `<span class="goed-tip">${goed.beschrijving}<br><span class="goed-tip-prijs">Bereik: ${tipMin2}–${tipMax2} cr &nbsp;·&nbsp; basis ${goed.basisPrijs} cr</span></span>`;
 
-            html += `<tr><td class="galact-goed-col"><span>${goed.icoon}</span> ${goed.naam}</td>`;
+            html += `<tr><td class="galact-goed-col"><span>${goed.icoon}</span><span class="goed-tip-wrap"> ${goed.naam}${tipHtml2}</span></td>`;
 
             PLANETEN.forEach(p => {
                 const prijs = state.getPrijs(p.id, goed.id);

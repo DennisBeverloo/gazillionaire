@@ -1096,6 +1096,42 @@ html, body {
 .winst-negatief { color: var(--rood); font-size: 0.8em; }
 .aankoopprijs-info { color: var(--tekst-dim); font-size: 0.78em; font-family: var(--font-data); }
 
+/* GOED TOOLTIP */
+.goed-tip-wrap {
+    position: relative;
+    cursor: help;
+    display: inline-block;
+}
+.goed-tip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 7px);
+    left: -6px;
+    background: #0d1b2e;
+    border: 1px solid var(--accent);
+    border-radius: 5px;
+    padding: 8px 11px;
+    font-size: 0.8em;
+    font-family: var(--font-ui);
+    line-height: 1.5;
+    color: var(--tekst);
+    width: 210px;
+    z-index: 300;
+    pointer-events: none;
+    white-space: normal;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+}
+.goed-tip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 12px;
+    border: 5px solid transparent;
+    border-top-color: var(--accent);
+}
+.goed-tip-prijs { color: var(--goud); font-family: var(--font-data); font-size: 0.93em; margin-top: 4px; }
+.goed-tip-wrap:hover .goed-tip { display: block; }
+
 /* KREDIET NEGATIEF */
 .krediet-negatief { color: var(--rood) !important; }
 
