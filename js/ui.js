@@ -34,9 +34,11 @@ const UI = {
                 <p>${schip.beschrijving}</p>
                 <div class="schip-stat"><span>Snelheid</span><span class="waarde ster-rating">${'★'.repeat(schip.snelheid)}${'☆'.repeat(5-schip.snelheid)}</span></div>
                 <div class="schip-stat"><span>Laadruimte</span><span class="waarde">${schip.laadruimte} ton</span></div>
+                <div class="schip-stat"><span>Brandstoftank</span><span class="waarde">${schip.brandstofTank} e</span></div>
+                <div class="schip-stat"><span>Passagiers</span><span class="waarde">${schip.passagiersCapaciteit > 0 ? schip.passagiersCapaciteit : '—'}</span></div>
                 <div class="schip-stat"><span>Schild</span><span class="waarde ster-rating">${'★'.repeat(schip.schild)}${'☆'.repeat(5-schip.schild)}</span></div>
                 <div class="schip-stat"><span>Startkapitaal</span><span class="waarde ${resterend < 500 ? 'kleur-rood' : 'kleur-groen'}">${state.formatteerKrediet(resterend)}</span></div>
-                <button class="knop primair" style="width:100%;margin-top:14px" onclick="App.selecteerSchip('${schip.id}')">Dit schip kiezen</button>
+                <button class="knop primair schip-kies-knop" onclick="App.selecteerSchip('${schip.id}')">Dit schip kiezen</button>
             `;
             container.appendChild(div);
         });
@@ -126,12 +128,12 @@ const UI = {
         el('schip-naam-display').textContent = `🚀 ${state.schip?.naam ?? '---'}`;
         el('locatie-display').textContent = `📍 ${PLANETEN.find(p => p.id === state.locatie)?.naam ?? '---'}`;
 
-        const kredietEl = el('krediet-display');
-        kredietEl.textContent = `💰 ${state.formatteerKrediet(state.speler.krediet)}`;
+        const cr.edietEl = el('krediet-display');
+        cr.edietEl.textContent = `💰 ${state.formatteerKrediet(state.speler.krediet)}`;
         if (state.speler.krediet < 0) {
-            kredietEl.classList.add('krediet-negatief');
+            cr.edietEl.classList.add('krediet-negatief');
         } else {
-            kredietEl.classList.remove('krediet-negatief');
+            cr.edietEl.classList.remove('krediet-negatief');
         }
 
         const rest = MAX_BEURTEN - state.beurt;
@@ -347,7 +349,7 @@ const UI = {
             if (inLading > 0) {
                 ladingTd = `<strong>${inLading}</strong>`;
                 if (aankoopPrijs) {
-                    ladingTd += `<div class="aankoopprijs-info">gem. ${aankoopPrijs} kr</div>`;
+                    ladingTd += `<div class="aankoopprijs-info">gem. ${aankoopPrijs} cr.</div>`;
                 }
             }
 
@@ -489,7 +491,7 @@ const UI = {
             html += `<div class="sectie-header" style="margin-top:18px">🔧 Scheepsreparatie</div>
             <div class="lening-sectie">
                 <div class="kleur-rood" style="margin-bottom:10px">⚠ Je schip heeft schade. Dit vertraagt je reizen tot je repareert.</div>
-                <button class="knop gevaar" onclick="App.repareerSchip()">Repareer nu (350 kr)</button>
+                <button class="knop gevaar" onclick="App.repareerSchip()">Repareer nu (350 cr.)</button>
             </div>`;
         }
 
@@ -548,7 +550,7 @@ const UI = {
         <div class="brandstof-sectie">
             <div class="brandstof-info-rij">
                 <span>Voorraad: <strong class="${bTekstKlasse}">${state.brandstof}/${tank}</strong></span>
-                <span>Prijs: <strong class="kleur-goud">${bPrijs} kr/e</strong></span>
+                <span>Prijs: <strong class="kleur-goud">${bPrijs} cr./e</strong></span>
             </div>
             <div class="lading-balk-container" style="margin:6px 0">
                 <div class="lading-balk" style="width:${brandstofPct}%;background:${bKleur}"></div>
@@ -570,7 +572,7 @@ const UI = {
             let btnLabel = 'Installeer';
             if (inst)          btnLabel = '✓ Geïnstalleerd';
             else if (vereistMist) btnLabel = `Vereist: ${UPGRADES.find(u=>u.id===upg.vereist)?.naam}`;
-            else if (!kanAfrekenen) btnLabel = 'Onvoldoende krediet';
+            else if (!kanAfrekenen) btnLabel = 'Onvoldoende cr.ediet';
 
             html += `<div class="upgrade-kaart ${inst ? 'al-geinstalleerd' : ''}">
                 <div style="font-size:1.4em;margin-bottom:5px">${upg.icoon}</div>
@@ -599,7 +601,7 @@ const UI = {
                     <div class="schip-stat"><span>Snelheid</span><span class="waarde ster-rating">${'★'.repeat(schip.snelheid)}${'☆'.repeat(5-schip.snelheid)}</span></div>
                     <div class="schip-stat"><span>Laadruimte</span><span class="waarde">${schip.laadruimte} ton</span></div>
                     <div class="upgrade-prijs" style="margin-top:8px">Netto: ${state.formatteerKrediet(Math.max(0,netto))}</div>
-                    <button class="knop primair klein" ${!kan?'disabled':''} onclick="App.koopSchip('${schip.id}')">${kan?'Koop schip':'Onvoldoende krediet'}</button>
+                    <button class="knop primair klein" ${!kan?'disabled':''} onclick="App.koopSchip('${schip.id}')">${kan?'Koop schip':'Onvoldoende cr.ediet'}</button>
                 </div>`;
             });
             html += '</div>';
@@ -614,7 +616,7 @@ const UI = {
                 <div class="stat-rij"><span class="stat-naam">Rente</span><span class="stat-waarde">${RENTE_PERCENTAGE*100}% per ${RENTE_INTERVAL} beurten</span></div>
                 <div class="actie-rij" style="margin-top:12px;gap:8px;flex-wrap:wrap">
                     <input class="aantal-invoer" type="number" min="100" max="${Math.max(100,MAX_SCHULD-state.speler.schuld)}" step="100" value="1000" id="leen-bedrag" style="width:90px">
-                    <button class="knop primair klein" onclick="App.leenGeld()">Leen krediet</button>
+                    <button class="knop primair klein" onclick="App.leenGeld()">Leen cr.ediet</button>
                     <button class="knop gevaar klein" onclick="App.betaalLening()" ${state.speler.schuld<=0?'disabled':''}>Betaal af</button>
                 </div>
             </div>`;
@@ -656,7 +658,7 @@ const UI = {
             if (bezit > 0) {
                 portfolioHtml = `<div class="aandeel-portfolio-info">
                     <div class="aandeel-bezit-rij"><span class="kleur-dimmed">Bezit</span><span><strong>${bezit}</strong> aandelen</span></div>
-                    ${aankoopKoers ? `<div class="aandeel-bezit-rij"><span class="kleur-dimmed">Gem. aankoop</span><span>${aankoopKoers} kr</span></div>` : ''}
+                    ${aankoopKoers ? `<div class="aandeel-bezit-rij"><span class="kleur-dimmed">Gem. aankoop</span><span>${aankoopKoers} cr.</span></div>` : ''}
                     <div class="aandeel-bezit-rij"><span class="kleur-dimmed">Waarde</span><span class="kleur-goud">${state.formatteerKrediet(waarde)}</span></div>
                     ${ongrReal !== null ? `<div class="aandeel-bezit-rij"><span class="kleur-dimmed">P&amp;L</span><span class="${ongrKlas}">${ongrReal >= 0 ? '+' : ''}${state.formatteerKrediet(ongrReal)}</span></div>` : ''}
                 </div>`;
@@ -669,8 +671,8 @@ const UI = {
                     <span>${a.icoon}</span>
                     <span class="aandeel-kaart-naam">${a.naam}</span>
                 </div>
-                <div class="aandeel-koers-groot">${koers} kr</div>
-                <div class="aandeel-delta ${dKlas}">${dTeken}${delta} kr (${dTeken}${dPct}%)</div>
+                <div class="aandeel-koers-groot">${koers} cr.</div>
+                <div class="aandeel-delta ${dKlas}">${dTeken}${delta} cr. (${dTeken}${dPct}%)</div>
                 ${this._renderSparkline(a.id)}
                 ${portfolioHtml}
                 <div class="aandeel-actie-rij">
@@ -921,7 +923,7 @@ const UI = {
             beschr = 'Je schulden zijn de pan uitgerezen en je reserves zijn uitgeput. De melkweg is hard voor degenen die te snel te groot willen worden.';
         } else if (netto >= 1000000) {
             titel = '🏆 GAZILLIONNAIRE!';
-            beschr = `Ongelooflijk, ${state.speler.naam}! Je hebt de magische grens van één miljoen krediet bereikt. De melkweg knielt voor je handelsgeest!`;
+            beschr = `Ongelooflijk, ${state.speler.naam}! Je hebt de magische grens van één miljoen cr.ediet bereikt. De melkweg knielt voor je handelsgeest!`;
         } else if (netto >= 500000) {
             titel = '⭐ BRILJANTE HANDELAAR';
             beschr = `Uitstekend gedaan, ${state.speler.naam}! Je bent een van de rijkste handelaars in de sector geworden.`;

@@ -451,7 +451,7 @@ const ACHIEVEMENTS = [
         naam: 'Rijkaard',
         icoon: '💰',
         categorie: 'nettowaarde',
-        beschrijving: 'Bereik een nettowaarde van 10.000 kr.',
+        beschrijving: 'Bereik een nettowaarde van 10.000 cr.',
         check: s => s.berekenNettowaarde() >= 10000,
     },
     {
@@ -459,7 +459,7 @@ const ACHIEVEMENTS = [
         naam: 'Groot Handelaar',
         icoon: '🏛️',
         categorie: 'nettowaarde',
-        beschrijving: 'Bereik een nettowaarde van 100.000 kr.',
+        beschrijving: 'Bereik een nettowaarde van 100.000 cr.',
         check: s => s.berekenNettowaarde() >= 100000,
     },
     {
@@ -467,7 +467,7 @@ const ACHIEVEMENTS = [
         naam: 'Galactische Millionair',
         icoon: '🌟',
         categorie: 'nettowaarde',
-        beschrijving: 'Bereik een nettowaarde van 1.000.000 kr.',
+        beschrijving: 'Bereik een nettowaarde van 1.000.000 cr.',
         check: s => s.berekenNettowaarde() >= 1000000,
     },
     {

@@ -212,6 +212,13 @@ html, body {
     cursor: pointer;
     transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
     text-align: left;
+    display: flex;
+    flex-direction: column;
+}
+.schip-kies-knop {
+    width: 100%;
+    margin-top: auto;
+    padding-top: 14px;
 }
 .schip-kaart:hover {
     border-color: var(--accent);
