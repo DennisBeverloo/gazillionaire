@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gazillionaire</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>">
-    <link rel="stylesheet" href="style.css?v=2.6.2.2">
+    <link rel="stylesheet" href="style.css?v=2.6.3">
 </head>
 <body>
 
@@ -63,22 +63,20 @@
      ============================================================ -->
 <div id="spel-scherm" class="scherm">
 
-    <!-- Top balk: logo | schip + locatie | krediet + beurt -->
+    <!-- Top balk: logo | kapitein | schip | cargo | passagiers | brandstof -->
     <div id="top-balk">
-        <div class="top-sectie links">
-            <span class="game-logo">✦ GAZILLIONAIRE</span>
-        </div>
-        <div class="top-sectie midden">
-            <span id="schip-naam-display">🚀 ---</span>
-            <span class="scheidslijn">|</span>
-            <span id="locatie-display">📍 ---</span>
-        </div>
-        <div class="top-sectie rechts">
-            <span id="krediet-display">💰 0 cr</span>
-            <span class="scheidslijn">|</span>
-            <span id="beurt-display">Beurt 0/150</span>
-            <button class="top-instellingen-knop" onclick="UI.toonInstellingen()" title="Instellingen">⚙</button>
-        </div>
+        <span class="game-logo">✦ GAZILLIONAIRE</span>
+        <span class="scheidslijn">|</span>
+        <span id="kapitein-display">👤 ---</span>
+        <span class="scheidslijn">|</span>
+        <span id="schip-naam-display">🚀 ---</span>
+        <span class="scheidslijn">|</span>
+        <span id="cargo-display">📦 0/0 ton</span>
+        <span class="scheidslijn">|</span>
+        <span id="passagiers-display">🧳 0/0</span>
+        <span class="scheidslijn">|</span>
+        <span id="brandstof-display">⛽ 0/0 l</span>
+        <button class="top-instellingen-knop" onclick="UI.toonInstellingen()" title="Instellingen">⚙</button>
     </div>
 
     <!-- Hoofd inhoud: links tabs + berichten, rechts kaart + schipstatus -->
@@ -234,9 +232,9 @@
 <div id="transactie-toast"></div>
 
 <!-- Scripts -->
-<script src="js/data.js?v=2.6.2"></script>
-<script src="js/state.js?v=2.6.2"></script>
-<script src="js/ui.js?v=2.6.2"></script>
-<script src="js/main.js?v=2.6.2"></script>
+<script src="js/data.js?v=2.6.3"></script>
+<script src="js/state.js?v=2.6.3"></script>
+<script src="js/ui.js?v=2.6.3"></script>
+<script src="js/main.js?v=2.6.3"></script>
 </body>
 </html>

@@ -131,21 +131,20 @@ const UI = {
         document.body.dataset.planeet = state.locatie;
 
         const el = id => document.getElementById(id);
+        el('kapitein-display').textContent = `👤 ${state.speler?.naam ?? '---'}`;
         el('schip-naam-display').textContent = `🚀 ${state.schip?.naam ?? '---'}`;
-        el('locatie-display').textContent = `📍 ${PLANETEN.find(p => p.id === state.locatie)?.naam ?? '---'}`;
 
-        const kredietEl = el('krediet-display');
-        kredietEl.textContent = `💰 ${state.formatteerKrediet(state.speler.krediet)}`;
-        if (state.speler.krediet < 0) {
-            kredietEl.classList.add('krediet-negatief');
-        } else {
-            kredietEl.classList.remove('krediet-negatief');
-        }
+        const geladen = state.getLadingGewicht?.() ?? 0;
+        const maxLading = state.schip?.laadruimte ?? 0;
+        el('cargo-display').textContent = `📦 ${geladen}/${maxLading} ton`;
 
-        const rest = MAX_BEURTEN - state.beurt;
-        const beurtEl = el('beurt-display');
-        beurtEl.textContent = `Beurt ${state.beurt}/${MAX_BEURTEN}`;
-        beurtEl.style.color = rest <= 20 ? 'var(--rood)' : rest <= 40 ? 'var(--oranje)' : '';
+        const pax = state.passagiers?.length ?? 0;
+        const maxPax = state.schip?.passagiersCapaciteit ?? 0;
+        el('passagiers-display').textContent = `🧳 ${pax}/${maxPax}`;
+
+        const brandstof = state.brandstof ?? 0;
+        const maxBrandstof = state.schip?.brandstofTank ?? 0;
+        el('brandstof-display').textContent = `⛽ ${brandstof}/${maxBrandstof} l`;
     },
 
     // =========================================================================
