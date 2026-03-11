@@ -300,7 +300,7 @@ const UI = {
             </div>
             <div class="stat-rij">
                 <span class="stat-naam">Snelheid</span>
-                <span class="stat-waarde ster-rating">${'★'.repeat(s.snelheid)}${'☆'.repeat(Math.max(0,7-s.snelheid))}</span>
+                <span class="stat-waarde ster-rating">${'★'.repeat(s.snelheid)}${'☆'.repeat(Math.max(0,5-s.snelheid))}</span>
             </div>
             <div class="stat-rij">
                 <span class="stat-naam">Lading</span>
