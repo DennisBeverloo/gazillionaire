@@ -542,20 +542,19 @@ const UI = {
                 .slice(0, 3).map(g => `${g.icoon} ${g.naam}`);
 
             html += `<div class="planeet-rij ${isSel ? 'geselecteerd' : ''}" data-planeet="${p.id}" onclick="App.klikPlaneet('${p.id}')">
-                <div class="planeet-rij-hoofdlijn">
-                    <div class="planeet-rij-img-wrap">
-                        <img src="assets/planet-${p.id}.png" alt="${p.naam}"
-                             class="planeet-rij-img"
-                             onerror="this.style.display='none'">
-                        <div class="planeet-rij-img-fallback" style="background:radial-gradient(circle at 35% 35%, ${p.kleur}cc, ${p.kleur}44 60%, transparent)"></div>
-                    </div>
-                    <strong class="planeet-rij-naam">${p.naam}</strong>
-                    ${p.isGevaarlijk ? '<span class="kleur-rood" style="font-size:0.75em">⚠ Gevaarlijk</span>' : ''}
-                    <button class="knop dimmed klein" onclick="event.stopPropagation();App.klikPlaneet('${p.id}')">Kies →</button>
+                <div class="planeet-rij-foto" style="--planeet-kleur:${p.kleur}">
+                    <img src="assets/planet-${p.id}.png" alt="${p.naam}" onerror="this.style.opacity='0'">
                 </div>
-                <div class="planeet-rij-details">
-                    ${goedkoopEmoji.length ? `<span class="badge-groen">↓ ${goedkoopEmoji.join(', ')}</span>` : ''}
-                    ${duurEmoji.length ? `<span class="badge-rood">↑ ${duurEmoji.join(', ')}</span>` : ''}
+                <div class="planeet-rij-inhoud">
+                    <div class="planeet-rij-hoofdlijn">
+                        <strong class="planeet-rij-naam">${p.naam}</strong>
+                        ${p.isGevaarlijk ? '<span class="kleur-rood" style="font-size:0.75em">⚠ Gevaarlijk</span>' : ''}
+                        <button class="knop dimmed klein" onclick="event.stopPropagation();App.klikPlaneet('${p.id}')">Kies →</button>
+                    </div>
+                    <div class="planeet-rij-details">
+                        ${goedkoopEmoji.length ? `<span class="badge-groen">↓ ${goedkoopEmoji.join(', ')}</span>` : ''}
+                        ${duurEmoji.length ? `<span class="badge-rood">↑ ${duurEmoji.join(', ')}</span>` : ''}
+                    </div>
                 </div>
             </div>`;
         });
