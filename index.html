@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gazillionaire: Ster der Handel</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Ster-animatie achtergrond -->
+<div id="sterren"></div>
+
+<!-- ============================================================
+     INTRO SCHERM
+     ============================================================ -->
+<div id="intro-scherm" class="scherm actief">
+    <div class="intro-inhoud">
+        <h1 class="game-titel">GAZILLIONAIRE</h1>
+        <h2 class="game-ondertitel">Ster der Handel</h2>
+        <p class="intro-tekst">
+            Het jaar 3042. De melkweg bruist van handel en gevaar.<br>
+            Als beginnend ruimtehandelaar heb je één enkel doel:<br>
+            <strong>zo rijk mogelijk worden.</strong><br><br>
+            Koop laag, verkoop hoog, upgrade je schip en overleef
+            de gevaren van de ruimte. Je hebt 150 beurten.
+        </p>
+        <div class="naam-invoer">
+            <label for="speler-naam">Jouw naam:</label>
+            <input type="text" id="speler-naam" placeholder="Kapitein..." maxlength="24" autocomplete="off">
+        </div>
+        <button class="knop primair groot" id="start-knop">Begin de reis &rarr;</button>
+    </div>
+</div>
+
+<!-- ============================================================
+     SCHIP SELECTIE SCHERM
+     ============================================================ -->
+<div id="schip-selectie-scherm" class="scherm">
+    <div class="selectie-inhoud">
+        <h2>Kies je Schip</h2>
+        <p>Je begint met <strong class="kleur-goud">2.000 krediet</strong>. Het resterende bedrag is je startkapitaal voor de handel.</p>
+        <div id="schip-opties" class="schip-raster"></div>
+    </div>
+</div>
+
+<!-- ============================================================
+     HOOFD SPEL SCHERM
+     ============================================================ -->
+<div id="spel-scherm" class="scherm">
+
+    <!-- Top balk: logo | schip + locatie | krediet + beurt -->
+    <div id="top-balk">
+        <div class="top-sectie links">
+            <span class="game-logo">✦ GAZILLIONAIRE</span>
+        </div>
+        <div class="top-sectie midden">
+            <span id="schip-naam-display">🚀 ---</span>
+            <span class="scheidslijn">|</span>
+            <span id="locatie-display">📍 ---</span>
+        </div>
+        <div class="top-sectie rechts">
+            <span id="krediet-display">💰 0 kr</span>
+            <span class="scheidslijn">|</span>
+            <span id="beurt-display">Beurt 0/150</span>
+        </div>
+    </div>
+
+    <!-- Hoofd inhoud: links tabs, rechts kaart + schipstatus -->
+    <div id="hoofd-inhoud">
+
+        <!-- Links: navigatie + tab-inhoud -->
+        <div id="hoofd-paneel">
+            <div id="tabbladen">
+                <button class="tab actief" data-tab="handel">⚖ Handel</button>
+                <button class="tab" data-tab="haven">🛸 Ruimtehaven</button>
+                <button class="tab" data-tab="beurs">📈 Beurs</button>
+                <button class="tab" data-tab="logboek">📋 Logboek</button>
+                <button class="tab" data-tab="achievements">🏆 Prestaties</button>
+            </div>
+            <div id="tab-inhoud">
+                <div id="handel-tab"       class="tab-paneel actief"></div>
+                <div id="haven-tab"        class="tab-paneel"></div>
+                <div id="beurs-tab"        class="tab-paneel"></div>
+                <div id="logboek-tab"      class="tab-paneel"></div>
+                <div id="achievements-tab" class="tab-paneel"></div>
+            </div>
+        </div>
+
+        <!-- Rechts: melkwegkaart + schipstatus -->
+        <div id="zij-paneel">
+            <div id="kaart-container">
+                <h3>Melkwegkaart</h3>
+                <svg id="galaxy-kaart" viewBox="0 0 296 200" preserveAspectRatio="xMidYMid meet"></svg>
+            </div>
+            <div id="schip-info">
+                <h3>Schipstatus</h3>
+                <div id="schip-stats"></div>
+            </div>
+            <div id="bestemming-paneel-container"></div>
+        </div>
+
+    </div>
+
+    <!-- Berichten balk -->
+    <div id="berichten-balk">
+        <div id="berichten-log"></div>
+    </div>
+</div>
+
+<!-- ============================================================
+     REIS SCHERM
+     ============================================================ -->
+<div id="reis-scherm" class="scherm">
+    <div class="reis-inhoud">
+        <h2>Op reis...</h2>
+        <div id="reis-animatie-container">
+            <div id="reis-animatie">🚀</div>
+        </div>
+        <div id="reis-voortgang-container">
+            <div id="reis-voortgang-balk"></div>
+        </div>
+        <p id="reis-tekst">Onderweg naar <span id="reis-bestemming">---</span></p>
+        <div id="reis-status" class="reis-status"></div>
+    </div>
+</div>
+
+<!-- ============================================================
+     EVENT POPUP (overlay)
+     ============================================================ -->
+<div id="event-popup" class="verborgen">
+    <div class="popup-inhoud">
+        <span id="event-icoon" class="event-icoon"></span>
+        <h3 id="event-titel"></h3>
+        <p id="event-beschrijving"></p>
+        <div id="event-gevolg" class="event-gevolg"></div>
+        <div id="event-knoppen"></div>
+    </div>
+</div>
+
+<!-- ============================================================
+     EINDE SCHERM
+     ============================================================ -->
+<div id="einde-scherm" class="scherm">
+    <div class="einde-inhoud">
+        <h2 id="einde-titel">SPEL AFGELOPEN</h2>
+        <p id="einde-beschrijving"></p>
+        <div id="einde-statistieken"></div>
+        <button class="knop primair groot" id="opnieuw-knop">Opnieuw spelen</button>
+    </div>
+</div>
+
+<!-- Achievement toast notification -->
+<div id="achievement-toast"></div>
+
+<!-- Scripts -->
+<script src="js/data.js"></script>
+<script src="js/state.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
