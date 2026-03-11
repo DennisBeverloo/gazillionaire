@@ -393,7 +393,7 @@ const UI = {
             const prijsKlas = prijs === minPrijs ? 'kleur-groen' : prijs === maxPrijs ? 'kleur-rood' : '';
             const tipMin    = Math.max(5, Math.round(goed.basisPrijs * 0.25));
             const tipMax    = Math.round(goed.basisPrijs * 2.2);
-            const tipHtml   = `<span class="goed-tip">${goed.beschrijving}<br><span class="goed-tip-prijs">Bereik: ${tipMin}–${tipMax} cr &nbsp;·&nbsp; basis ${goed.basisPrijs} cr</span></span>`;
+            const tipHtml   = `<span class="goed-tip">${goed.beschrijving}<br><span class="goed-tip-prijs">Bereik: ${tipMin}–${tipMax} credits &nbsp;·&nbsp; basis ${goed.basisPrijs} credits</span></span>`;
 
             let trendTd = '';
             if (state.schip?.heeftRadar) {
@@ -409,7 +409,7 @@ const UI = {
             if (inLading > 0) {
                 ladingTd = `<strong>${inLading}</strong>`;
                 if (aankoopPrijs) {
-                    ladingTd += `<div class="aankoopprijs-info">gem. ${aankoopPrijs} cr</div>`;
+                    ladingTd += `<div class="aankoopprijs-info">gem. ${aankoopPrijs} credits</div>`;
                 }
             }
 
@@ -481,7 +481,7 @@ const UI = {
             const maxPrijs = Math.max(...allePrijzen);
             const tipMin2 = Math.max(5, Math.round(goed.basisPrijs * 0.25));
             const tipMax2 = Math.round(goed.basisPrijs * 2.2);
-            const tipHtml2 = `<span class="goed-tip">${goed.beschrijving}<br><span class="goed-tip-prijs">Bereik: ${tipMin2}–${tipMax2} cr &nbsp;·&nbsp; basis ${goed.basisPrijs} cr</span></span>`;
+            const tipHtml2 = `<span class="goed-tip">${goed.beschrijving}<br><span class="goed-tip-prijs">Bereik: ${tipMin2}–${tipMax2} credits &nbsp;·&nbsp; basis ${goed.basisPrijs} credits</span></span>`;
 
             html += `<tr><td class="galact-goed-col"><span>${goed.icoon}</span><span class="goed-tip-wrap"> ${goed.naam}${tipHtml2}</span></td>`;
 
@@ -572,7 +572,7 @@ const UI = {
             html += `<div class="sectie-header" style="margin-top:18px">🔧 Scheepsreparatie</div>
             <div class="lening-sectie">
                 <div class="kleur-rood" style="margin-bottom:10px">⚠ Je schip heeft schade. Dit vertraagt je reizen tot je repareert.</div>
-                <button class="knop gevaar" onclick="App.repareerSchip()">Repareer nu (350 cr)</button>
+                <button class="knop gevaar" onclick="App.repareerSchip()">Repareer nu (350 credits)</button>
             </div>`;
         }
 
@@ -654,7 +654,7 @@ const UI = {
         <div class="brandstof-sectie">
             <div class="brandstof-info-rij">
                 <span>Voorraad: <strong class="${bTekstKlasse}">${state.brandstof}/${tank} l</strong></span>
-                <span>Prijs: <strong class="kleur-goud">${bPrijs} cr/l</strong></span>
+                <span>Prijs: <strong class="kleur-goud">${bPrijs} credits/l</strong></span>
             </div>
             <div class="lading-balk-container" style="margin:6px 0">
                 <div class="lading-balk" style="width:${brandstofPct}%;background:${bKleur}"></div>
@@ -818,7 +818,7 @@ const UI = {
             if (bezit > 0) {
                 portfolioHtml = `<div class="aandeel-portfolio-info">
                     <div class="aandeel-bezit-rij"><span class="kleur-dimmed">Bezit</span><span><strong>${bezit}</strong> aandelen</span></div>
-                    ${aankoopKoers ? `<div class="aandeel-bezit-rij"><span class="kleur-dimmed">Gem. aankoop</span><span>${aankoopKoers} cr</span></div>` : ''}
+                    ${aankoopKoers ? `<div class="aandeel-bezit-rij"><span class="kleur-dimmed">Gem. aankoop</span><span>${aankoopKoers} credits</span></div>` : ''}
                     <div class="aandeel-bezit-rij"><span class="kleur-dimmed">Waarde</span><span class="kleur-goud">${state.formatteerKrediet(waarde)}</span></div>
                     ${ongrReal !== null ? `<div class="aandeel-bezit-rij"><span class="kleur-dimmed">P&amp;L</span><span class="${ongrKlas}">${ongrReal >= 0 ? '+' : ''}${state.formatteerKrediet(ongrReal)}</span></div>` : ''}
                 </div>`;
@@ -834,8 +834,8 @@ const UI = {
                         <div class="aandeel-bedrijf-beschrijving">${a.beschrijving}</div>
                     </div>
                 </div>
-                <div class="aandeel-koers-groot">${koers} cr</div>
-                <div class="aandeel-delta ${dKlas}">${dTeken}${delta} cr (${dTeken}${dPct}%)</div>
+                <div class="aandeel-koers-groot">${koers} credits</div>
+                <div class="aandeel-delta ${dKlas}">${dTeken}${delta} credits (${dTeken}${dPct}%)</div>
                 ${this._renderSparkline(a.id, 150, 50, bezit > 0 ? aankoopKoers : null)}
                 ${portfolioHtml}
                 <div class="aandeel-knoppen-koop">
@@ -940,7 +940,7 @@ const UI = {
                     <div class="ach-icoon">${isUnlocked ? ach.icoon : '🔒'}</div>
                     <div class="ach-naam">${isUnlocked ? ach.naam : '???'}</div>
                     <div class="ach-beschr">${isUnlocked ? ach.beschrijving : 'Nog niet ontgrendeld'}</div>
-                    ${ach.beloning ? `<div class="ach-beloning ${isUnlocked ? 'kleur-goud' : 'kleur-dimmed'}">💰 ${new Intl.NumberFormat('nl-NL').format(ach.beloning)} cr beloning</div>` : ''}
+                    ${ach.beloning ? `<div class="ach-beloning ${isUnlocked ? 'kleur-goud' : 'kleur-dimmed'}">💰 ${new Intl.NumberFormat('nl-NL').format(ach.beloning)} credits beloning</div>` : ''}
                 </div>`;
             });
             html += '</div>';
@@ -1215,7 +1215,7 @@ const UI = {
         toast.innerHTML = `<span class="toast-icoon">${ach.icoon}</span>
             <div><div class="toast-naam">Achievement: ${ach.naam}</div>
             <div class="toast-beschr">${ach.beschrijving}</div>
-            ${ach.beloning ? `<div class="toast-beschr kleur-goud">+${new Intl.NumberFormat('nl-NL').format(ach.beloning)} cr beloning</div>` : ''}</div>`;
+            ${ach.beloning ? `<div class="toast-beschr kleur-goud">+${new Intl.NumberFormat('nl-NL').format(ach.beloning)} credits beloning</div>` : ''}</div>`;
         toast.classList.add('zichtbaar');
         clearTimeout(this._toastTimer);
         this._toastTimer = setTimeout(() => toast.classList.remove('zichtbaar'), 4000);
@@ -1226,12 +1226,12 @@ const UI = {
         if (!toast) return;
         const fmt = n => new Intl.NumberFormat('nl-NL').format(Math.round(n));
         const winstHtml = (config.winst !== undefined && config.winst !== null)
-            ? `<div class="toast-beschr ${config.winst >= 0 ? 'kleur-groen' : 'kleur-rood'}">${config.winst >= 0 ? '+' : ''}${fmt(config.winst)} cr ${config.winst >= 0 ? 'winst' : 'verlies'}</div>`
+            ? `<div class="toast-beschr ${config.winst >= 0 ? 'kleur-groen' : 'kleur-rood'}">${config.winst >= 0 ? '+' : ''}${fmt(config.winst)} credits ${config.winst >= 0 ? 'winst' : 'verlies'}</div>`
             : '';
         toast.innerHTML = `<span style="font-size:1.6em">${config.icoon}</span>
             <div>
                 <div class="toast-naam" style="color:var(--tekst);font-size:0.82em">${config.titel}</div>
-                ${config.totaal ? `<div class="toast-beschr kleur-goud">+${fmt(config.totaal)} cr</div>` : ''}
+                ${config.totaal ? `<div class="toast-beschr kleur-goud">+${fmt(config.totaal)} credits</div>` : ''}
                 ${winstHtml}
             </div>`;
         toast.classList.remove('verlies');

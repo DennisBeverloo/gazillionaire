@@ -1228,7 +1228,7 @@ class GameState {
     }
 
     formatteerKrediet(bedrag) {
-        return new Intl.NumberFormat('nl-NL').format(Math.round(bedrag)) + ' cr';
+        return new Intl.NumberFormat('nl-NL').format(Math.round(bedrag)) + ' credits';
     }
 
     // =========================================================================

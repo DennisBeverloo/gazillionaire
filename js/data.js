@@ -126,7 +126,7 @@ const SCHEPEN = [
         naam: 'Vrije Handelaar',
         icoon: '🚀',
         beschrijving: 'Het klassieke handelsschip. Een goede balans tussen snelheid, laadruimte en prijs. De keuze van de doorgewinterde ruimtekoopman.',
-        prijs: 9000,
+        prijs: 6000,
         snelheid: 2,
         laadruimte: 50,
         schild: 2,
