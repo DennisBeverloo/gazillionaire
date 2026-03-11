@@ -151,7 +151,6 @@ const App = {
         const res = state.reisNaar(planeetId);
         if (!res || res === false) return;
         if (res.succes === false) { this._fout(res.reden); return; }
-        state.boardPassagiers();
         state.geselecteerdePlaneet = null;
 
         UI.toonScherm('reis-scherm');
@@ -309,12 +308,12 @@ const App = {
     koopBrandstof() {
         const n = parseInt(document.getElementById('brandstof-aantal')?.value) || 10;
         const res = state.koopBrandstof(n);
-        if (!res.succes) this._fout(res.reden); else UI.renderSpel();
+        if (!res.succes) this._fout(res.reden); else { UI._animeerBrandstof = true; UI.renderSpel(); }
     },
 
     vulTankVol() {
         const res = state.vulTankVol();
-        if (!res.succes) this._fout(res.reden); else UI.renderSpel();
+        if (!res.succes) this._fout(res.reden); else { UI._animeerBrandstof = true; UI.renderSpel(); }
     },
 
     koopMaxBrandstof() {
@@ -323,7 +322,12 @@ const App = {
         const maxAantal = Math.min(vrij, Math.floor(state.speler.krediet / prijs));
         if (maxAantal <= 0) return;
         const res = state.koopBrandstof(maxAantal);
-        if (!res.succes) this._fout(res.reden); else UI.renderSpel();
+        if (!res.succes) this._fout(res.reden); else { UI._animeerBrandstof = true; UI.renderSpel(); }
+    },
+
+    boardPassagiers() {
+        state.boardPassagiers();
+        UI.renderSpel();
     },
 
     koopUpgrade(upgradeId) {

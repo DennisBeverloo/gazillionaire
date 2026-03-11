@@ -444,7 +444,7 @@ class GameState {
         const planeetNaam = PLANETEN.find(p => p.id === planeetId)?.naam ?? planeetId;
         this.speler.krediet -= kosten;
         this.marketingActief = { planeet: planeetId, kosten };
-        this.voegBerichtToe(`📢 Reclamecampagne gestart voor ${planeetNaam} (${this.formatteerKrediet(kosten)}). Bij aankomst: +8 passagiers en hogere ticketprijs!`, 'info');
+        this.voegBerichtToe(`📢 Reclamecampagne gestart voor ${planeetNaam} (${this.formatteerKrediet(kosten)}). Bij aankomst wachten meer passagiers op je.`, 'info');
         return { succes: true };
     }
 

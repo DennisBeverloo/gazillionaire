@@ -627,13 +627,16 @@ const UI = {
             paxHtml = `<div class="kleur-dimmed" style="font-size:0.85em">Je huidige schip heeft geen passagiersruimte.</div>`;
         } else {
             const verwacht = aanBoord > 0 ? aanBoord * (state.passagiersTicketprijs || 0) : null;
+            const kanInstappen = wachtendObj.aantal > 0 && aanBoord < maxPax;
+            const instappers = Math.min(wachtendObj.aantal, maxPax - aanBoord);
             paxHtml = `<div class="pax-info-raster">
                 <div class="pax-info-rij"><span class="kleur-dimmed">Aan boord</span><strong>${aanBoord}/${maxPax}</strong></div>
                 <div class="pax-info-rij"><span class="kleur-dimmed">Wachtend</span><strong>${wachtendObj.aantal}</strong></div>
                 <div class="pax-info-rij"><span class="kleur-dimmed">Ticketprijs</span><strong class="kleur-groen">${state.formatteerKrediet(wachtendObj.prijs)}/pp</strong></div>
                 ${verwacht !== null ? `<div class="pax-info-rij"><span class="kleur-dimmed">Bij aankomst</span><strong class="kleur-goud">+${state.formatteerKrediet(verwacht)}</strong></div>` : ''}
             </div>
-            <div class="kleur-dimmed" style="font-size:0.8em;margin-top:10px">Passagiers stappen automatisch in bij vertrek en betalen bij aankomst.</div>`;
+            ${kanInstappen ? `<button class="knop succes klein" style="margin-top:10px" onclick="App.boardPassagiers()">Neem ${instappers} passagier${instappers > 1 ? 's' : ''} aan boord</button>` : ''}
+            <div class="kleur-dimmed" style="font-size:0.8em;margin-top:8px">Passagiers betalen bij aankomst op de volgende planeet.</div>`;
         }
         html += `<div class="haven-blok"><div class="haven-blok-header">🧳 Passagiers</div><div class="haven-blok-inhoud">${paxHtml}</div></div>`;
 
@@ -649,7 +652,7 @@ const UI = {
                 mktHtml = `<div class="kleur-groen" style="font-size:0.88em">✓ Campagne actief voor <strong>${selPNaam}</strong> — extra passagiers wachten bij aankomst.</div>`;
             } else {
                 const kanBetalen = state.speler.krediet >= mKosten;
-                mktHtml = `<div style="font-size:0.85em;margin-bottom:8px">Reclamecampagne voor <strong>${selPNaam}</strong>. Bij aankomst: +8 wachtende passagiers en hogere ticketprijs (+50 cr/pp).</div>
+                mktHtml = `<div style="font-size:0.85em;margin-bottom:8px">Reclamecampagne voor <strong>${selPNaam}</strong>. Bij aankomst wachten meer passagiers op je, tegen een iets hogere ticketprijs.</div>
                     <button class="knop primair klein" onclick="App.koopMarketing('${selP}')" ${(!kanBetalen || heeftAndereCampagne) ? 'disabled' : ''}>Start campagne (${state.formatteerKrediet(mKosten)})</button>
                     ${heeftAndereCampagne ? `<div class="kleur-dimmed" style="font-size:0.8em;margin-top:6px">⚠ Al een actieve campagne.</div>` : ''}`;
             }
@@ -666,7 +669,7 @@ const UI = {
         const bTekstKlasse = state.brandstof < 20 ? 'kleur-rood' : state.brandstof < 40 ? 'kleur-oranje' : 'kleur-groen';
         html += `<div class="haven-blok"><div class="haven-blok-header">⛽ Brandstof</div><div class="haven-blok-inhoud">
             <div class="brandstof-info-rij"><span>Voorraad: <strong class="${bTekstKlasse}">${state.brandstof}/${tank} l</strong></span><span>Prijs: <strong class="kleur-goud">${bPrijs} cr/l</strong></span></div>
-            <div class="lading-balk-container" style="margin:6px 0"><div id="brandstof-balk" class="lading-balk animeer" style="width:0%;background:${bKleur}" data-target="${brandstofPct}"></div></div>
+            <div class="lading-balk-container" style="margin:6px 0"><div id="brandstof-balk" class="lading-balk${this._animeerBrandstof ? ' animeer' : ''}" style="width:${this._animeerBrandstof ? 0 : brandstofPct}%;background:${bKleur}" data-target="${brandstofPct}"></div></div>
             <div class="brandstof-acties">
                 <input type="number" id="brandstof-aantal" class="hoeveelheid-input" min="1" max="${vrij}" value="${Math.min(10, vrij)}" style="width:65px" ${vrij <= 0 ? 'disabled' : ''}>
                 <button class="knop primair klein" onclick="App.koopBrandstof()" ${vrij <= 0 ? 'disabled' : ''}>Koop</button>
@@ -683,8 +686,11 @@ const UI = {
             verzHtml = `<div class="kleur-groen" style="font-size:0.88em">✓ Verzekering actief — je bent gedekt voor de komende reis.</div>`;
         } else {
             const kanVerz = state.speler.krediet >= verzPrijs;
+            const cap = state.schip?.laadruimte ?? 0;
+            const paxCap = state.schip?.passagiersCapaciteit ?? 0;
             verzHtml = `<div style="font-size:0.85em;margin-bottom:8px">Dekt verliezen door piraten, storms, lekken en douaneboetes. Vervalt bij aankomst.</div>
                 <div class="upgrade-prijs">${state.formatteerKrediet(verzPrijs)}</div>
+                <div class="kleur-dimmed" style="font-size:0.78em;margin-bottom:8px">Basisprijs + ${cap} ton laadruimte${paxCap > 0 ? ` + ${paxCap} passagiersplaatsen` : ''}</div>
                 <button class="knop primair klein" ${!kanVerz ? 'disabled' : ''} onclick="App.koopVerzekering()">${kanVerz ? 'Sluit af' : 'Onvoldoende credits'}</button>`;
         }
         html += `<div class="haven-blok"><div class="haven-blok-header">🛡️ Reisverzekering</div><div class="haven-blok-inhoud">${verzHtml}</div></div>`;
@@ -779,11 +785,14 @@ const UI = {
         html += '</div>'; // sluit haven-raster
         container.innerHTML = html;
 
-        // Animeer brandstofbalk na render
-        requestAnimationFrame(() => {
-            const balk = document.getElementById('brandstof-balk');
-            if (balk) balk.style.width = balk.dataset.target + '%';
-        });
+        // Animeer brandstofbalk na render (alleen als vlag gezet)
+        if (this._animeerBrandstof) {
+            this._animeerBrandstof = false;
+            requestAnimationFrame(() => {
+                const balk = document.getElementById('brandstof-balk');
+                if (balk) balk.style.width = balk.dataset.target + '%';
+            });
+        }
     },
 
     // =========================================================================
