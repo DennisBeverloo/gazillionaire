@@ -287,7 +287,7 @@ class GameState {
             npc.waardeGeschiedenis.push(npc.krediet);
             if (npc.waardeGeschiedenis.length > 160) npc.waardeGeschiedenis.shift();
         });
-    },
+    }
 
     _npcStoringPrijzen(sjab, planeetId) {
         const planeetNaam = PLANETEN.find(p => p.id === planeetId)?.naam ?? planeetId;
@@ -301,7 +301,7 @@ class GameState {
             const pct = Math.round((factor - 1) * 100);
             this.voegBerichtToe(`💼 ${sjab.naam} arriveerde eerder op ${planeetNaam} — ${goed.icoon} ${goed.naam} +${pct}%`, 'waarschuwing');
         });
-    },
+    }
 
     aankomst() {
         this.locatie = this.reisData.naar;
