@@ -28,16 +28,20 @@ const UI = {
             div.className = 'schip-kaart';
 
             div.innerHTML = `
-                <span class="schip-icoon">${schip.icoon}</span>
-                <h3>${schip.naam}</h3>
-                <div class="prijs">${state.formatteerKrediet(schip.prijs)}</div>
-                <p>${schip.beschrijving}</p>
-                <div class="schip-stat"><span>Snelheid</span><span class="waarde ster-rating">${'★'.repeat(schip.snelheid)}${'☆'.repeat(5-schip.snelheid)}</span></div>
-                <div class="schip-stat"><span>Laadruimte</span><span class="waarde">${schip.laadruimte} ton</span></div>
-                <div class="schip-stat"><span>Brandstoftank</span><span class="waarde">${schip.brandstofTank} e</span></div>
-                <div class="schip-stat"><span>Passagiers</span><span class="waarde">${schip.passagiersCapaciteit > 0 ? schip.passagiersCapaciteit : '—'}</span></div>
-                <div class="schip-stat"><span>Schild</span><span class="waarde ster-rating">${'★'.repeat(schip.schild)}${'☆'.repeat(5-schip.schild)}</span></div>
-                <div class="schip-stat"><span>Startkapitaal</span><span class="waarde ${resterend < 500 ? 'kleur-rood' : 'kleur-groen'}">${state.formatteerKrediet(resterend)}</span></div>
+                <div class="schip-kaart-intro">
+                    <span class="schip-icoon">${schip.icoon}</span>
+                    <h3>${schip.naam}</h3>
+                    <div class="prijs">${state.formatteerKrediet(schip.prijs)}</div>
+                    <p>${schip.beschrijving}</p>
+                </div>
+                <div class="schip-kaart-stats">
+                    <div class="schip-stat"><span>Snelheid</span><span class="waarde ster-rating">${'★'.repeat(schip.snelheid)}${'☆'.repeat(5-schip.snelheid)}</span></div>
+                    <div class="schip-stat"><span>Laadruimte</span><span class="waarde">${schip.laadruimte} ton</span></div>
+                    <div class="schip-stat"><span>Brandstoftank</span><span class="waarde">${schip.brandstofTank} e</span></div>
+                    <div class="schip-stat"><span>Passagiers</span><span class="waarde">${schip.passagiersCapaciteit > 0 ? schip.passagiersCapaciteit : '—'}</span></div>
+                    <div class="schip-stat"><span>Schild</span><span class="waarde ster-rating">${'★'.repeat(schip.schild)}${'☆'.repeat(5-schip.schild)}</span></div>
+                    <div class="schip-stat"><span>Startkapitaal</span><span class="waarde ${resterend < 500 ? 'kleur-rood' : 'kleur-groen'}">${state.formatteerKrediet(resterend)}</span></div>
+                </div>
                 <button class="knop primair schip-kies-knop" onclick="App.selecteerSchip('${schip.id}')">Dit schip kiezen</button>
             `;
             container.appendChild(div);

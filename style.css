@@ -129,6 +129,16 @@ html, body {
     opacity: 0.5;
     letter-spacing: 0.1em;
 }
+.versie-label {
+    position: absolute;
+    bottom: 14px;
+    right: 18px;
+    font-family: var(--font-data);
+    font-size: 0.72em;
+    color: var(--tekst-dim);
+    opacity: 0.35;
+    pointer-events: none;
+}
 .intro-tekst {
     color: var(--tekst);
     font-size: 1.05em;
@@ -240,10 +250,10 @@ html, body {
     display: flex;
     flex-direction: column;
 }
+.schip-kaart-intro { flex: 1; }
 .schip-kies-knop {
     width: 100%;
-    margin-top: auto;
-    padding-top: 14px;
+    margin-top: 14px;
 }
 .schip-kaart:hover {
     border-color: var(--accent);
