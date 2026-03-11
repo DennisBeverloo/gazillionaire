@@ -421,50 +421,40 @@ html, body {
     border-bottom: 1px solid var(--rand);
 }
 .planeet-info-kaart {
-    display: flex;
-    gap: 10px;
-    padding: 10px 12px;
-    align-items: flex-start;
-}
-.planeet-afbeelding-wrap {
     position: relative;
-    width: 72px;
-    height: 72px;
-    flex-shrink: 0;
-    border-radius: 50%;
-    overflow: hidden;
-    border: 1px solid var(--rand);
-    background: var(--bg-diep);
+    height: 110px;
+    background-size: cover;
+    background-position: center;
+    background-color: var(--bg-diep);
+    background-image: radial-gradient(circle at 35% 35%, var(--planeet-kleur, #00d4ff)66, transparent 70%);
+    display: flex;
+    align-items: flex-end;
 }
-.planeet-afbeelding {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-}
-.planeet-kleur-fallback {
+.planeet-info-kaart::before {
+    content: '';
     position: absolute;
     inset: 0;
-    border-radius: 50%;
+    background: linear-gradient(to top, rgba(4,6,13,0.85) 0%, rgba(4,6,13,0.25) 60%, rgba(4,6,13,0.1) 100%);
 }
-.geen-afbeelding .planeet-kleur-fallback {
-    /* Fallback zichtbaar als img niet laadt */
-}
-.planeet-info-tekst {
-    flex: 1;
-    min-width: 0;
+.planeet-info-overlay {
+    position: relative;
+    z-index: 1;
+    padding: 8px 12px;
+    width: 100%;
 }
 .planeet-info-naam {
     font-family: var(--font-titel);
     font-size: 0.95em;
     letter-spacing: 0.08em;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.8);
 }
 .planeet-info-beschr {
-    font-size: 0.73em;
+    font-size: 0.72em;
     color: var(--tekst-dim);
-    line-height: 1.45;
-    margin-bottom: 6px;
+    line-height: 1.4;
+    margin-bottom: 5px;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.9);
 }
 .planeet-tags {
     display: flex;
@@ -475,10 +465,11 @@ html, body {
     font-size: 0.68em;
     padding: 2px 6px;
     border-radius: 3px;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid var(--rand);
+    background: rgba(0,0,0,0.55);
+    border: 1px solid rgba(255,255,255,0.15);
     color: var(--tekst-dim);
     white-space: nowrap;
+    backdrop-filter: blur(2px);
 }
 
 /* Kaart */

@@ -166,14 +166,8 @@ const UI = {
         if (planeet.vraag?.length)        tags.push('<span class="planeet-tag kleur-oranje">↑ Gevraagd</span>');
 
         container.innerHTML = `
-            <div class="planeet-info-kaart">
-                <div class="planeet-afbeelding-wrap">
-                    <img src="${imgSrc}" alt="${planeet.naam}"
-                         class="planeet-afbeelding"
-                         onerror="this.parentElement.classList.add('geen-afbeelding');this.remove()">
-                    <div class="planeet-kleur-fallback" style="background:radial-gradient(circle at 35% 35%, ${planeet.kleur}cc, ${planeet.kleur}44 60%, transparent)"></div>
-                </div>
-                <div class="planeet-info-tekst">
+            <div class="planeet-info-kaart" style="background-image:url('${imgSrc}');--planeet-kleur:${planeet.kleur}">
+                <div class="planeet-info-overlay">
                     <div class="planeet-info-naam" style="color:${planeet.kleur}">${planeet.naam}</div>
                     <div class="planeet-info-beschr">${planeet.beschrijving}</div>
                     ${tags.length ? `<div class="planeet-tags">${tags.join('')}</div>` : ''}
