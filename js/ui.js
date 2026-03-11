@@ -1194,6 +1194,14 @@ const UI = {
         document.getElementById('aankomst-popup').classList.add('verborgen');
     },
 
+    toonInstellingen() {
+        document.getElementById('instellingen-overlay')?.classList.remove('verborgen');
+    },
+
+    verbergInstellingen() {
+        document.getElementById('instellingen-overlay')?.classList.add('verborgen');
+    },
+
     toonEventResultaat(bericht) {
         document.getElementById('event-gevolg').textContent = bericht;
     },

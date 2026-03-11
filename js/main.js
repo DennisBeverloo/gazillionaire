@@ -69,6 +69,56 @@ const App = {
         UI.renderSpel();
     },
 
+    handmatigOpslaan() {
+        state.slaOp();
+        UI.verbergInstellingen();
+        UI.voegBerichtToe('💾 Spel opgeslagen.', 'kleur-groen');
+    },
+
+    downloadSave() {
+        state.slaOp();
+        const data = localStorage.getItem('gazillionaire_save');
+        if (!data) return;
+        const blob = new Blob([data], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `gazillionaire-save-${state.speler?.naam ?? 'kapitein'}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        UI.verbergInstellingen();
+    },
+
+    uploadSave(input) {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+            try {
+                const data = JSON.parse(e.target.result);
+                if (!data || data.versie !== 1) throw new Error('Ongeldig savebestand');
+                localStorage.setItem('gazillionaire_save', JSON.stringify(data));
+                if (!state.laadOp()) throw new Error('Laden mislukt');
+                UI.verbergInstellingen();
+                UI.toonScherm('spel-scherm');
+                UI.renderSpel();
+            } catch(err) {
+                alert('Ongeldig savebestand. Controleer het bestand en probeer opnieuw.');
+            }
+        };
+        reader.readAsText(file);
+        input.value = '';
+    },
+
+    nieuwSpelVanuitInstellingen() {
+        if (!confirm('Weet je zeker dat je een nieuw spel wilt starten? Je huidige voortgang wordt gewist.')) return;
+        state.wisSave();
+        state.reset();
+        UI.verbergInstellingen();
+        UI.toonScherm('intro-scherm');
+        document.getElementById('save-sectie').style.display = 'none';
+    },
+
     selecteerSchip(schipId) {
         state.init(state.speler.naam, schipId);
         UI.toonScherm('spel-scherm');
