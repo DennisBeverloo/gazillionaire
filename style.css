@@ -1360,7 +1360,7 @@ body[data-planeet="mortex"]  { --planet-accent: #8b0000; }
     align-items: center;
     justify-content: center;
 }
-#instellingen-overlay.verborgen { display: none; }
+#instellingen-overlay.verborgen { display: none !important; }
 .instellingen-modal {
     background: var(--bg-paneel);
     border: 1px solid var(--rand-actief);
