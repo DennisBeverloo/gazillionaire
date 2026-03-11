@@ -81,36 +81,6 @@
         </div>
     </div>
 
-<!-- ============================================================
-     INSTELLINGEN MODAL
-     ============================================================ -->
-<div id="instellingen-overlay" class="verborgen">
-    <div class="instellingen-modal">
-        <div class="instellingen-header">
-            <span class="instellingen-titel">⚙ Instellingen</span>
-            <button class="instellingen-sluit" onclick="UI.verbergInstellingen()">✕</button>
-        </div>
-        <div class="instellingen-body">
-            <div class="instellingen-sectie">
-                <div class="instellingen-sectie-titel">Spel opslaan</div>
-                <button class="knop primair instellingen-knop" onclick="App.handmatigOpslaan()">💾 Opslaan in browser</button>
-                <button class="knop dimmed instellingen-knop" onclick="App.downloadSave()">⬇ Download savebestand</button>
-            </div>
-            <div class="instellingen-sectie">
-                <div class="instellingen-sectie-titel">Spel laden</div>
-                <label class="knop dimmed instellingen-knop instellingen-upload-label">
-                    ⬆ Laad savebestand
-                    <input type="file" id="save-upload-input" accept=".json" style="display:none" onchange="App.uploadSave(this)">
-                </label>
-            </div>
-            <div class="instellingen-sectie instellingen-gevaar-sectie">
-                <div class="instellingen-sectie-titel">Nieuw spel</div>
-                <button class="knop gevaar instellingen-knop" onclick="App.nieuwSpelVanuitInstellingen()">🗑 Nieuw spel starten</button>
-            </div>
-        </div>
-    </div>
-</div>
-
     <!-- Hoofd inhoud: links tabs + berichten, rechts kaart + schipstatus -->
     <div id="hoofd-inhoud">
 
@@ -226,6 +196,36 @@
         <p id="aankomst-event-beschrijving"></p>
         <div id="aankomst-event-gestolen" class="event-gevolg" style="display:none"></div>
         <button class="knop primair" onclick="UI.verbergAankomstPopup()">Begrepen →</button>
+    </div>
+</div>
+
+<!-- ============================================================
+     INSTELLINGEN MODAL (overlay, buiten alle schermen)
+     ============================================================ -->
+<div id="instellingen-overlay" class="verborgen">
+    <div class="instellingen-modal">
+        <div class="instellingen-header">
+            <span class="instellingen-titel">⚙ Instellingen</span>
+            <button class="instellingen-sluit" onclick="UI.verbergInstellingen()">✕</button>
+        </div>
+        <div class="instellingen-body">
+            <div class="instellingen-sectie">
+                <div class="instellingen-sectie-titel">Spel opslaan</div>
+                <button class="knop primair instellingen-knop" onclick="App.handmatigOpslaan()">💾 Opslaan in browser</button>
+                <button class="knop dimmed instellingen-knop" onclick="App.downloadSave()">⬇ Download savebestand</button>
+            </div>
+            <div class="instellingen-sectie">
+                <div class="instellingen-sectie-titel">Spel laden</div>
+                <label class="knop dimmed instellingen-knop instellingen-upload-label">
+                    ⬆ Laad savebestand
+                    <input type="file" id="save-upload-input" accept=".json" style="display:none" onchange="App.uploadSave(this)">
+                </label>
+            </div>
+            <div class="instellingen-sectie instellingen-gevaar-sectie">
+                <div class="instellingen-sectie-titel">Nieuw spel</div>
+                <button class="knop gevaar instellingen-knop" onclick="App.nieuwSpelVanuitInstellingen()">🗑 Nieuw spel starten</button>
+            </div>
+        </div>
     </div>
 </div>
 
