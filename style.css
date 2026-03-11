@@ -18,7 +18,7 @@
     --oranje:         #ff8c42;
     --rood:           #ff3855;
     --paars:          #a855f7;
-    --tekst:          #c8d8e8;
+    --tekst:          #dde8f4;
     --tekst-dim:      #4a6a8a;
 
     --font-titel:  'Orbitron', monospace;
@@ -994,6 +994,7 @@ html, body {
 .ach-icoon { font-size: 2.2em; margin-bottom: 6px; }
 .ach-naam { font-family: var(--font-data); color: var(--goud); font-size: 0.85em; margin-bottom: 4px; }
 .ach-beschr { color: var(--tekst-dim); font-size: 0.78em; line-height: 1.4; }
+.ach-beloning { font-family: var(--font-data); font-size: 0.78em; margin-top: 6px; }
 
 /* STOCK KAARTEN & SPARKLINES */
 .aandeel-kaarten {

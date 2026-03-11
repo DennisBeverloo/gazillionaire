@@ -319,7 +319,7 @@ const UI = {
                 <span class="stat-waarde ${state.brandstof < 20 ? 'kleur-rood' : state.brandstof < 40 ? 'kleur-oranje' : ''}">${state.brandstof}/${s.brandstofTank}</span>
             </div>
             <div class="lading-balk-container">
-                <div class="lading-balk" style="width:${Math.round(state.brandstof/s.brandstofTank*100)}%;background:${state.brandstof < 20 ? 'var(--rood)' : state.brandstof < 40 ? 'var(--oranje)' : '#f59e0b'}"></div>
+                <div class="lading-balk" style="width:${Math.round(state.brandstof/s.brandstofTank*100)}%;background:${state.brandstof < 20 ? 'var(--rood)' : state.brandstof < 40 ? 'var(--oranje)' : 'var(--groen)'}"></div>
             </div>
             ${state.schipBeschadigd ? '<div class="stat-rij"><span class="kleur-rood" style="font-size:0.78em">⚠ Schip beschadigd!</span></div>' : ''}
             ${s.heeftRadar ? '<div class="stat-rij"><span class="stat-naam">Radar</span><span class="stat-waarde kleur-groen">📡 Actief</span></div>' : ''}
@@ -399,7 +399,7 @@ const UI = {
             if (inLading > 0) {
                 ladingTd = `<strong>${inLading}</strong>`;
                 if (aankoopPrijs) {
-                    ladingTd += `<div class="aankoopprijs-info">gem. ${aankoopPrijs} cr.</div>`;
+                    ladingTd += `<div class="aankoopprijs-info">gem. ${aankoopPrijs} cr</div>`;
                 }
             }
 
@@ -541,7 +541,7 @@ const UI = {
             html += `<div class="sectie-header" style="margin-top:18px">🔧 Scheepsreparatie</div>
             <div class="lening-sectie">
                 <div class="kleur-rood" style="margin-bottom:10px">⚠ Je schip heeft schade. Dit vertraagt je reizen tot je repareert.</div>
-                <button class="knop gevaar" onclick="App.repareerSchip()">Repareer nu (350 cr.)</button>
+                <button class="knop gevaar" onclick="App.repareerSchip()">Repareer nu (350 cr)</button>
             </div>`;
         }
 
@@ -600,7 +600,7 @@ const UI = {
         <div class="brandstof-sectie">
             <div class="brandstof-info-rij">
                 <span>Voorraad: <strong class="${bTekstKlasse}">${state.brandstof}/${tank}</strong></span>
-                <span>Prijs: <strong class="kleur-goud">${bPrijs} cr./e</strong></span>
+                <span>Prijs: <strong class="kleur-goud">${bPrijs} cr/e</strong></span>
             </div>
             <div class="lading-balk-container" style="margin:6px 0">
                 <div class="lading-balk" style="width:${brandstofPct}%;background:${bKleur}"></div>
@@ -632,7 +632,7 @@ const UI = {
                 const vereistMist  = upg.vereist && !state.gekochteUpgrades.includes(upg.vereist);
                 const kanAfrekenen = state.speler.krediet >= upg.prijs;
                 const btnDisabled  = inst || vereistMist || !kanAfrekenen;
-                const btnLabel     = !kanAfrekenen && !vereistMist && !inst ? 'Onvoldoende cr.' : 'Installeer';
+                const btnLabel     = !kanAfrekenen && !vereistMist && !inst ? 'Onvoldoende credits' : 'Installeer';
 
                 html += `<div class="upgrade-kaart ${inst ? 'al-geinstalleerd' : ''}">
                     <div style="font-size:1.4em;margin-bottom:5px">${upg.icoon}</div>
@@ -721,7 +721,7 @@ const UI = {
             if (bezit > 0) {
                 portfolioHtml = `<div class="aandeel-portfolio-info">
                     <div class="aandeel-bezit-rij"><span class="kleur-dimmed">Bezit</span><span><strong>${bezit}</strong> aandelen</span></div>
-                    ${aankoopKoers ? `<div class="aandeel-bezit-rij"><span class="kleur-dimmed">Gem. aankoop</span><span>${aankoopKoers} cr.</span></div>` : ''}
+                    ${aankoopKoers ? `<div class="aandeel-bezit-rij"><span class="kleur-dimmed">Gem. aankoop</span><span>${aankoopKoers} cr</span></div>` : ''}
                     <div class="aandeel-bezit-rij"><span class="kleur-dimmed">Waarde</span><span class="kleur-goud">${state.formatteerKrediet(waarde)}</span></div>
                     ${ongrReal !== null ? `<div class="aandeel-bezit-rij"><span class="kleur-dimmed">P&amp;L</span><span class="${ongrKlas}">${ongrReal >= 0 ? '+' : ''}${state.formatteerKrediet(ongrReal)}</span></div>` : ''}
                 </div>`;
@@ -737,8 +737,8 @@ const UI = {
                         <div class="aandeel-bedrijf-beschrijving">${a.beschrijving}</div>
                     </div>
                 </div>
-                <div class="aandeel-koers-groot">${koers} cr.</div>
-                <div class="aandeel-delta ${dKlas}">${dTeken}${delta} cr. (${dTeken}${dPct}%)</div>
+                <div class="aandeel-koers-groot">${koers} cr</div>
+                <div class="aandeel-delta ${dKlas}">${dTeken}${delta} cr (${dTeken}${dPct}%)</div>
                 ${this._renderSparkline(a.id)}
                 ${portfolioHtml}
                 <div class="aandeel-knoppen-koop">
@@ -834,6 +834,7 @@ const UI = {
                     <div class="ach-icoon">${isUnlocked ? ach.icoon : '🔒'}</div>
                     <div class="ach-naam">${isUnlocked ? ach.naam : '???'}</div>
                     <div class="ach-beschr">${isUnlocked ? ach.beschrijving : 'Nog niet ontgrendeld'}</div>
+                    ${ach.beloning ? `<div class="ach-beloning ${isUnlocked ? 'kleur-goud' : 'kleur-dimmed'}">💰 ${new Intl.NumberFormat('nl-NL').format(ach.beloning)} cr beloning</div>` : ''}
                 </div>`;
             });
             html += '</div>';
@@ -979,7 +980,8 @@ const UI = {
         if (!toast) return;
         toast.innerHTML = `<span class="toast-icoon">${ach.icoon}</span>
             <div><div class="toast-naam">Achievement: ${ach.naam}</div>
-            <div class="toast-beschr">${ach.beschrijving}</div></div>`;
+            <div class="toast-beschr">${ach.beschrijving}</div>
+            ${ach.beloning ? `<div class="toast-beschr kleur-goud">+${new Intl.NumberFormat('nl-NL').format(ach.beloning)} cr beloning</div>` : ''}</div>`;
         toast.classList.add('zichtbaar');
         clearTimeout(this._toastTimer);
         this._toastTimer = setTimeout(() => toast.classList.remove('zichtbaar'), 4000);

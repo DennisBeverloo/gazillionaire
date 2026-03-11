@@ -304,7 +304,7 @@ const EVENTS = [
         beschrijving: 'Een cruciaal onderdeel geeft het op. Je moet halverwege stoppen voor noodreparaties.',
         heeftKeuze: true,
         keuzes: [
-            { id: 'repareer', tekst: 'Repareer direct (400 cr.)', stijl: 'gevaar' },
+            { id: 'repareer', tekst: 'Repareer direct (400 cr)', stijl: 'gevaar' },
             { id: 'doorvaren', tekst: 'Doorvaren met beschadiging', stijl: 'knop' },
         ],
     },
@@ -428,6 +428,7 @@ const ACHIEVEMENTS = [
         icoon: '🤝',
         categorie: 'deals',
         beschrijving: 'Voltooi je eerste handelstransactie.',
+        beloning: 250,
         check: s => s.statistieken.handelstransacties >= 1,
     },
     {
@@ -436,6 +437,7 @@ const ACHIEVEMENTS = [
         icoon: '📊',
         categorie: 'deals',
         beschrijving: 'Voltooi 10 handelstransacties.',
+        beloning: 750,
         check: s => s.statistieken.handelstransacties >= 10,
     },
     {
@@ -444,6 +446,7 @@ const ACHIEVEMENTS = [
         icoon: '🏪',
         categorie: 'deals',
         beschrijving: 'Voltooi 50 handelstransacties.',
+        beloning: 3000,
         check: s => s.statistieken.handelstransacties >= 50,
     },
     {
@@ -451,7 +454,8 @@ const ACHIEVEMENTS = [
         naam: 'Rijkaard',
         icoon: '💰',
         categorie: 'nettowaarde',
-        beschrijving: 'Bereik een nettowaarde van 10.000 cr.',
+        beschrijving: 'Bereik een nettowaarde van 10.000 credits.',
+        beloning: 1500,
         check: s => s.berekenNettowaarde() >= 10000,
     },
     {
@@ -459,7 +463,8 @@ const ACHIEVEMENTS = [
         naam: 'Groot Handelaar',
         icoon: '🏛️',
         categorie: 'nettowaarde',
-        beschrijving: 'Bereik een nettowaarde van 100.000 cr.',
+        beschrijving: 'Bereik een nettowaarde van 100.000 credits.',
+        beloning: 7500,
         check: s => s.berekenNettowaarde() >= 100000,
     },
     {
@@ -467,7 +472,8 @@ const ACHIEVEMENTS = [
         naam: 'Galactische Millionair',
         icoon: '🌟',
         categorie: 'nettowaarde',
-        beschrijving: 'Bereik een nettowaarde van 1.000.000 cr.',
+        beschrijving: 'Bereik een nettowaarde van 1.000.000 credits.',
+        beloning: 50000,
         check: s => s.berekenNettowaarde() >= 1000000,
     },
     {
@@ -476,6 +482,7 @@ const ACHIEVEMENTS = [
         icoon: '🗺️',
         categorie: 'events',
         beschrijving: 'Bezoek alle 8 planeten.',
+        beloning: 5000,
         check: s => s.bezochteplaneten && s.bezochteplaneten.size >= 8,
     },
     {
@@ -484,6 +491,7 @@ const ACHIEVEMENTS = [
         icoon: '🔥',
         categorie: 'schip',
         beschrijving: 'Installeer de Motor Mk.III.',
+        beloning: 2000,
         check: s => s.gekochteUpgrades.includes('motor_mk3'),
     },
     {
@@ -492,6 +500,7 @@ const ACHIEVEMENTS = [
         icoon: '📈',
         categorie: 'beurs',
         beschrijving: 'Bezit 4 of meer verschillende aandelen tegelijk.',
+        beloning: 2500,
         check: s => Object.values(s.aandelenPortefeuille).filter(v => v > 0).length >= 4,
     },
     {
@@ -499,7 +508,8 @@ const ACHIEVEMENTS = [
         naam: 'Winstmaker',
         icoon: '💎',
         categorie: 'deals',
-        beschrijving: 'Maak 1.000 kr winst op één deal.',
+        beschrijving: 'Maak 1.000 credits winst op één deal.',
+        beloning: 1500,
         check: s => s._laatsteWinst >= 1000,
     },
     {
@@ -507,7 +517,8 @@ const ACHIEVEMENTS = [
         naam: 'Superdeal',
         icoon: '🏆',
         categorie: 'deals',
-        beschrijving: 'Maak 5.000 kr winst op één deal.',
+        beschrijving: 'Maak 5.000 credits winst op één deal.',
+        beloning: 5000,
         check: s => s._laatsteWinst >= 5000,
     },
     {
@@ -516,6 +527,7 @@ const ACHIEVEMENTS = [
         icoon: '🚀',
         categorie: 'events',
         beschrijving: 'Maak 10 ruimtereizen.',
+        beloning: 1500,
         check: s => s.statistieken.gereisd >= 10,
     },
     {
@@ -524,6 +536,7 @@ const ACHIEVEMENTS = [
         icoon: '✅',
         categorie: 'nettowaarde',
         beschrijving: 'Betaal een lening volledig af.',
+        beloning: 2000,
         check: s => s._oitLeningGehad && s.speler.schuld === 0,
     },
     {
@@ -532,6 +545,7 @@ const ACHIEVEMENTS = [
         icoon: '📦',
         categorie: 'deals',
         beschrijving: 'Vul je laadruimte volledig.',
+        beloning: 500,
         check: s => s.schip && s.getLadingGewicht() >= s.schip.laadruimte,
     },
     {
@@ -540,6 +554,7 @@ const ACHIEVEMENTS = [
         icoon: '⚡',
         categorie: 'events',
         beschrijving: 'Ontsnapt aan piraten.',
+        beloning: 1000,
         check: s => s._piratenOntkomingen > 0,
     },
     {
@@ -548,6 +563,7 @@ const ACHIEVEMENTS = [
         icoon: '⛽',
         categorie: 'events',
         beschrijving: 'Kom aan op een planeet met minder dan 10 eenheden brandstof.',
+        beloning: 300,
         check: s => s._aangekomendMetLageBrandstof,
     },
     {
@@ -556,6 +572,7 @@ const ACHIEVEMENTS = [
         icoon: '🧳',
         categorie: 'events',
         beschrijving: 'Lever je eerste passagier af op zijn bestemming.',
+        beloning: 600,
         check: s => s.statistieken.passagiersAfgeleverd >= 1,
     },
 ];

@@ -919,7 +919,12 @@ class GameState {
                     if (ach.check(this)) {
                         this.achievements.add(ach.id);
                         nieuweAchs.push(ach);
-                        this.voegBerichtToe(`🏆 Achievement ontgrendeld: ${ach.naam}!`, 'goud');
+                        if (ach.beloning && ach.beloning > 0) {
+                            this.speler.krediet += ach.beloning;
+                            this.voegBerichtToe(`🏆 Achievement ontgrendeld: ${ach.naam}! +${this.formatteerKrediet(ach.beloning)} beloning`, 'goud');
+                        } else {
+                            this.voegBerichtToe(`🏆 Achievement ontgrendeld: ${ach.naam}!`, 'goud');
+                        }
                     }
                 } catch(e) {}
             }
@@ -956,7 +961,7 @@ class GameState {
     }
 
     formatteerKrediet(bedrag) {
-        return new Intl.NumberFormat('nl-NL').format(Math.round(bedrag)) + ' cr.';
+        return new Intl.NumberFormat('nl-NL').format(Math.round(bedrag)) + ' cr';
     }
 
     // =========================================================================
