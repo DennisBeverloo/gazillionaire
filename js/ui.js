@@ -66,6 +66,7 @@ const UI = {
             case 'haven':        this.renderHavenTab();        break;
             case 'beurs':        this.renderBeursTab();        break;
             case 'logboek':      this.renderLogboekTab();      break;
+            case 'ranglijst':    this.renderRanglijstTab();    break;
             case 'achievements': this.renderAchievementsTab(); break;
         }
 
@@ -904,6 +905,119 @@ const UI = {
         });
 
         container.innerHTML = html;
+    },
+
+    // =========================================================================
+    // RANGLIJST TAB
+    // =========================================================================
+
+    renderRanglijstTab() {
+        const container = document.getElementById('ranglijst-tab');
+        if (!container) return;
+
+        const spelerWaarde = state.berekenNettowaarde();
+        const deelnemers = [
+            { naam: state.speler.naam, icoon: state.schip?.icoon ?? '🚀', kleur: '#e8f4ff', waarde: spelerWaarde, type: 'Handelaar', isSpeler: true },
+            ...(state.concurrenten || []).map(npc => {
+                const s = (typeof CONCURRENTEN !== 'undefined') ? CONCURRENTEN.find(c => c.id === npc.id) : null;
+                return { naam: s?.naam ?? npc.id, icoon: s?.icoon ?? '👤', kleur: s?.kleur ?? '#888', waarde: npc.krediet, type: s?.persoonlijkheid ?? '', isSpeler: false };
+            }),
+        ].sort((a, b) => b.waarde - a.waarde);
+
+        const jouwPlek = deelnemers.findIndex(d => d.isSpeler) + 1;
+        const medailTekst = jouwPlek === 1 ? '1e 🥇' : jouwPlek === 2 ? '2e 🥈' : jouwPlek === 3 ? '3e 🥉' : `${jouwPlek}e`;
+
+        let html = `<div class="sectie-header">🏅 Ranglijst — Jij staat <strong>${medailTekst}</strong></div>`;
+        html += '<div class="ranglijst-lijst">';
+        deelnemers.forEach((d, i) => {
+            const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`;
+            html += `<div class="ranglijst-rij${d.isSpeler ? ' ranglijst-speler' : ''}">
+                <span class="ranglijst-pos">${medal}</span>
+                <span class="ranglijst-naam" style="color:${d.kleur}">${d.icoon} ${d.naam}</span>
+                <span class="ranglijst-type">${d.type}</span>
+                <span class="ranglijst-waarde">${state.formatteerKrediet(d.waarde)}</span>
+            </div>`;
+        });
+        html += '</div>';
+
+        html += '<div class="sectie-header" style="margin-top:20px">📈 Vermogensontwikkeling</div>';
+        html += this._renderWaardegrafiek();
+
+        container.innerHTML = html;
+    },
+
+    _renderWaardegrafiek() {
+        const W = 480, H = 210;
+        const pad = { t: 12, r: 14, b: 28, l: 58 };
+        const iW = W - pad.l - pad.r;
+        const iH = H - pad.t - pad.b;
+
+        const reeksen = [
+            { naam: state.speler.naam, kleur: '#ffffff', data: state.nettoWaardeGeschiedenisSpeler || [], isSpeler: true },
+            ...(state.concurrenten || []).map(npc => {
+                const s = (typeof CONCURRENTEN !== 'undefined') ? CONCURRENTEN.find(c => c.id === npc.id) : null;
+                return { naam: s?.naam ?? npc.id, kleur: s?.kleur ?? '#888', data: npc.waardeGeschiedenis || [], isSpeler: false };
+            }),
+        ].filter(r => r.data.length > 0);
+
+        if (reeksen.length === 0 || !reeksen.some(r => r.data.length > 1)) {
+            return '<div class="kleur-dimmed" style="padding:14px 0;font-size:0.85em">Maak je eerste reis om de grafiek te zien.</div>';
+        }
+
+        const allVals = reeksen.flatMap(r => r.data);
+        const maxY = Math.max(...allVals, 1000);
+        const maxX = Math.max(...reeksen.map(r => r.data.length), 2);
+
+        const toX = i => pad.l + (i / (maxX - 1)) * iW;
+        const toY = v => pad.t + iH - Math.max(0, Math.min(1, v / maxY)) * iH;
+        const fmtY = v => v >= 1000000 ? (v / 1000000).toFixed(1) + 'M' : v >= 1000 ? Math.round(v / 1000) + 'k' : v;
+
+        let s = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;overflow:visible">`;
+
+        // Grid + Y labels
+        for (let i = 0; i <= 4; i++) {
+            const y = pad.t + iH * (1 - i / 4);
+            s += `<line x1="${pad.l}" y1="${y}" x2="${W - pad.r}" y2="${y}" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>`;
+            s += `<text x="${pad.l - 5}" y="${y + 4}" text-anchor="end" fill="rgba(200,220,240,0.4)" font-size="9" font-family="monospace">${fmtY(Math.round(maxY * i / 4))}</text>`;
+        }
+
+        // Assen
+        s += `<line x1="${pad.l}" y1="${pad.t}" x2="${pad.l}" y2="${pad.t + iH}" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>`;
+        s += `<line x1="${pad.l}" y1="${pad.t + iH}" x2="${W - pad.r}" y2="${pad.t + iH}" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>`;
+
+        // X labels
+        for (let i = 0; i <= 5; i++) {
+            const idx = Math.round((maxX - 1) * i / 5);
+            s += `<text x="${toX(idx)}" y="${H - 6}" text-anchor="middle" fill="rgba(200,220,240,0.4)" font-size="9" font-family="monospace">${idx}</text>`;
+        }
+
+        // Lijnen (NPCs eerst, speler als laatste voor tekenvolgorde)
+        const volgorde = [...reeksen.filter(r => !r.isSpeler), ...reeksen.filter(r => r.isSpeler)];
+        volgorde.forEach(reeks => {
+            if (reeks.data.length < 2) return;
+            const pts = reeks.data.map((v, i) => `${toX(i)},${toY(v)}`).join(' ');
+            s += `<polyline points="${pts}" fill="none" stroke="${reeks.kleur}" stroke-width="${reeks.isSpeler ? 2.5 : 1.5}" opacity="${reeks.isSpeler ? 1 : 0.72}" stroke-linejoin="round"/>`;
+        });
+
+        // Eindpunt-dots
+        volgorde.forEach(reeks => {
+            if (!reeks.data.length) return;
+            const x = toX(reeks.data.length - 1);
+            const y = toY(reeks.data[reeks.data.length - 1]);
+            s += `<circle cx="${x}" cy="${y}" r="${reeks.isSpeler ? 4 : 2.5}" fill="${reeks.kleur}" opacity="0.9"/>`;
+        });
+
+        s += '</svg>';
+
+        // Legenda gesorteerd op huidige waarde
+        const gesorteerd = [...reeksen].sort((a, b) => (b.data.at(-1) ?? 0) - (a.data.at(-1) ?? 0));
+        s += '<div class="grafiek-legenda">';
+        gesorteerd.forEach(r => {
+            s += `<span class="grafiek-legenda-item"><span class="grafiek-kleur-balk" style="background:${r.kleur}"></span><span${r.isSpeler ? ' style="font-weight:bold;color:#e8f4ff"' : ''}>${r.naam}</span></span>`;
+        });
+        s += '</div>';
+
+        return s;
     },
 
     // =========================================================================

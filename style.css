@@ -1168,6 +1168,45 @@ html, body {
     box-shadow: 0 0 24px rgba(255,56,85,0.12);
 }
 
+/* ===== RANGLIJST ===== */
+.ranglijst-lijst { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.ranglijst-rij {
+    display: grid;
+    grid-template-columns: 36px 1fr auto auto;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 10px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 5px;
+    font-size: 0.88em;
+    border: 1px solid transparent;
+}
+.ranglijst-rij.ranglijst-speler {
+    background: rgba(0,212,255,0.07);
+    border-color: rgba(0,212,255,0.25);
+}
+.ranglijst-pos { font-size: 1.1em; text-align: center; }
+.ranglijst-naam { font-weight: 500; }
+.ranglijst-type { color: var(--tekst-dim); font-size: 0.82em; text-align: right; }
+.ranglijst-waarde { font-family: var(--font-data); color: var(--goud); text-align: right; white-space: nowrap; }
+
+/* ===== VERMOGENSGRAFIEK ===== */
+.grafiek-legenda {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    margin-top: 8px;
+    font-size: 0.8em;
+}
+.grafiek-legenda-item { display: flex; align-items: center; gap: 5px; }
+.grafiek-kleur-balk {
+    display: inline-block;
+    width: 18px;
+    height: 3px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
 /* ===== PLANEET THEMA'S ===== */
 :root { --planet-accent: var(--accent); }
 body[data-planeet="nexoria"] { --planet-accent: #4a9eff; }

@@ -53,6 +53,10 @@ class GameState {
         // Marketing
         this.marketingActief = null;        // { planeet: planeetId, kosten } of null
 
+        // Concurrenten
+        this.concurrenten = [];             // [{id, locatie, krediet, waardeGeschiedenis}]
+        this.nettoWaardeGeschiedenisSpeler = [];
+
         // Passagiers
         this.passagiers = [];               // [{bestemming, vergoeding, naam}] — on board
         this.passagiersWachtend = {};       // {planeetId: [{bestemming, vergoeding, naam}]}
@@ -82,8 +86,23 @@ class GameState {
         this.initAandelen();
         this.initPassagiers();
         this.initBrandstof();
+        this._initConcurrenten();
+        this.nettoWaardeGeschiedenisSpeler = [this.berekenNettowaarde()];
         this.voegBerichtToe(`Welkom, ${this.speler.naam}! Je reis begint op Nexoria. Veel handelsgeluk!`, 'info');
         this.voegBerichtToe(`Je hebt een ${schipTemplate.naam} gekocht voor ${this.formatteerKrediet(schipTemplate.prijs)}`, 'goud');
+    }
+
+    _initConcurrenten() {
+        if (typeof CONCURRENTEN === 'undefined') return;
+        this.concurrenten = CONCURRENTEN.map(c => {
+            const startPlaneet = PLANETEN[Math.floor(Math.random() * PLANETEN.length)].id;
+            return {
+                id: c.id,
+                locatie: startPlaneet,
+                krediet: c.startKrediet,
+                waardeGeschiedenis: [c.startKrediet],
+            };
+        });
     }
 
     // =========================================================================
@@ -217,6 +236,8 @@ class GameState {
         this.updateBrandstofPrijzen();
         this.controleerRente();
 
+        this._simuleerConcurrenten();
+
         const eventId = this.reisData.events[this.reisData.stap - 1];
 
         if (eventId && eventId !== 'niets') {
@@ -227,6 +248,60 @@ class GameState {
 
         return 'aankomst';
     }
+
+    _simuleerConcurrenten() {
+        if (!this.concurrenten?.length || typeof CONCURRENTEN === 'undefined') return;
+
+        const bestemmingId = this.reisData?.naar;
+        const playerSpeed = this.schip?.snelheid || 1;
+
+        // Sample speler nettowaarde bij start van deze beurt
+        this.nettoWaardeGeschiedenisSpeler.push(this.berekenNettowaarde());
+        if (this.nettoWaardeGeschiedenisSpeler.length > 160) this.nettoWaardeGeschiedenisSpeler.shift();
+
+        this.concurrenten.forEach(npc => {
+            const sjab = CONCURRENTEN.find(c => c.id === npc.id);
+            if (!sjab) return;
+
+            // Beweeg naar random planeet
+            const andere = PLANETEN.filter(p => p.id !== npc.locatie);
+            if (andere.length > 0 && Math.random() < 0.3 + sjab.snelheid * 0.1) {
+                npc.locatie = andere[Math.floor(Math.random() * andere.length)].id;
+            }
+
+            // Concurrentie: kans dat NPC ook jouw bestemming aandoet
+            if (bestemmingId && Math.random() < 0.38) {
+                const interferentieKans = sjab.snelheid / (sjab.snelheid + playerSpeed);
+                if (Math.random() < interferentieKans) {
+                    this._npcStoringPrijzen(sjab, bestemmingId);
+                }
+            }
+
+            // Simuleer NPC-handel: gebaseerde winst + volatiliteit + zeldzame grote events
+            const variatie = (Math.random() * 2 - 1) * sjab.volatiliteit * npc.krediet;
+            let delta = sjab.baseWinstPerBeurt + variatie;
+            if (Math.random() < 0.04) {
+                delta += npc.krediet * (Math.random() < 0.55 ? 1 : -1) * (0.15 + Math.random() * 0.25);
+            }
+            npc.krediet = Math.max(500, Math.round(npc.krediet + delta));
+            npc.waardeGeschiedenis.push(npc.krediet);
+            if (npc.waardeGeschiedenis.length > 160) npc.waardeGeschiedenis.shift();
+        });
+    },
+
+    _npcStoringPrijzen(sjab, planeetId) {
+        const planeetNaam = PLANETEN.find(p => p.id === planeetId)?.naam ?? planeetId;
+        const kandidaten = [...GOEDEREN].sort(() => Math.random() - 0.5).slice(0, 1 + Math.floor(Math.random() * 2));
+        kandidaten.forEach(goed => {
+            const huidig = this.planetPrijzen[planeetId]?.[goed.id];
+            if (!huidig) return;
+            const factor = 1.08 + Math.random() * 0.16;
+            const max = Math.round(goed.basisPrijs * 2.2);
+            this.planetPrijzen[planeetId][goed.id] = Math.min(max, Math.round(huidig * factor));
+            const pct = Math.round((factor - 1) * 100);
+            this.voegBerichtToe(`💼 ${sjab.naam} arriveerde eerder op ${planeetNaam} — ${goed.icoon} ${goed.naam} +${pct}%`, 'waarschuwing');
+        });
+    },
 
     aankomst() {
         this.locatie = this.reisData.naar;
@@ -1063,6 +1138,8 @@ class GameState {
                 brandstofPrijzen: this.brandstofPrijzen,
                 eindeReden: this.eindeReden || null,
                 marketingActief: this.marketingActief || null,
+                concurrenten: this.concurrenten,
+                nettoWaardeGeschiedenisSpeler: this.nettoWaardeGeschiedenisSpeler,
             };
             localStorage.setItem('gazillionaire_save', JSON.stringify(data));
         } catch(e) {}
