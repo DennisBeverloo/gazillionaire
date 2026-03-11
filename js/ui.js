@@ -666,7 +666,7 @@ const UI = {
         const bTekstKlasse = state.brandstof < 20 ? 'kleur-rood' : state.brandstof < 40 ? 'kleur-oranje' : 'kleur-groen';
         html += `<div class="haven-blok"><div class="haven-blok-header">⛽ Brandstof</div><div class="haven-blok-inhoud">
             <div class="brandstof-info-rij"><span>Voorraad: <strong class="${bTekstKlasse}">${state.brandstof}/${tank} l</strong></span><span>Prijs: <strong class="kleur-goud">${bPrijs} cr/l</strong></span></div>
-            <div class="lading-balk-container" style="margin:6px 0"><div class="lading-balk" style="width:${brandstofPct}%;background:${bKleur}"></div></div>
+            <div class="lading-balk-container" style="margin:6px 0"><div id="brandstof-balk" class="lading-balk animeer" style="width:0%;background:${bKleur}" data-target="${brandstofPct}"></div></div>
             <div class="brandstof-acties">
                 <input type="number" id="brandstof-aantal" class="hoeveelheid-input" min="1" max="${vrij}" value="${Math.min(10, vrij)}" style="width:65px" ${vrij <= 0 ? 'disabled' : ''}>
                 <button class="knop primair klein" onclick="App.koopBrandstof()" ${vrij <= 0 ? 'disabled' : ''}>Koop</button>
@@ -778,6 +778,12 @@ const UI = {
 
         html += '</div>'; // sluit haven-raster
         container.innerHTML = html;
+
+        // Animeer brandstofbalk na render
+        requestAnimationFrame(() => {
+            const balk = document.getElementById('brandstof-balk');
+            if (balk) balk.style.width = balk.dataset.target + '%';
+        });
     },
 
     // =========================================================================
@@ -1150,7 +1156,6 @@ const UI = {
                 const planNaam = PLANETEN.find(p => p.id === state.locatie)?.naam ?? '';
                 App._startFase2(() => {
                     App._setReisStatus(`✓ Aangekomen op ${planNaam}!`, 'kleur-groen');
-                    document.getElementById('reis-voortgang-balk')?.style && (document.getElementById('reis-voortgang-balk').style.width = '100%');
                     setTimeout(() => {
                         UI.toonScherm('spel-scherm');
                         state.activeTab = 'handel';
@@ -1256,7 +1261,6 @@ const UI = {
         const naarPlaneet = PLANETEN.find(p => p.id === naar);
 
         document.getElementById('reis-bestemming').textContent = naarPlaneet?.naam ?? '---';
-        document.getElementById('reis-voortgang-balk')?.style && (document.getElementById('reis-voortgang-balk').style.width = '0%');
         document.getElementById('reis-status').textContent = '';
 
         // Planeet afbeeldingen links en rechts

@@ -184,7 +184,6 @@ const App = {
                 if (state.fase === 'einde') { state.wisSave(); } else { state.slaOp(); }
                 const planNaam = PLANETEN.find(p => p.id === state.locatie)?.naam ?? '';
                 this._setReisStatus(`✓ Aangekomen op ${planNaam}!`, 'kleur-groen');
-                document.getElementById('reis-voortgang-balk').style.width = '100%';
                 setTimeout(() => {
                     UI.toonScherm('spel-scherm');
                     state.activeTab = 'handel';
@@ -200,7 +199,6 @@ const App = {
 
         } else if (resultaat && resultaat.event) {
             // Event tussendoor
-            document.getElementById('reis-voortgang-balk').style.width = '50%';
             UI.toonEventPopup(resultaat.event);
         }
     },
@@ -239,7 +237,6 @@ const App = {
             const planNaam = PLANETEN.find(p => p.id === state.locatie)?.naam ?? '';
             this._startFase2(() => {
                 this._setReisStatus(`✓ Aangekomen op ${planNaam}!`, 'kleur-groen');
-                document.getElementById('reis-voortgang-balk').style.width = '100%';
                 setTimeout(() => {
                     UI.toonScherm('spel-scherm');
                     state.activeTab = 'handel';

@@ -598,7 +598,8 @@ html, body {
     margin: 3px 0 6px;
     overflow: hidden;
 }
-.lading-balk { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.3s; }
+.lading-balk { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.3s ease; }
+.lading-balk.animeer { transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
 .lading-balk.vol { background: var(--rood); }
 .lading-item {
     display: flex;
