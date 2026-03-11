@@ -53,6 +53,12 @@ class GameState {
         // Marketing
         this.marketingActief = null;        // { planeet: planeetId, kosten } of null
 
+        // Verzekering
+        this.verzekering = null;            // null of { actief: true }
+
+        // Oneindige upgrade niveaus
+        this.upgradeNiveaus = { motor: 0, ruim: 0, brandstofTank: 0, passagiers: 0 };
+
         // Concurrenten
         this.concurrenten = [];             // [{id, locatie, krediet, waardeGeschiedenis}]
         this.nettoWaardeGeschiedenisSpeler = [];
@@ -210,7 +216,7 @@ class GameState {
 
     genereerReisEvents(naarId) {
         const naarPlaneet = PLANETEN.find(p => p.id === naarId);
-        const eventKans = naarPlaneet?.isGevaarlijk ? 0.55 : 0.38;
+        const eventKans = naarPlaneet?.isGevaarlijk ? 0.70 : 0.52;
         if (Math.random() > eventKans) return null;
 
         const pool = EVENTS.filter(e => e.id !== 'niets');
@@ -328,7 +334,7 @@ class GameState {
         // Controleer marketingcampagne — geldt alleen als we op de geplande planeet aankomen
         let marketingBonus = 0;
         if (this.marketingActief && this.marketingActief.planeet === this.locatie) {
-            marketingBonus = 2;
+            marketingBonus = 5;
             this.voegBerichtToe(`📢 Reclamecampagne actief! Er wachten extra passagiers op je.`, 'info');
             this.marketingActief = null;
         }
@@ -340,6 +346,9 @@ class GameState {
             this._pasAankomstEventToe(aankomstEvent);
         }
         this.huidigAankomstEvent = aankomstEvent;
+
+        // Verzekering vervalt bij aankomst
+        this.verzekering = null;
 
         this.controleerAchievements();
         this.controleerSpelEinde();
@@ -394,7 +403,7 @@ class GameState {
     genereerPassagiersVoorPlaneet(planeetId, bonusAantal = 0) {
         const andere = PLANETEN.filter(p => p.id !== planeetId);
         const namen = ['Lyra Voss', 'Dr. Kael', 'Handelaar Rin', 'Senator Dara', 'Engr. Mika', 'Wren Zo', 'Kapitein Sura', 'Agent Nox'];
-        const aantal = Math.floor(Math.random() * 3) + 1 + bonusAantal;
+        const aantal = Math.floor(Math.random() * 4) + 2 + bonusAantal;
         const passagiers = [];
         for (let i = 0; i < aantal; i++) {
             const best = andere[Math.floor(Math.random() * andere.length)];
@@ -443,7 +452,7 @@ class GameState {
         const planeetNaam = PLANETEN.find(p => p.id === planeetId)?.naam ?? planeetId;
         this.speler.krediet -= kosten;
         this.marketingActief = { planeet: planeetId, kosten };
-        this.voegBerichtToe(`📢 Reclamecampagne gestart voor ${planeetNaam} (${this.formatteerKrediet(kosten)}). +2 extra passagiers bij aankomst!`, 'info');
+        this.voegBerichtToe(`📢 Reclamecampagne gestart voor ${planeetNaam} (${this.formatteerKrediet(kosten)}). +5 extra passagiers bij aankomst!`, 'info');
         return { succes: true };
     }
 
@@ -513,10 +522,14 @@ class GameState {
             case 'piraten': {
                 if (keuzeId === 'betaal') {
                     const bedrag = Math.min(Math.round(this.speler.krediet * 0.25 + 100), 800);
-                    this.speler.krediet -= bedrag;
-                    resultaat.kredietDelta = -bedrag;
+                    if (this.verzekering?.actief) {
+                        resultaat.bericht = `Piraten eisen ${this.formatteerKrediet(bedrag)} losgeld — je verzekering vergoedt het! 🛡️`;
+                    } else {
+                        this.speler.krediet -= bedrag;
+                        resultaat.kredietDelta = -bedrag;
+                        resultaat.bericht = `Je betaalt ${this.formatteerKrediet(bedrag)} losgeld. De piraten laten je door.`;
+                    }
                     resultaat.losgeldbedrag = bedrag;
-                    resultaat.bericht = `Je betaalt ${this.formatteerKrediet(bedrag)} losgeld. De piraten laten je door.`;
                 } else {
                     // Ontsnapping: kans gebaseerd op snelheid en schild
                     const kans = 0.25 + this.schip.snelheid * 0.08 + this.schip.schild * 0.05;
@@ -530,14 +543,23 @@ class GameState {
                         if (gevuldeGoederen.length > 0) {
                             const goedId = gevuldeGoederen[Math.floor(Math.random() * gevuldeGoederen.length)];
                             const verloren = Math.ceil(this.lading[goedId] * 0.4);
-                            this.lading[goedId] = Math.max(0, this.lading[goedId] - verloren);
-                            resultaat.ladingDelta[goedId] = -verloren;
-                            resultaat.bericht = `Gepakt! Je verliest ${verloren} eenheden ${GOEDEREN.find(g=>g.id===goedId).naam}.`;
+                            const goedNaam = GOEDEREN.find(g=>g.id===goedId).naam;
+                            if (this.verzekering?.actief) {
+                                resultaat.bericht = `Gepakt! Piraten grijpen naar ${verloren}× ${goedNaam} — je verzekering dekt het verlies! 🛡️`;
+                            } else {
+                                this.lading[goedId] = Math.max(0, this.lading[goedId] - verloren);
+                                resultaat.ladingDelta[goedId] = -verloren;
+                                resultaat.bericht = `Gepakt! Je verliest ${verloren} eenheden ${goedNaam}.`;
+                            }
                         } else {
                             const bedrag = Math.min(200, this.speler.krediet);
-                            this.speler.krediet -= bedrag;
-                            resultaat.kredietDelta = -bedrag;
-                            resultaat.bericht = `Ze vinden je lege ruim en pakken ${this.formatteerKrediet(bedrag)} uit je kluis.`;
+                            if (this.verzekering?.actief) {
+                                resultaat.bericht = `Piraten doorzoeken je ruim — ze vinden niks. Geluk!`;
+                            } else {
+                                this.speler.krediet -= bedrag;
+                                resultaat.kredietDelta = -bedrag;
+                                resultaat.bericht = `Ze vinden je lege ruim en pakken ${this.formatteerKrediet(bedrag)} uit je kluis.`;
+                            }
                         }
                     }
                 }
@@ -546,9 +568,13 @@ class GameState {
 
             case 'stralingstorm': {
                 const extraBrandstof = Math.round(12 + Math.random() * 18);
-                const werkelijk = Math.min(extraBrandstof, this.brandstof);
-                this.brandstof = Math.max(0, this.brandstof - extraBrandstof);
-                resultaat.bericht = `De storm dwingt je een grote omweg te nemen. Extra brandstofverbruik: ${werkelijk} eenheden. Brandstof resterend: ${this.brandstof}.`;
+                if (this.verzekering?.actief) {
+                    resultaat.bericht = `De storm dwingt een grote omweg af (−${extraBrandstof} l brandstof) — je verzekering vergoedt het! 🛡️`;
+                } else {
+                    const werkelijk = Math.min(extraBrandstof, this.brandstof);
+                    this.brandstof = Math.max(0, this.brandstof - extraBrandstof);
+                    resultaat.bericht = `De storm dwingt je een grote omweg te nemen. Extra brandstofverbruik: ${werkelijk} eenheden. Brandstof resterend: ${this.brandstof}.`;
+                }
                 break;
             }
 
@@ -575,10 +601,15 @@ class GameState {
             case 'defect': {
                 if (keuzeId === 'repareer') {
                     const kosten = 400;
-                    this.speler.krediet -= kosten;
-                    resultaat.kredietDelta = -kosten;
-                    this.schipBeschadigd = false;
-                    resultaat.bericht = `Reparatie voltooid voor ${this.formatteerKrediet(kosten)}. Je schip is weer volledig operationeel.`;
+                    if (this.verzekering?.actief) {
+                        this.schipBeschadigd = false;
+                        resultaat.bericht = `Reparatie (${this.formatteerKrediet(kosten)}) volledig gedekt door je verzekering! 🛡️`;
+                    } else {
+                        this.speler.krediet -= kosten;
+                        resultaat.kredietDelta = -kosten;
+                        this.schipBeschadigd = false;
+                        resultaat.bericht = `Reparatie voltooid voor ${this.formatteerKrediet(kosten)}. Je schip is weer volledig operationeel.`;
+                    }
                 } else {
                     this.schipBeschadigd = true;
                     resultaat.schade = true;
@@ -624,8 +655,12 @@ class GameState {
 
             case 'nevel': {
                 const extraNevel = Math.round(6 + Math.random() * 12);
-                this.brandstof = Math.max(0, this.brandstof - extraNevel);
-                resultaat.bericht = `De ionennevel dwingt je van koers. Extra brandstofverbruik: ${extraNevel} eenheden. Brandstof resterend: ${this.brandstof}.`;
+                if (this.verzekering?.actief) {
+                    resultaat.bericht = `Ionennevel verstoort de navigatie (−${extraNevel} l brandstof) — je verzekering vergoedt het! 🛡️`;
+                } else {
+                    this.brandstof = Math.max(0, this.brandstof - extraNevel);
+                    resultaat.bericht = `De ionennevel dwingt je van koers. Extra brandstofverbruik: ${extraNevel} eenheden. Brandstof resterend: ${this.brandstof}.`;
+                }
                 break;
             }
 
@@ -647,11 +682,15 @@ class GameState {
 
             case 'asteroiden': {
                 const schade = Math.max(50, Math.round(this.speler.krediet * 0.05 + Math.random() * 200));
-                this.speler.krediet -= schade;
                 this.schipBeschadigd = true;
-                resultaat.kredietDelta = -schade;
                 resultaat.schade = true;
-                resultaat.bericht = `Keiharde klappen! Schade aan de romp. Je verliest ${this.formatteerKrediet(schade)} aan noodreparaties en het schip is beschadigd.`;
+                if (this.verzekering?.actief) {
+                    resultaat.bericht = `Keiharde klappen! Rompschade van ${this.formatteerKrediet(schade)} — je verzekering dekt de reparatiekosten! 🛡️ (Schip nog beschadigd)`;
+                } else {
+                    this.speler.krediet -= schade;
+                    resultaat.kredietDelta = -schade;
+                    resultaat.bericht = `Keiharde klappen! Schade aan de romp. Je verliest ${this.formatteerKrediet(schade)} aan noodreparaties en het schip is beschadigd.`;
+                }
                 break;
             }
 
@@ -719,11 +758,15 @@ class GameState {
                     const goedId = gevuldeGoederen[Math.floor(Math.random() * gevuldeGoederen.length)];
                     const goed = GOEDEREN.find(g => g.id === goedId);
                     const verloren = Math.ceil(this.lading[goedId] / 2);
-                    this.lading[goedId] -= verloren;
-                    this.aankoopAantallen[goedId] = Math.max(0, (this.aankoopAantallen[goedId] || 0) - verloren);
-                    if (this.lading[goedId] === 0) { delete this.aankoopPrijzen[goedId]; delete this.aankoopAantallen[goedId]; }
-                    resultaat.ladingDelta[goedId] = -verloren;
-                    resultaat.bericht = `Koelsysteemstoring! ${verloren}× ${goed.naam} zijn bedorven en verloren gegaan.`;
+                    if (this.verzekering?.actief) {
+                        resultaat.bericht = `Koelsysteemstoring! ${verloren}× ${goed.naam} dreigt te bederven — je verzekering dekt het verlies! 🛡️`;
+                    } else {
+                        this.lading[goedId] -= verloren;
+                        this.aankoopAantallen[goedId] = Math.max(0, (this.aankoopAantallen[goedId] || 0) - verloren);
+                        if (this.lading[goedId] === 0) { delete this.aankoopPrijzen[goedId]; delete this.aankoopAantallen[goedId]; }
+                        resultaat.ladingDelta[goedId] = -verloren;
+                        resultaat.bericht = `Koelsysteemstoring! ${verloren}× ${goed.naam} zijn bedorven en verloren gegaan.`;
+                    }
                 } else {
                     resultaat.bericht = 'Koelsysteemstoring, maar je had geen kwetsbare lading. Mazzel!';
                 }
@@ -748,6 +791,53 @@ class GameState {
                         : `Kritische motorstoringen! Noodlanding op ${nieuwDoel.naam} — ${geplandNaam} is niet meer haalbaar.`;
                 } else {
                     resultaat.bericht = 'Problemen onderweg, maar er is geen alternatieve bestemming beschikbaar.';
+                }
+                break;
+            }
+
+            case 'douaneboete': {
+                const boete = Math.round(200 + Math.random() * 500);
+                if (this.verzekering?.actief) {
+                    resultaat.bericht = `Douaneboete van ${this.formatteerKrediet(boete)} — je verzekering vergoedt het! 🛡️`;
+                } else {
+                    const werkelijk = Math.min(boete, this.speler.krediet);
+                    this.speler.krediet -= werkelijk;
+                    resultaat.kredietDelta = -werkelijk;
+                    resultaat.bericht = `De galactische douane legt een boete op van ${this.formatteerKrediet(werkelijk)}. Bezwaar maken helpt niet.`;
+                }
+                break;
+            }
+
+            case 'cargo_lek': {
+                const gevuld = Object.keys(this.lading).filter(k => this.lading[k] > 0);
+                if (gevuld.length > 0) {
+                    const goedId = gevuld[Math.floor(Math.random() * gevuld.length)];
+                    const goed = GOEDEREN.find(g => g.id === goedId);
+                    const verloren = Math.ceil(this.lading[goedId] * 0.4);
+                    if (this.verzekering?.actief) {
+                        resultaat.bericht = `Containerlek! ${verloren}× ${goed.naam} dreigt te verdwijnen — je verzekering dekt het verlies! 🛡️`;
+                    } else {
+                        this.lading[goedId] = Math.max(0, this.lading[goedId] - verloren);
+                        this.aankoopAantallen[goedId] = Math.max(0, (this.aankoopAantallen[goedId] || 0) - verloren);
+                        if (this.lading[goedId] === 0) { delete this.aankoopPrijzen[goedId]; delete this.aankoopAantallen[goedId]; }
+                        resultaat.ladingDelta[goedId] = -verloren;
+                        resultaat.bericht = `Containerlek! ${verloren}× ${goed.naam} is in de ruimte verdwenen.`;
+                    }
+                } else {
+                    resultaat.bericht = 'Containerlek gedetecteerd, maar je ruim was leeg. Nauwelijks schade.';
+                }
+                break;
+            }
+
+            case 'motordiefstal': {
+                const gestolen = Math.round(200 + Math.random() * 600);
+                const werkelijk = Math.min(gestolen, this.speler.krediet);
+                if (this.verzekering?.actief) {
+                    resultaat.bericht = `Ruimtedief! ${this.formatteerKrediet(werkelijk)} gestolen — je verzekering vergoedt het! 🛡️`;
+                } else {
+                    this.speler.krediet -= werkelijk;
+                    resultaat.kredietDelta = -werkelijk;
+                    resultaat.bericht = `Een listige ruimtecrimineel heeft ongemerkt ${this.formatteerKrediet(werkelijk)} uit je kluis gestolen!`;
                 }
                 break;
             }
@@ -866,6 +956,50 @@ class GameState {
         return { succes: true };
     }
 
+    _upgradeStapPrijs(cat) {
+        const niveau = this.upgradeNiveaus?.[cat] ?? 0;
+        const basis  = { motor: 2500, ruim: 1200, brandstofTank: 800, passagiers: 2500 }[cat] ?? 1000;
+        const factor = { motor: 2.0,  ruim: 1.8,  brandstofTank: 1.7, passagiers: 2.2 }[cat] ?? 2.0;
+        return Math.round(basis * Math.pow(factor, niveau));
+    }
+
+    koopUpgradeStap(cat) {
+        if (!this.upgradeNiveaus || !this.upgradeNiveaus.hasOwnProperty(cat))
+            return { succes: false, reden: 'Onbekende categorie.' };
+        const prijs = this._upgradeStapPrijs(cat);
+        if (this.speler.krediet < prijs)
+            return { succes: false, reden: 'Onvoldoende krediet!' };
+        this.speler.krediet -= prijs;
+        this.upgradeNiveaus[cat]++;
+        const n = this.upgradeNiveaus[cat];
+        if (cat === 'motor')        this.schip.snelheid             += 1;
+        if (cat === 'ruim')         this.schip.laadruimte           += 10;
+        if (cat === 'brandstofTank') this.schip.brandstofTank       += 10;
+        if (cat === 'passagiers')   this.schip.passagiersCapaciteit += 2;
+        const namen = { motor: 'Motor', ruim: 'Vrachtruim', brandstofTank: 'Brandstoftank', passagiers: 'Passagiersruimte' };
+        this.voegBerichtToe(`${namen[cat]} opgewaardeerd naar niveau ${n} voor ${this.formatteerKrediet(prijs)}.`, 'succes');
+        this.controleerAchievements();
+        return { succes: true };
+    }
+
+    _berekenVerzekeringsPrijs() {
+        const cap = this.schip?.laadruimte ?? 30;
+        const pax = this.schip?.passagiersCapaciteit ?? 0;
+        return Math.round(300 + cap * 8 + pax * 60);
+    }
+
+    koopVerzekering() {
+        if (this.verzekering?.actief)
+            return { succes: false, reden: 'Je hebt al een actieve verzekering voor deze reis.' };
+        const kosten = this._berekenVerzekeringsPrijs();
+        if (this.speler.krediet < kosten)
+            return { succes: false, reden: 'Onvoldoende krediet!' };
+        this.speler.krediet -= kosten;
+        this.verzekering = { actief: true };
+        this.voegBerichtToe(`🛡️ Reisverzekering afgesloten voor ${this.formatteerKrediet(kosten)}. Geldig voor de komende reis.`, 'info');
+        return { succes: true };
+    }
+
     repareerSchip() {
         const kosten = 350;
         if (this.speler.krediet < kosten) return { succes: false, reden: 'Onvoldoende krediet voor reparatie.' };
@@ -888,30 +1022,32 @@ class GameState {
             return { succes: false, reden: `Onvoldoende krediet. Je ontvangt ${this.formatteerKrediet(verkoopwaarde)} voor je huidige schip. Netto prijs: ${this.formatteerKrediet(nettoPrijs)}.` };
         }
 
-        // Bewaar upgrades die passen
+        // Bewaar eenmalige upgrades (schild, radar)
         const upgradesNieuw = this.gekochteUpgrades.filter(uid => {
             const upg = UPGRADES.find(u => u.id === uid);
-            return upg && upg.categorie !== 'motor'; // motoren passen niet
+            return upg != null;
         });
 
-        // Drop lading die niet past
-        let overschot = 0;
-        const nieuwLaadruimte = nieuwSchip.laadruimte + (upgradesNieuw.includes('ruim_mk2') ? 20 : 0) + (upgradesNieuw.includes('ruim_mk3') ? 35 : 0);
-        // Simplification: just reset non-motor upgrades
         this.schip = {
             ...nieuwSchip,
             heeftRadar: this.schip.heeftRadar,
         };
         this.schipBeschadigd = false;
 
-        // Herbereken upgrades
+        // Herbereken eenmalige upgrades
         this.gekochteUpgrades = upgradesNieuw;
         upgradesNieuw.forEach(uid => {
             const upg = UPGRADES.find(u => u.id === uid);
-            if (upg.effect.snelheid) this.schip.snelheid += upg.effect.snelheid;
-            if (upg.effect.laadruimte) this.schip.laadruimte += upg.effect.laadruimte;
             if (upg.effect.schild) this.schip.schild += upg.effect.schild;
         });
+
+        // Herbereken oneindige upgrade niveaus
+        if (this.upgradeNiveaus) {
+            this.schip.snelheid             += this.upgradeNiveaus.motor;
+            this.schip.laadruimte           += this.upgradeNiveaus.ruim * 10;
+            this.schip.brandstofTank        += this.upgradeNiveaus.brandstofTank * 10;
+            this.schip.passagiersCapaciteit += this.upgradeNiveaus.passagiers * 2;
+        }
 
         this.speler.krediet = this.speler.krediet - nettoPrijs;
         this.voegBerichtToe(`Je nieuwe ${nieuwSchip.naam} is klaar voor de ruimte! Nettobetaling: ${this.formatteerKrediet(nettoPrijs)}.`, 'goud');
@@ -1138,6 +1274,8 @@ class GameState {
                 brandstofPrijzen: this.brandstofPrijzen,
                 eindeReden: this.eindeReden || null,
                 marketingActief: this.marketingActief || null,
+                upgradeNiveaus: this.upgradeNiveaus,
+                verzekering: this.verzekering || null,
                 concurrenten: this.concurrenten,
                 nettoWaardeGeschiedenisSpeler: this.nettoWaardeGeschiedenisSpeler,
             };
@@ -1156,6 +1294,7 @@ class GameState {
             this.achievements = new Set(data.achievements || []);
             this.reisData = null;
             this.geselecteerdePlaneet = null;
+            if (!this.upgradeNiveaus) this.upgradeNiveaus = { motor: 0, ruim: 0, brandstofTank: 0, passagiers: 0 };
             return true;
         } catch(e) {
             return false;

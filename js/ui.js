@@ -633,7 +633,7 @@ const UI = {
             } else {
                 const kanBetalen = state.speler.krediet >= mKosten;
                 html += `<div class="lening-sectie">
-                    <div style="margin-bottom:8px;font-size:0.85em">Start een reclamecampagne gericht op <strong>${selPNaam}</strong>. Bij aankomst wachten 2 extra passagiers op je. Geldt alleen als je daar daadwerkelijk landt.</div>
+                    <div style="margin-bottom:8px;font-size:0.85em">Start een reclamecampagne gericht op <strong>${selPNaam}</strong>. Bij aankomst wachten 5 extra passagiers op je. Geldt alleen als je daar daadwerkelijk landt.</div>
                     <button class="knop primair klein" onclick="App.koopMarketing('${selP}')" ${(!kanBetalen || heeftAndereCampagne) ? 'disabled' : ''}>
                         Start campagne (${state.formatteerKrediet(mKosten)})
                     </button>
@@ -667,16 +667,59 @@ const UI = {
             </div>
         </div>`;
 
+        // === VERZEKERING ===
+        const verzPrijs = state._berekenVerzekeringsPrijs();
+        const verzActief = state.verzekering?.actief;
+        html += `<div class="sectie-header" style="margin-top:18px">🛡️ Reisverzekering</div>`;
+        html += `<div class="info-balk">Dekt schade door events tijdens de komende reis (lading, brandstof, credits). Vervalt bij aankomst.</div>`;
+        if (verzActief) {
+            html += `<div class="info-balk kleur-groen" style="margin-top:6px">✓ Verzekering actief — je bent gedekt voor de komende reis.</div>`;
+        } else {
+            const kanVerz = state.speler.krediet >= verzPrijs;
+            html += `<div class="upgrade-raster"><div class="upgrade-kaart">
+                <div style="font-size:1.4em;margin-bottom:5px">🛡️</div>
+                <h4>Reisverzekering</h4>
+                <p>Dekt verliezen door piraten, storms, lekken, douaneboetes en meer. Prijs schaal mee met scheepscapaciteit.</p>
+                <div class="upgrade-prijs">${state.formatteerKrediet(verzPrijs)}</div>
+                <button class="knop primair klein" ${!kanVerz ? 'disabled' : ''} onclick="App.koopVerzekering()">
+                    ${kanVerz ? 'Sluit af' : 'Onvoldoende credits'}
+                </button>
+            </div></div>`;
+        }
+
         // === UPGRADES ===
         html += '<div class="sectie-header" style="margin-top:18px">⚙ Scheepsupgrades</div>';
-        const upgradeCategorieen = [
-            { id: 'motor',    naam: '⚙️ Aandrijving' },
-            { id: 'ruim',     naam: '📦 Vrachtruim' },
-            { id: 'schild',   naam: '🛡️ Verdediging' },
-            { id: 'brandstof',naam: '⛽ Brandstof' },
-            { id: 'extra',    naam: '📡 Extra' },
+
+        // Oneindige stap-upgrades
+        const stapUpgrades = [
+            { cat: 'motor',         icoon: '⚙️', naam: 'Motor',          beschrijving: '+1 snelheid per niveau' },
+            { cat: 'ruim',          icoon: '📦', naam: 'Vrachtruim',      beschrijving: '+10 ton laadruimte per niveau' },
+            { cat: 'brandstofTank', icoon: '⛽', naam: 'Brandstoftank',   beschrijving: '+10 l tankinhoud per niveau' },
+            { cat: 'passagiers',    icoon: '🧳', naam: 'Passagiersruimte',beschrijving: '+2 passagiersplaatsen per niveau' },
         ];
-        upgradeCategorieen.forEach(cat => {
+        html += '<div class="upgrade-raster">';
+        stapUpgrades.forEach(u => {
+            const niv   = state.upgradeNiveaus?.[u.cat] ?? 0;
+            const prijs = state._upgradeStapPrijs(u.cat);
+            const kan   = state.speler.krediet >= prijs;
+            html += `<div class="upgrade-kaart">
+                <div style="font-size:1.4em;margin-bottom:5px">${u.icoon}</div>
+                <h4>${u.naam} <span class="kleur-dimmed" style="font-weight:normal;font-size:0.8em">niv. ${niv}</span></h4>
+                <p>${u.beschrijving}</p>
+                <div class="upgrade-prijs">${state.formatteerKrediet(prijs)}</div>
+                <button class="knop primair klein" ${!kan ? 'disabled' : ''} onclick="App.koopUpgradeStap('${u.cat}')">
+                    ${kan ? 'Upgrade →' : 'Onvoldoende credits'}
+                </button>
+            </div>`;
+        });
+        html += '</div>';
+
+        // Eenmalige upgrades (schild, radar)
+        const eenmaligeCats = [
+            { id: 'schild', naam: '🛡️ Verdediging' },
+            { id: 'extra',  naam: '📡 Extra' },
+        ];
+        eenmaligeCats.forEach(cat => {
             const catUpgrades = UPGRADES.filter(u => u.categorie === cat.id);
             if (catUpgrades.length === 0) return;
             html += `<div class="upgrade-categorie-header">${cat.naam}</div>`;
@@ -688,7 +731,6 @@ const UI = {
                 const kanAfrekenen = state.speler.krediet >= upg.prijs;
                 const btnDisabled  = inst || vereistMist || !kanAfrekenen;
                 const btnLabel     = !kanAfrekenen && !vereistMist && !inst ? 'Onvoldoende credits' : 'Installeer';
-
                 html += `<div class="upgrade-kaart ${inst ? 'al-geinstalleerd' : ''}">
                     <div style="font-size:1.4em;margin-bottom:5px">${upg.icoon}</div>
                     <h4>${upg.naam}</h4>

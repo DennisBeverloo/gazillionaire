@@ -280,6 +280,16 @@ const App = {
         if (!res.succes) this._fout(res.reden); else UI.renderSpel();
     },
 
+    koopUpgradeStap(cat) {
+        const res = state.koopUpgradeStap(cat);
+        if (!res.succes) this._fout(res.reden); else UI.renderSpel();
+    },
+
+    koopVerzekering() {
+        const res = state.koopVerzekering();
+        if (!res.succes) this._fout(res.reden); else UI.renderSpel();
+    },
+
     koopSchip(schipId) {
         const nieuw = SCHEPEN.find(s => s.id === schipId);
         const verkoopwaarde = Math.round(SCHEPEN.find(s => s.id === state.schip.id).prijs * 0.60);
