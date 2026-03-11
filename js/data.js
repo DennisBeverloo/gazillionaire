@@ -375,7 +375,7 @@ const EVENTS = [
         beschrijving: 'Een gestrande ruimtepiloot roept je via de noodfrequentie op. Ze zit zonder brandstof en vraagt om hulp.',
         heeftKeuze: true,
         keuzes: [
-            { id: 'geef', tekst: 'Geef 20 eenheden brandstof', stijl: 'succes' },
+            { id: 'geef', tekst: 'Geef 20 liter brandstof', stijl: 'succes' },
             { id: 'weiger', tekst: 'Vlieg door', stijl: 'knop' },
         ],
     },
@@ -562,7 +562,7 @@ const ACHIEVEMENTS = [
         naam: 'Op de Rand',
         icoon: '⛽',
         categorie: 'events',
-        beschrijving: 'Kom aan op een planeet met minder dan 10 eenheden brandstof.',
+        beschrijving: 'Kom aan op een planeet met minder dan 10 liter brandstof.',
         beloning: 300,
         check: s => s._aangekomendMetLageBrandstof,
     },

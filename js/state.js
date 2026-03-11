@@ -384,7 +384,7 @@ class GameState {
         if (totaal > this.speler.krediet) return { succes: false, reden: 'Onvoldoende krediet!' };
         this.speler.krediet -= totaal;
         this.brandstof += effectief;
-        this.voegBerichtToe(`${effectief} eenheden brandstof getankt voor ${this.formatteerKrediet(totaal)}.`, 'info');
+        this.voegBerichtToe(`${effectief} liter brandstof getankt voor ${this.formatteerKrediet(totaal)}.`, 'info');
         return { succes: true, getankt: effectief };
     }
 
@@ -578,7 +578,7 @@ class GameState {
                         const beloning = Math.round(50 + Math.random() * 80);
                         this.speler.krediet += beloning;
                         resultaat.kredietDelta = beloning;
-                        resultaat.bericht = `Je geeft ${geef} eenheden brandstof. De piloot is dankbaar en geeft je ${this.formatteerKrediet(beloning)} als dank.`;
+                        resultaat.bericht = `Je geeft ${geef} liter brandstof. De piloot is dankbaar en geeft je ${this.formatteerKrediet(beloning)} als dank.`;
                     } else {
                         resultaat.bericht = `Je hebt zelf niet genoeg brandstof om ${geef} eenheden weg te geven.`;
                     }

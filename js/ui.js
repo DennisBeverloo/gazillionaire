@@ -37,7 +37,7 @@ const UI = {
                 <div class="schip-kaart-stats">
                     <div class="schip-stat"><span>Snelheid</span><span class="waarde ster-rating">${'★'.repeat(schip.snelheid)}${'☆'.repeat(5-schip.snelheid)}</span></div>
                     <div class="schip-stat"><span>Laadruimte</span><span class="waarde">${schip.laadruimte} ton</span></div>
-                    <div class="schip-stat"><span>Brandstoftank</span><span class="waarde">${schip.brandstofTank} e</span></div>
+                    <div class="schip-stat"><span>Brandstoftank</span><span class="waarde">${schip.brandstofTank} l</span></div>
                     <div class="schip-stat"><span>Passagiers</span><span class="waarde">${schip.passagiersCapaciteit > 0 ? schip.passagiersCapaciteit : '—'}</span></div>
                     <div class="schip-stat"><span>Schild</span><span class="waarde ster-rating">${'★'.repeat(schip.schild)}${'☆'.repeat(5-schip.schild)}</span></div>
                     <div class="schip-stat"><span>Startkapitaal</span><span class="waarde ${resterend < 500 ? 'kleur-rood' : 'kleur-groen'}">${state.formatteerKrediet(resterend)}</span></div>
@@ -113,7 +113,7 @@ const UI = {
                 ${dest.heeftWerf ? '<span class="kleur-dimmed" style="font-size:0.8em">🛠 Werf</span>' : ''}
             </div>
             <div class="brandstof-vereist ${heeftGenoeg ? '' : 'brandstof-tekort'}">
-                ⛽ ${brandstofNodig} e
+                ⛽ ${brandstofNodig} l
                 ${heeftGenoeg
                     ? `<span class="kleur-groen">✓</span>`
                     : `<span class="kleur-rood">✗ tekort: ${brandstofNodig - state.brandstof}</span>`}
@@ -316,7 +316,7 @@ const UI = {
             ${(s.passagiersCapaciteit || 0) > 0 ? `<div class="stat-rij"><span class="stat-naam">Passagiers</span><span class="stat-waarde">${state.passagiers?.length || 0}/${s.passagiersCapaciteit}</span></div>` : ''}
             <div class="stat-rij">
                 <span class="stat-naam">⛽ Brandstof</span>
-                <span class="stat-waarde ${state.brandstof < 20 ? 'kleur-rood' : state.brandstof < 40 ? 'kleur-oranje' : ''}">${state.brandstof}/${s.brandstofTank}</span>
+                <span class="stat-waarde ${state.brandstof < 20 ? 'kleur-rood' : state.brandstof < 40 ? 'kleur-oranje' : ''}">${state.brandstof}/${s.brandstofTank} l</span>
             </div>
             <div class="lading-balk-container">
                 <div class="lading-balk" style="width:${Math.round(state.brandstof/s.brandstofTank*100)}%;background:${state.brandstof < 20 ? 'var(--rood)' : state.brandstof < 40 ? 'var(--oranje)' : 'var(--groen)'}"></div>
@@ -382,8 +382,10 @@ const UI = {
             const inLading  = state.lading[goed.id] || 0;
             const vrij      = state.schip.laadruimte - state.getLadingGewicht();
             const maxKoop   = Math.min(Math.floor(vrij / goed.gewicht), Math.floor(state.speler.krediet / prijs));
-            const ratio     = prijs / goed.basisPrijs;
-            const prijsKlas = ratio < 0.65 ? 'kleur-groen' : ratio > 1.40 ? 'kleur-rood' : '';
+            const allePrijzen = PLANETEN.map(p => state.getPrijs(p.id, goed.id));
+            const minPrijs  = Math.min(...allePrijzen);
+            const maxPrijs  = Math.max(...allePrijzen);
+            const prijsKlas = prijs === minPrijs ? 'kleur-groen' : prijs === maxPrijs ? 'kleur-rood' : '';
 
             let trendTd = '';
             if (state.schip?.heeftRadar) {
@@ -521,16 +523,30 @@ const UI = {
                 .sort((a, b) => (state.getPrijs(p.id, b.id) / goedGem[b.id]) - (state.getPrijs(p.id, a.id) / goedGem[a.id]))
                 .slice(0, 3).map(g => g.naam);
 
+            const goedkoopEmoji = GOEDEREN
+                .filter(g => state.getPrijs(p.id, g.id) < goedGem[g.id] * 0.88)
+                .sort((a, b) => (state.getPrijs(p.id, a.id) / goedGem[a.id]) - (state.getPrijs(p.id, b.id) / goedGem[b.id]))
+                .slice(0, 3).map(g => `${g.icoon} ${g.naam}`);
+            const duurEmoji = GOEDEREN
+                .filter(g => state.getPrijs(p.id, g.id) > goedGem[g.id] * 1.12)
+                .sort((a, b) => (state.getPrijs(p.id, b.id) / goedGem[b.id]) - (state.getPrijs(p.id, a.id) / goedGem[a.id]))
+                .slice(0, 3).map(g => `${g.icoon} ${g.naam}`);
+
             html += `<div class="planeet-rij ${isSel ? 'geselecteerd' : ''}" data-planeet="${p.id}" onclick="App.klikPlaneet('${p.id}')">
                 <div class="planeet-rij-hoofdlijn">
-                    <span class="planeet-bol" style="background:${p.kleur}"></span>
+                    <div class="planeet-rij-img-wrap">
+                        <img src="assets/planet-${p.id}.png" alt="${p.naam}"
+                             class="planeet-rij-img"
+                             onerror="this.style.display='none'">
+                        <div class="planeet-rij-img-fallback" style="background:radial-gradient(circle at 35% 35%, ${p.kleur}cc, ${p.kleur}44 60%, transparent)"></div>
+                    </div>
                     <strong class="planeet-rij-naam">${p.naam}</strong>
                     ${p.isGevaarlijk ? '<span class="kleur-rood" style="font-size:0.75em">⚠ Gevaarlijk</span>' : ''}
                     <button class="knop dimmed klein" onclick="event.stopPropagation();App.klikPlaneet('${p.id}')">Kies →</button>
                 </div>
                 <div class="planeet-rij-details">
-                    ${goedkoop.length ? `<span class="badge-groen">↓ ${goedkoop.join(', ')}</span>` : ''}
-                    ${duur.length ? `<span class="badge-rood">↑ ${duur.join(', ')}</span>` : ''}
+                    ${goedkoopEmoji.length ? `<span class="badge-groen">↓ ${goedkoopEmoji.join(', ')}</span>` : ''}
+                    ${duurEmoji.length ? `<span class="badge-rood">↑ ${duurEmoji.join(', ')}</span>` : ''}
                 </div>
             </div>`;
         });
@@ -599,8 +615,8 @@ const UI = {
         html += `<div class="sectie-header" style="margin-top:18px">⛽ Brandstof</div>
         <div class="brandstof-sectie">
             <div class="brandstof-info-rij">
-                <span>Voorraad: <strong class="${bTekstKlasse}">${state.brandstof}/${tank}</strong></span>
-                <span>Prijs: <strong class="kleur-goud">${bPrijs} cr/e</strong></span>
+                <span>Voorraad: <strong class="${bTekstKlasse}">${state.brandstof}/${tank} l</strong></span>
+                <span>Prijs: <strong class="kleur-goud">${bPrijs} cr/l</strong></span>
             </div>
             <div class="lading-balk-container" style="margin:6px 0">
                 <div class="lading-balk" style="width:${brandstofPct}%;background:${bKleur}"></div>
@@ -608,6 +624,7 @@ const UI = {
             <div class="brandstof-acties">
                 <input type="number" id="brandstof-aantal" class="hoeveelheid-input" min="1" max="${vrij}" value="${Math.min(10, vrij)}" style="width:65px" ${vrij <= 0 ? 'disabled' : ''}>
                 <button class="knop primair klein" onclick="App.koopBrandstof()" ${vrij <= 0 ? 'disabled' : ''}>Koop</button>
+                <button class="knop dimmed klein" onclick="App.koopMaxBrandstof()" ${vrij <= 0 ? 'disabled' : ''}>Koop max</button>
                 <button class="knop succes klein" onclick="App.vulTankVol()" ${vrij <= 0 ? 'disabled' : ''}>Vul vol (${state.formatteerKrediet(vulVolKosten)})</button>
             </div>
         </div>`;
@@ -739,7 +756,7 @@ const UI = {
                 </div>
                 <div class="aandeel-koers-groot">${koers} cr</div>
                 <div class="aandeel-delta ${dKlas}">${dTeken}${delta} cr (${dTeken}${dPct}%)</div>
-                ${this._renderSparkline(a.id)}
+                ${this._renderSparkline(a.id, 150, 50, bezit > 0 ? aankoopKoers : null)}
                 ${portfolioHtml}
                 <div class="aandeel-knoppen-koop">
                     ${[1,10,100].map(n => `<button class="knop succes klein" onclick="App.koopAandeelN('${a.id}',${n})" ${maxK<n?'disabled':''}>+${n}</button>`).join('')}
@@ -756,12 +773,13 @@ const UI = {
     },
 
     // Genereer SVG sparkline voor een aandeel
-    _renderSparkline(aandeelId, breedte = 150, hoogte = 50) {
+    _renderSparkline(aandeelId, breedte = 150, hoogte = 50, aankoopKoers = null) {
         const data = state.aandeelGeschiedenis?.[aandeelId] ?? [];
         if (data.length < 2) return `<div class="sparkline-leeg">Geen data</div>`;
 
-        const min = Math.min(...data) * 0.95;
-        const max = Math.max(...data) * 1.05;
+        const allWaarden = aankoopKoers !== null ? [...data, aankoopKoers] : data;
+        const min = Math.min(...allWaarden) * 0.95;
+        const max = Math.max(...allWaarden) * 1.05;
         const range = max - min || 1;
 
         const punten = data.map((p, i) => {
@@ -775,7 +793,15 @@ const UI = {
         const lastX = breedte;
         const lastY = (hoogte - ((data[data.length-1] - min) / range) * hoogte).toFixed(1);
 
+        let aankoopLijn = '';
+        if (aankoopKoers !== null) {
+            const ay = (hoogte - ((aankoopKoers - min) / range) * hoogte).toFixed(1);
+            aankoopLijn = `<line x1="0" y1="${ay}" x2="${breedte}" y2="${ay}" stroke="var(--goud)" stroke-width="1" stroke-dasharray="3,2" opacity="0.75"/>
+            <text x="2" y="${Math.max(8, parseFloat(ay) - 2)}" fill="var(--goud)" font-size="7" font-family="monospace" opacity="0.85">gem</text>`;
+        }
+
         return `<svg width="${breedte}" height="${hoogte}" viewBox="0 0 ${breedte} ${hoogte}">
+            ${aankoopLijn}
             <polyline points="${punten}" fill="none" stroke="${kleur}" stroke-width="1.5" stroke-linejoin="round" opacity="0.9"/>
             <circle cx="${lastX}" cy="${lastY}" r="3" fill="${kleur}"/>
         </svg>`;

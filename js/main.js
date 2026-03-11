@@ -253,6 +253,15 @@ const App = {
         if (!res.succes) this._fout(res.reden); else UI.renderSpel();
     },
 
+    koopMaxBrandstof() {
+        const prijs = state.brandstofPrijzen[state.locatie];
+        const vrij = state.schip.brandstofTank - state.brandstof;
+        const maxAantal = Math.min(vrij, Math.floor(state.speler.krediet / prijs));
+        if (maxAantal <= 0) return;
+        const res = state.koopBrandstof(maxAantal);
+        if (!res.succes) this._fout(res.reden); else UI.renderSpel();
+    },
+
     koopUpgrade(upgradeId) {
         const res = state.koopUpgrade(upgradeId);
         if (!res.succes) this._fout(res.reden); else UI.renderSpel();
