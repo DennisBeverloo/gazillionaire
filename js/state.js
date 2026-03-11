@@ -233,6 +233,7 @@ class GameState {
         this.bezochteplaneten.add(this.locatie);
 
         // Lever passagiers af die hun bestemming bereikt hebben
+        let passagiersInfo = null;
         const aangekomenen = this.passagiers.filter(p => p.bestemming === this.locatie);
         if (aangekomenen.length > 0) {
             const totaal = aangekomenen.reduce((s, p) => s + p.vergoeding, 0);
@@ -240,6 +241,7 @@ class GameState {
             this.statistieken.passagiersAfgeleverd += aangekomenen.length;
             this.passagiers = this.passagiers.filter(p => p.bestemming !== this.locatie);
             this.voegBerichtToe(`${aangekomenen.length} passagier(s) afgeleverd. +${this.formatteerKrediet(totaal)}`, 'goud');
+            passagiersInfo = { aantal: aangekomenen.length, totaal, namen: aangekomenen.map(p => p.naam) };
         }
 
         if (this.brandstof < 10) this._aangekomendMetLageBrandstof = true;
@@ -255,6 +257,7 @@ class GameState {
 
         this.controleerAchievements();
         this.controleerSpelEinde();
+        return { passagiersInfo };
     }
 
     _bepaalAankomstEvent() {
@@ -698,7 +701,7 @@ class GameState {
 
         this.voegBerichtToe(`Verkocht: ${aantal}× ${goed.naam} voor ${this.formatteerKrediet(totaal)}${winstTekst}.`, 'succes');
         this.controleerAchievements();
-        return { succes: true, winst, aankoopPrijs };
+        return { succes: true, winst, aankoopPrijs, totaal, goed };
     }
 
     getLadingGewicht() {

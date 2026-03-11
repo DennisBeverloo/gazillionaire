@@ -377,7 +377,11 @@ const UI = {
             <th colspan="2">Verkopen</th>
         </tr></thead><tbody>`;
 
-        GOEDEREN.forEach(goed => {
+        const gesorteerdeGoederen = [...GOEDEREN].sort((a, b) =>
+            state.getPrijs(state.locatie, a.id) - state.getPrijs(state.locatie, b.id)
+        );
+
+        gesorteerdeGoederen.forEach(goed => {
             const prijs     = state.getPrijs(state.locatie, goed.id);
             const inLading  = state.lading[goed.id] || 0;
             const vrij      = state.schip.laadruimte - state.getLadingGewicht();
@@ -462,8 +466,12 @@ const UI = {
         });
         html += '</tr></thead><tbody>';
 
-        GOEDEREN.forEach(goed => {
-            // Kleur: onderste 5% van de prijsrange = groen, bovenste 5% = rood (max 1-2 per rij)
+        const gesorteerdeGoederen = [...GOEDEREN].sort((a, b) =>
+            state.getPrijs(state.locatie, a.id) - state.getPrijs(state.locatie, b.id)
+        );
+
+        gesorteerdeGoederen.forEach(goed => {
+            // Kleur: laagste prijs = groen, hoogste = rood (per rij over alle planeten)
             const allePrijzen = PLANETEN.map(p => state.getPrijs(p.id, goed.id));
             const minPrijs = Math.min(...allePrijzen);
             const maxPrijs = Math.max(...allePrijzen);
@@ -1013,19 +1021,60 @@ const UI = {
         this._toastTimer = setTimeout(() => toast.classList.remove('zichtbaar'), 4000);
     },
 
+    toonTransactieToast(config) {
+        const toast = document.getElementById('transactie-toast');
+        if (!toast) return;
+        const fmt = n => new Intl.NumberFormat('nl-NL').format(Math.round(n));
+        const winstHtml = (config.winst !== undefined && config.winst !== null)
+            ? `<div class="toast-beschr ${config.winst >= 0 ? 'kleur-groen' : 'kleur-rood'}">${config.winst >= 0 ? '+' : ''}${fmt(config.winst)} cr ${config.winst >= 0 ? 'winst' : 'verlies'}</div>`
+            : '';
+        toast.innerHTML = `<span style="font-size:1.6em">${config.icoon}</span>
+            <div>
+                <div class="toast-naam" style="color:var(--tekst);font-size:0.82em">${config.titel}</div>
+                ${config.totaal ? `<div class="toast-beschr kleur-goud">+${fmt(config.totaal)} cr</div>` : ''}
+                ${winstHtml}
+            </div>`;
+        toast.classList.remove('verlies');
+        if (config.winst !== undefined && config.winst !== null && config.winst < 0) {
+            toast.classList.add('verlies');
+        }
+        toast.classList.add('zichtbaar');
+        clearTimeout(this._transactieToastTimer);
+        this._transactieToastTimer = setTimeout(() => toast.classList.remove('zichtbaar'), 3500);
+    },
+
     // =========================================================================
     // REIS SCHERM
     // =========================================================================
 
     updateReisScherm() {
         if (!state.reisData) return;
-        const { naar } = state.reisData;
-        const planeet = PLANETEN.find(p => p.id === naar);
-        document.getElementById('reis-bestemming').textContent = planeet?.naam ?? '---';
+        const { van, naar } = state.reisData;
+        const vanPlaneet  = PLANETEN.find(p => p.id === van);
+        const naarPlaneet = PLANETEN.find(p => p.id === naar);
+
+        document.getElementById('reis-bestemming').textContent = naarPlaneet?.naam ?? '---';
         document.getElementById('reis-voortgang-balk').style.width = '0%';
         document.getElementById('reis-status').textContent = '';
+
+        // Planeet afbeeldingen links en rechts
+        [['van', vanPlaneet], ['naar', naarPlaneet]].forEach(([prefix, pl]) => {
+            if (!pl) return;
+            const img    = document.getElementById(`reis-planeet-${prefix}-img`);
+            const kleur  = document.getElementById(`reis-planeet-${prefix}-kleur`);
+            const naam   = document.getElementById(`reis-${prefix}-naam`);
+            if (img)   { img.src = `assets/planet-${pl.id}.png`; img.alt = pl.naam; img.style.display = ''; }
+            if (kleur) kleur.style.background = `radial-gradient(circle at 35% 35%, ${pl.kleur}cc, ${pl.kleur}44 60%, transparent)`;
+            if (naam)  naam.textContent = pl.naam;
+        });
+
+        // Raket reset naar startpositie (geen transitie)
         const animEl = document.getElementById('reis-animatie');
-        if (animEl) animEl.textContent = state.schipBeschadigd ? '🛸' : '🚀';
+        if (animEl) {
+            animEl.style.transition = 'none';
+            animEl.style.left = '-48px';
+            animEl.textContent = state.schipBeschadigd ? '🛸' : '🚀';
+        }
     },
 
     // =========================================================================

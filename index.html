@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gazillionaire</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>">
-    <link rel="stylesheet" href="style.css?v=2.0">
+    <link rel="stylesheet" href="style.css?v=2.1">
 </head>
 <body>
 
@@ -44,7 +44,7 @@
         </div>
         <button class="knop primair groot" id="start-knop">Begin de reis &rarr;</button>
     </div>
-    <span class="versie-label">v2.0</span>
+    <span class="versie-label">v2.1</span>
 </div>
 
 <!-- ============================================================
@@ -80,10 +80,10 @@
         </div>
     </div>
 
-    <!-- Hoofd inhoud: links tabs, rechts kaart + schipstatus -->
+    <!-- Hoofd inhoud: links tabs + berichten, rechts kaart + schipstatus -->
     <div id="hoofd-inhoud">
 
-        <!-- Links: navigatie + tab-inhoud -->
+        <!-- Links: navigatie + tab-inhoud + berichten -->
         <div id="hoofd-paneel">
             <div id="tabbladen">
                 <button class="tab actief" data-tab="handel">⚖ Handel</button>
@@ -98,6 +98,10 @@
                 <div id="beurs-tab"        class="tab-paneel"></div>
                 <div id="logboek-tab"      class="tab-paneel"></div>
                 <div id="achievements-tab" class="tab-paneel"></div>
+            </div>
+            <!-- Berichten balk onderin het linker paneel -->
+            <div id="berichten-balk">
+                <div id="berichten-log"></div>
             </div>
         </div>
 
@@ -116,11 +120,6 @@
         </div>
 
     </div>
-
-    <!-- Berichten balk -->
-    <div id="berichten-balk">
-        <div id="berichten-log"></div>
-    </div>
 </div>
 
 <!-- ============================================================
@@ -129,9 +128,28 @@
 <div id="reis-scherm" class="scherm">
     <div class="reis-inhoud">
         <h2>Op reis...</h2>
-        <div id="reis-animatie-container">
-            <div id="reis-animatie">🚀</div>
+
+        <!-- Planeten links + rechts, raket beweegt ertussen -->
+        <div id="reis-visual">
+            <div class="reis-planeet-blok">
+                <div class="reis-planeet-wrap">
+                    <img id="reis-planeet-van-img" class="reis-planeet-img" src="" alt="" onerror="this.style.display='none'">
+                    <div id="reis-planeet-van-kleur" class="reis-planeet-kleur"></div>
+                </div>
+                <div class="reis-planeet-naam" id="reis-van-naam">---</div>
+            </div>
+            <div id="reis-route-wrap">
+                <div id="reis-animatie">🚀</div>
+            </div>
+            <div class="reis-planeet-blok">
+                <div class="reis-planeet-wrap">
+                    <img id="reis-planeet-naar-img" class="reis-planeet-img" src="" alt="" onerror="this.style.display='none'">
+                    <div id="reis-planeet-naar-kleur" class="reis-planeet-kleur"></div>
+                </div>
+                <div class="reis-planeet-naam" id="reis-naar-naam">---</div>
+            </div>
         </div>
+
         <div id="reis-voortgang-container">
             <div id="reis-voortgang-balk"></div>
         </div>
@@ -178,13 +196,14 @@
     </div>
 </div>
 
-<!-- Achievement toast notification -->
+<!-- Toast notificaties -->
 <div id="achievement-toast"></div>
+<div id="transactie-toast"></div>
 
 <!-- Scripts -->
-<script src="js/data.js?v=2.0"></script>
-<script src="js/state.js?v=2.0"></script>
-<script src="js/ui.js?v=2.0"></script>
-<script src="js/main.js?v=2.0"></script>
+<script src="js/data.js?v=2.1"></script>
+<script src="js/state.js?v=2.1"></script>
+<script src="js/ui.js?v=2.1"></script>
+<script src="js/main.js?v=2.1"></script>
 </body>
 </html>

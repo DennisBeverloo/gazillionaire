@@ -101,15 +101,14 @@ const App = {
         state.geselecteerdePlaneet = null;
 
         UI.toonScherm('reis-scherm');
-        UI.updateReisScherm();
+        UI.updateReisScherm(); // reset raket positie + planeet afbeeldingen
 
-        // Reset animatie: zet schip links buiten beeld
+        // Start animatie: raket beweegt van links naar het midden
         const animEl = document.getElementById('reis-animatie');
         if (animEl) {
-            animEl.classList.remove('fase-1', 'fase-2');
-            // Kleine delay zodat browser de reset oppakt voordat we fase-1 toevoegen
             requestAnimationFrame(() => requestAnimationFrame(() => {
-                animEl.classList.add('fase-1');
+                animEl.style.transition = 'left 1.5s linear';
+                animEl.style.left = '50%';
             }));
         }
 
@@ -123,7 +122,11 @@ const App = {
         if (resultaat === 'aankomst') {
             // Geen event — ga direct naar fase 2 dan aankomst
             this._startFase2(() => {
-                state.aankomst();
+                const aankomstResult = state.aankomst();
+                if (aankomstResult?.passagiersInfo) {
+                    const pi = aankomstResult.passagiersInfo;
+                    UI.toonTransactieToast({ icoon: '🧳', titel: `${pi.aantal} passagier${pi.aantal > 1 ? 's' : ''} afgeleverd`, totaal: pi.totaal });
+                }
                 if (state.fase === 'einde') { state.wisSave(); } else { state.slaOp(); }
                 const planNaam = PLANETEN.find(p => p.id === state.locatie)?.naam ?? '';
                 this._setReisStatus(`✓ Aangekomen op ${planNaam}!`, 'kleur-groen');
@@ -148,13 +151,12 @@ const App = {
         }
     },
 
-    // Start fase 2 animatie (schip naar rechts), roep callback aan na afloop
+    // Start fase 2 animatie (raket vliegt naar rechts buiten beeld)
     _startFase2(callback) {
         const animEl = document.getElementById('reis-animatie');
         if (animEl) {
-            animEl.classList.remove('fase-1');
-            void animEl?.offsetWidth; // force reflow
-            animEl.classList.add('fase-2');
+            animEl.style.transition = 'left 1.5s linear';
+            animEl.style.left = 'calc(100% + 48px)';
         }
         setTimeout(callback, 1600);
     },
@@ -174,7 +176,11 @@ const App = {
             if (state.fase === 'einde') { UI.toonEindeScherm(); return; }
 
             // Altijd aankomst na event (1 stap per reis)
-            state.aankomst();
+            const aankomstResult = state.aankomst();
+            if (aankomstResult?.passagiersInfo) {
+                const pi = aankomstResult.passagiersInfo;
+                UI.toonTransactieToast({ icoon: '🧳', titel: `${pi.aantal} passagier${pi.aantal > 1 ? 's' : ''} afgeleverd`, totaal: pi.totaal });
+            }
             if (state.fase === 'einde') { state.wisSave(); } else { state.slaOp(); }
             const planNaam = PLANETEN.find(p => p.id === state.locatie)?.naam ?? '';
             this._startFase2(() => {
@@ -228,13 +234,20 @@ const App = {
     verkoopGoed(goedId) {
         const n = parseInt(document.getElementById(`verkoop-${goedId}`)?.value) || 1;
         const res = state.verkoopGoed(goedId, n);
-        if (!res.succes) this._fout(res.reden); else UI.renderSpel();
+        if (!res.succes) this._fout(res.reden);
+        else {
+            UI.toonTransactieToast({ icoon: res.goed?.icoon ?? '📦', titel: `${n}× ${res.goed?.naam ?? goedId} verkocht`, totaal: res.totaal, winst: res.winst });
+            UI.renderSpel();
+        }
     },
 
     verkoopAlles(goedId) {
         const n = state.lading[goedId] || 0;
         if (n <= 0) return;
-        state.verkoopGoed(goedId, n);
+        const res = state.verkoopGoed(goedId, n);
+        if (res.succes) {
+            UI.toonTransactieToast({ icoon: res.goed?.icoon ?? '📦', titel: `${n}× ${res.goed?.naam ?? goedId} verkocht`, totaal: res.totaal, winst: res.winst });
+        }
         UI.renderSpel();
     },
 
