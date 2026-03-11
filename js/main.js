@@ -7,6 +7,7 @@ const App = {
     init() {
         this.maakSterren();
         this.setupEventListeners();
+        UI.initTopBalkTooltips();
         UI.toonScherm('intro-scherm');
         document.getElementById('speler-naam').addEventListener('keydown', e => {
             if (e.key === 'Enter') this.startIntro();

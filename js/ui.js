@@ -56,7 +56,6 @@ const UI = {
         this.updateTopBalk();
         this.renderPlaneetInfo();
         this.renderKaart();
-        this.renderSchipStats();
         this.renderBestemmingPaneel();
         this.updateBerichten();
 
@@ -132,7 +131,8 @@ const UI = {
 
         const el = id => document.getElementById(id);
         el('kapitein-display').textContent = `👤 ${state.speler?.naam ?? '---'}`;
-        el('schip-naam-display').textContent = `🚀 ${state.schip?.naam ?? '---'}`;
+        const beschadigd = state.schipBeschadigd ? ' ⚠' : '';
+        el('schip-naam-display').textContent = `🚀 ${state.schip?.naam ?? '---'}${beschadigd}`;
 
         const geladen = state.getLadingGewicht?.() ?? 0;
         const maxLading = state.schip?.laadruimte ?? 0;
@@ -145,6 +145,73 @@ const UI = {
         const brandstof = state.brandstof ?? 0;
         const maxBrandstof = state.schip?.brandstofTank ?? 0;
         el('brandstof-display').textContent = `⛽ ${brandstof}/${maxBrandstof} l`;
+    },
+
+    // =========================================================================
+    // TOP BALK TOOLTIPS
+    // =========================================================================
+
+    initTopBalkTooltips() {
+        const tooltip = document.getElementById('top-tooltip');
+        const ids = ['schip-naam-display', 'cargo-display', 'passagiers-display', 'brandstof-display'];
+        ids.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.addEventListener('mouseenter', () => {
+                if (!state.schip) return;
+                const html = this._tooltipInhoud(id);
+                if (!html) return;
+                tooltip.innerHTML = html;
+                tooltip.classList.remove('verborgen');
+                this._positioneerTooltip(tooltip, el);
+            });
+            el.addEventListener('mouseleave', () => tooltip.classList.add('verborgen'));
+        });
+    },
+
+    _tooltipInhoud(id) {
+        switch (id) {
+            case 'schip-naam-display': {
+                const template = typeof SCHEPEN !== 'undefined' ? SCHEPEN.find(s => s.id === state.schip?.id) : null;
+                const sterren = '★'.repeat(state.schip.snelheid) + '☆'.repeat(Math.max(0, 5 - state.schip.snelheid));
+                return `<div class="tt-label">${state.schip.naam}</div>
+                    ${template ? `<div class="tt-beschr">${template.beschrijving}</div>` : ''}
+                    <div class="tt-rij"><span>Snelheid</span><span class="tt-ster">${sterren}</span></div>
+                    ${state.schipBeschadigd ? '<div class="tt-schade">⚠ Schip beschadigd — repareer in de haven!</div>' : ''}`;
+            }
+            case 'cargo-display': {
+                const geladen = GOEDEREN.filter(g => (state.lading[g.id] || 0) > 0);
+                return `<div class="tt-label">Vracht</div>
+                    ${geladen.length === 0
+                        ? '<div class="tt-leeg">Laadruimte is leeg</div>'
+                        : geladen.map(g => `<div class="tt-rij"><span>${g.icoon} ${g.naam}</span><span>${state.lading[g.id]}×</span></div>`).join('')}`;
+            }
+            case 'passagiers-display': {
+                const pax = state.passagiers || [];
+                return `<div class="tt-label">Passagiers</div>
+                    ${pax.length === 0
+                        ? '<div class="tt-leeg">Geen passagiers aan boord</div>'
+                        : pax.map(p => {
+                            const best = PLANETEN.find(pl => pl.id === p.bestemming)?.naam ?? p.bestemming;
+                            return `<div class="tt-rij"><span>👤 ${p.naam} → ${best}</span><span class="tt-prijs">${state.formatteerKrediet(p.vergoeding)}</span></div>`;
+                          }).join('')}`;
+            }
+            case 'brandstof-display': {
+                const prijs = state.brandstofPrijzen?.[state.locatie] ?? '?';
+                const pct = Math.round(state.brandstof / state.schip.brandstofTank * 100);
+                const kleur = state.brandstof < 20 ? 'var(--rood)' : state.brandstof < 40 ? 'var(--oranje)' : 'var(--groen)';
+                return `<div class="tt-label">Brandstof</div>
+                    <div class="tt-rij"><span>Niveau</span><span style="color:${kleur}">${state.brandstof}/${state.schip.brandstofTank} l (${pct}%)</span></div>
+                    <div class="tt-rij"><span>Prijs hier</span><span class="tt-prijs">${prijs} cr/l</span></div>`;
+            }
+        }
+        return null;
+    },
+
+    _positioneerTooltip(tooltip, anchor) {
+        const rect = anchor.getBoundingClientRect();
+        tooltip.style.top = (rect.bottom + 6) + 'px';
+        tooltip.style.left = Math.max(8, Math.min(rect.left, window.innerWidth - 280)) + 'px';
     },
 
     // =========================================================================

@@ -291,6 +291,64 @@ html, body {
     backdrop-filter: blur(8px);
 }
 .top-instellingen-knop { margin-left: auto; }
+
+/* Top balk tooltips */
+.top-tooltip {
+    position: fixed;
+    z-index: 500;
+    background: rgba(4, 8, 18, 0.96);
+    border: 1px solid var(--rand-actief);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-family: var(--font-data);
+    font-size: 0.82em;
+    min-width: 180px;
+    max-width: 280px;
+    pointer-events: none;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+}
+.top-tooltip.verborgen { display: none !important; }
+.tt-label {
+    font-family: var(--font-titel);
+    font-size: 0.68em;
+    color: var(--tekst-dim);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 7px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid var(--rand);
+}
+.tt-beschr {
+    color: var(--tekst-dim);
+    font-size: 0.92em;
+    line-height: 1.45;
+    margin-bottom: 8px;
+}
+.tt-rij {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 3px 0;
+    color: var(--tekst);
+}
+.tt-ster { color: var(--goud); letter-spacing: 1px; }
+.tt-prijs { color: var(--goud); }
+.tt-leeg { color: var(--tekst-dim); font-style: italic; }
+.tt-schade { color: var(--rood); margin-top: 6px; font-size: 0.9em; }
+
+/* Topbalk items hoverbaar maken */
+#schip-naam-display, #cargo-display, #passagiers-display, #brandstof-display {
+    cursor: default;
+    border-radius: 4px;
+    padding: 2px 4px;
+    transition: background 0.15s;
+}
+#schip-naam-display:hover, #cargo-display:hover, #passagiers-display:hover, #brandstof-display:hover {
+    background: rgba(255,255,255,0.07);
+}
+
 .game-logo {
     font-family: var(--font-titel);
     font-weight: 900;
@@ -415,25 +473,29 @@ html, body {
 }
 .planeet-info-kaart {
     position: relative;
-    height: 110px;
+    height: 130px;
     background-size: cover;
     background-position: center;
     background-color: var(--bg-diep);
     background-image: radial-gradient(circle at 35% 35%, var(--planeet-kleur, #00d4ff)66, transparent 70%);
     display: flex;
     align-items: flex-end;
+    padding: 8px;
 }
 .planeet-info-kaart::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(to top, rgba(4,6,13,0.85) 0%, rgba(4,6,13,0.25) 60%, rgba(4,6,13,0.1) 100%);
+    background: linear-gradient(to top, rgba(4,6,13,0.7) 0%, rgba(4,6,13,0.15) 60%, rgba(4,6,13,0.05) 100%);
 }
 .planeet-info-overlay {
     position: relative;
     z-index: 1;
     padding: 8px 12px;
     width: 100%;
+    background: rgba(0, 0, 0, 0.55);
+    border-radius: 6px;
+    backdrop-filter: blur(2px);
 }
 .planeet-info-naam {
     font-family: var(--font-titel);
