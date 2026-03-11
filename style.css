@@ -604,6 +604,7 @@ html, body {
     display: flex;
     align-items: stretch;
     overflow: hidden;
+    height: 80px;
     background: var(--bg-paneel);
     border: 1px solid var(--rand);
     border-radius: 6px;
