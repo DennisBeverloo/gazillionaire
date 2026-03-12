@@ -363,7 +363,7 @@ const UI = {
             if (isHuidig || isSel) {
                 const glow = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
                 glow.setAttribute('cx', px); glow.setAttribute('cy', py);
-                glow.setAttribute('r', isHuidig ? 11 : 9);
+                glow.setAttribute('r', isHuidig ? 14 : 11);
                 glow.setAttribute('fill', 'none');
                 glow.setAttribute('stroke', isHuidig ? '#ffffff' : '#00d4ff');
                 glow.setAttribute('stroke-width', '1.5');
@@ -373,13 +373,13 @@ const UI = {
 
             const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
             circle.setAttribute('cx', px); circle.setAttribute('cy', py);
-            circle.setAttribute('r', isHuidig ? 7 : 5.5);
+            circle.setAttribute('r', isHuidig ? 9 : 7);
             circle.setAttribute('fill', planeet.kleur);
             circle.setAttribute('opacity', isHuidig ? '1' : '0.82');
             g.appendChild(circle);
 
             const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            text.setAttribute('x', px); text.setAttribute('y', py + 16);
+            text.setAttribute('x', px); text.setAttribute('y', py + 20);
             text.setAttribute('text-anchor', 'middle');
             text.setAttribute('class', `planeet-naam-label${isHuidig ? ' huidig' : ''}`);
             text.textContent = planeet.naam.split(' ')[0]; // Eerste woord

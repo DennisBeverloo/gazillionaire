@@ -562,9 +562,9 @@ html, body {
     border-radius: 6px;
 }
 .planeet-naam-label {
-    fill: #6a8aa0;
+    fill: #7aa4c0;
     font-family: 'Share Tech Mono', monospace;
-    font-size: 8.5px;
+    font-size: 10.5px;
     pointer-events: none;
 }
 .planeet-naam-label.huidig { fill: #e8f4ff; }
@@ -1115,8 +1115,8 @@ html, body {
 
 /* --- 768px: tablet portrait / grote telefoon landscape --- */
 @media (max-width: 768px) {
-    /* Spel scherm mag scrollen */
-    #spel-scherm { overflow-y: auto; }
+    /* Spel- en schipselectie scherm mogen scrollen */
+    #spel-scherm, #schip-selectie-scherm { overflow-y: auto; }
 
     /* Top balk: kleiner, scheidslijn weg */
     #top-balk { flex-wrap: wrap; gap: 5px; padding: 6px 12px; }
@@ -1448,8 +1448,12 @@ body[data-planeet="mortex"]  { --planet-accent: #8b0000; }
 .bestemming-meta-rij {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     font-family: var(--font-data);
     font-size: 0.85em;
+    padding: 5px 8px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 5px;
 }
 
 /* ===== BRANDSTOF SECTIE ===== */
@@ -1473,12 +1477,13 @@ body[data-planeet="mortex"]  { --planet-accent: #8b0000; }
     flex-wrap: wrap;
 }
 .brandstof-vereist {
-    font-size: 0.83em;
+    font-size: 0.85em;
     padding: 5px 8px;
     background: rgba(255,255,255,0.04);
     border-radius: 5px;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 8px;
 }
 .brandstof-tekort {
