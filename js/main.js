@@ -42,6 +42,10 @@ const App = {
     setupEventListeners() {
         document.getElementById('start-knop').addEventListener('click', () => this.startIntro());
         document.getElementById('doorgaan-knop')?.addEventListener('click', () => this.doorgaan());
+        document.getElementById('wis-save-knop')?.addEventListener('click', () => {
+            state.wisSave();
+            document.getElementById('save-sectie').style.display = 'none';
+        });
         document.querySelectorAll('.tab').forEach(tab => {
             tab.addEventListener('click', () => {
                 state.activeTab = tab.dataset.tab;
