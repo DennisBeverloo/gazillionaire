@@ -136,9 +136,16 @@ class GameState {
         });
     }
 
+    _getPlanetGoedDoelFactor(planeet, goedId) {
+        if (planeet.specialiteit?.includes(goedId)) return 0.55;
+        if (planeet.vraag?.includes(goedId))        return 1.80;
+        return 1.0;
+    }
+
     berekenBasePrijs(planeet, goed) {
-        // Volledig random startprijs per planeet per goed — geen vaste voordelen
-        return Math.max(5, Math.round(goed.basisPrijs * (0.55 + Math.random() * 0.9))); // 55–145% van basis
+        const doelFactor = this._getPlanetGoedDoelFactor(planeet, goed.id);
+        const doel = goed.basisPrijs * doelFactor;
+        return Math.max(5, Math.round(doel * (0.85 + Math.random() * 0.30)));
     }
 
     updatePrijzen(uitgeslotenPlaneet = null) {
@@ -156,15 +163,27 @@ class GameState {
                     factor *= (Math.random() < 0.5) ? 1.3 : 0.7;
                 }
 
-                // Graviteer terug naar basispijs (neutraal voor alle planeten)
-                const afstand = (goed.basisPrijs - huidig) / goed.basisPrijs;
-                factor += afstand * 0.07;
+                // Graviteer naar planeet-specifiek doelniveau
+                const doelFactor = this._getPlanetGoedDoelFactor(planeet, goed.id);
+                const doel = goed.basisPrijs * doelFactor;
+                const gravitatieSterkte = (doelFactor !== 1.0) ? 0.14 : 0.07;
+                const afstand = (doel - huidig) / goed.basisPrijs;
+                factor += afstand * gravitatieSterkte;
 
                 let nieuw = Math.round(huidig * factor);
 
-                // Grenzen: 25–220% van basisprijs
-                const min = Math.max(5, Math.round(goed.basisPrijs * 0.25));
-                const max = Math.round(goed.basisPrijs * 2.2);
+                // Grenzen: afhankelijk van planeet-specialisatie
+                let min, max;
+                if (doelFactor === 0.55) {
+                    min = Math.max(5, Math.round(goed.basisPrijs * 0.10));
+                    max = Math.round(goed.basisPrijs * 0.95);
+                } else if (doelFactor === 1.80) {
+                    min = Math.round(goed.basisPrijs * 1.05);
+                    max = Math.round(goed.basisPrijs * 3.0);
+                } else {
+                    min = Math.max(5, Math.round(goed.basisPrijs * 0.25));
+                    max = Math.round(goed.basisPrijs * 2.2);
+                }
                 nieuw = Math.max(min, Math.min(max, nieuw));
 
                 this.planetPrijzen[planeet.id][goed.id] = nieuw;

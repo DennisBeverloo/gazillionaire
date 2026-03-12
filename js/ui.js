@@ -504,6 +504,13 @@ const UI = {
             const tipMax    = Math.round(goed.basisPrijs * 2.2);
             const tipHtml   = `<span class="goed-tip">${goed.beschrijving}<br><span class="goed-tip-prijs">Bereik: ${tipMin}–${tipMax} credits &nbsp;·&nbsp; basis ${goed.basisPrijs} credits</span></span>`;
 
+            let marktLabelHtml = '';
+            if (planeet.specialiteit?.includes(goed.id)) {
+                marktLabelHtml = '<span class="markt-label label-specialiteit">🏭 Lokale productie</span>';
+            } else if (planeet.vraag?.includes(goed.id)) {
+                marktLabelHtml = '<span class="markt-label label-vraag">📈 Hoge vraag</span>';
+            }
+
             let trendTd = '';
             if (state.schip?.heeftRadar) {
                 const vorig = state.vorigePrijzen[state.locatie]?.[goed.id] ?? prijs;
@@ -537,7 +544,7 @@ const UI = {
             }
 
             html += `<tr>
-                <td><span class="goed-icoon">${goed.icoon}</span><span class="goed-tip-wrap">${goed.naam}${tipHtml}</span></td>
+                <td><span class="goed-icoon">${goed.icoon}</span><span class="goed-tip-wrap">${goed.naam}${marktLabelHtml}${tipHtml}</span></td>
                 <td class="${prijsKlas}" style="font-family:var(--font-data)">${state.formatteerKrediet(prijs)}</td>
                 ${state.schip?.heeftRadar ? trendTd : ''}
                 <td style="font-family:var(--font-data)">${ladingTd}</td>

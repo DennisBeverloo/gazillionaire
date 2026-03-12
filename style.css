@@ -1340,6 +1340,29 @@ html, body {
 .goed-tip-prijs { color: var(--goud); font-family: var(--font-data); font-size: 0.93em; margin-top: 4px; }
 .goed-tip-wrap:hover .goed-tip { display: block; }
 
+/* MARKT LABELS — specialiteit / vraag */
+.markt-label {
+    display: inline-block;
+    font-size: 0.68em;
+    padding: 1px 5px;
+    border-radius: 3px;
+    margin-left: 5px;
+    vertical-align: middle;
+    font-family: var(--font-tekst);
+    white-space: nowrap;
+    opacity: 0.85;
+}
+.label-specialiteit {
+    background: rgba(57,255,20,0.12);
+    color: var(--groen);
+    border: 1px solid rgba(57,255,20,0.25);
+}
+.label-vraag {
+    background: rgba(255,140,66,0.12);
+    color: var(--oranje);
+    border: 1px solid rgba(255,140,66,0.25);
+}
+
 /* KREDIET NEGATIEF */
 .krediet-negatief { color: var(--rood) !important; }
 
