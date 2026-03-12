@@ -723,7 +723,7 @@ const UI = {
                 <div class="kleur-dimmed" style="font-size:0.78em;margin-bottom:8px">Basisprijs + ${cap} ton laadruimte${paxCap > 0 ? ` + ${paxCap} passagiersplaatsen` : ''}</div>
                 <button class="knop primair klein" ${!kanVerz ? 'disabled' : ''} onclick="App.koopVerzekering()">${kanVerz ? 'Sluit af' : 'Onvoldoende credits'}</button>`;
         }
-        html += `<div class="haven-blok"><div class="haven-blok-header">🛡️ Reisverzekering</div><div class="haven-blok-inhoud">${verzHtml}</div></div>`;
+        html += `<div class="haven-blok haven-blok-verzekering"><div class="haven-blok-header">🛡️ Reisverzekering</div><div class="haven-blok-inhoud">${verzHtml}</div></div>`;
 
         // === BANK (alleen op planeten met bank) ===
         if (planeet.heeftBank) {

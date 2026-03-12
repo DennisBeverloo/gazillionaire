@@ -700,6 +700,14 @@ html, body {
 .haven-blok-brandstof .haven-blok-inhoud {
     padding-bottom: 70px;
 }
+.haven-blok-verzekering {
+    background:
+        linear-gradient(to bottom, #07111f 50%, rgba(7,17,31,0) 100%),
+        url('assets/insurance.png') no-repeat bottom / 100% auto;
+}
+.haven-blok-verzekering .haven-blok-inhoud {
+    padding-bottom: 70px;
+}
 .haven-blok-header {
     font-family: var(--font-titel);
     font-size: 0.7em;
