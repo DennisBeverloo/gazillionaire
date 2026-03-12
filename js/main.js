@@ -232,6 +232,8 @@ const App = {
     // Verwerk eventkeuze (keuze-events)
     verwerkEventKeuze(eventId, keuzeId) {
         const res = state.verwerkevent(eventId, keuzeId);
+        if (res.kredietDelta > 0) Audio.verkoop();
+        else if (res.kredietDelta < 0) Audio.negatief();
         if (res.bericht) UI.toonEventResultaat(res.bericht);
 
         const knoppen = document.getElementById('event-knoppen');
@@ -334,13 +336,13 @@ const App = {
         const n = parseInt(document.getElementById('brandstof-aantal')?.value) || 10;
         const pctVoor = this._snapBrandstofPct();
         const res = state.koopBrandstof(n);
-        if (!res.succes) this._fout(res.reden); else { UI._animeerBrandstof = true; UI._brandstofPctVoor = pctVoor; UI.renderSpel(); }
+        if (!res.succes) this._fout(res.reden); else { Audio.brandstof(); UI._animeerBrandstof = true; UI._brandstofPctVoor = pctVoor; UI.renderSpel(); }
     },
 
     vulTankVol() {
         const pctVoor = this._snapBrandstofPct();
         const res = state.vulTankVol();
-        if (!res.succes) this._fout(res.reden); else { UI._animeerBrandstof = true; UI._brandstofPctVoor = pctVoor; UI.renderSpel(); }
+        if (!res.succes) this._fout(res.reden); else { Audio.brandstof(); UI._animeerBrandstof = true; UI._brandstofPctVoor = pctVoor; UI.renderSpel(); }
     },
 
     koopMaxBrandstof() {
@@ -350,11 +352,12 @@ const App = {
         if (maxAantal <= 0) return;
         const pctVoor = this._snapBrandstofPct();
         const res = state.koopBrandstof(maxAantal);
-        if (!res.succes) this._fout(res.reden); else { UI._animeerBrandstof = true; UI._brandstofPctVoor = pctVoor; UI.renderSpel(); }
+        if (!res.succes) this._fout(res.reden); else { Audio.brandstof(); UI._animeerBrandstof = true; UI._brandstofPctVoor = pctVoor; UI.renderSpel(); }
     },
 
     boardPassagiers() {
         state.boardPassagiers();
+        Audio.passagiers();
         UI.renderSpel();
     },
 

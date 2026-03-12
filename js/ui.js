@@ -1251,6 +1251,7 @@ const UI = {
     },
 
     toonAankomstPopup(event) {
+        if (event.type === 'gevaar') Audio.negatief(); else Audio.eventPositief();
         const popup = document.getElementById('aankomst-popup');
         if (!popup) return;
         document.getElementById('aankomst-event-icoon').textContent = event.icoon;
