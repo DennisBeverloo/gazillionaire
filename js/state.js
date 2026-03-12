@@ -253,13 +253,6 @@ class GameState {
 
         this._simuleerConcurrenten();
 
-        // Passieve HP slijtage per rit
-        if (this.schip && this.schipHP > 0) {
-            const kritisch = this.schipHP < Math.round((this.schip.maxHP ?? 40) * 0.3);
-            const extra = kritisch ? Math.floor(Math.random() * 6) + 3 : 0;
-            this.schipHP = Math.max(1, this.schipHP - 1 - extra);
-        }
-
         const eventId = this.reisData.events[this.reisData.stap - 1];
 
         if (eventId && eventId !== 'niets') {

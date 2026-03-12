@@ -684,6 +684,14 @@ html, body {
     flex-direction: column;
 }
 .haven-blok-vol-breed { grid-column: 1 / -1; }
+.haven-blok-passagiers {
+    background:
+        linear-gradient(to bottom, #07111f 15%, rgba(7,17,31,0) 72%),
+        url('assets/passengers-boarding.png') no-repeat bottom / 100% auto;
+}
+.haven-blok-passagiers .haven-blok-inhoud {
+    padding-bottom: 90px;
+}
 .haven-blok-header {
     font-family: var(--font-titel);
     font-size: 0.7em;

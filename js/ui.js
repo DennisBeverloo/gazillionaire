@@ -114,7 +114,7 @@ const UI = {
             </div>
             <div class="kleur-dimmed" style="font-size:0.82em;margin:6px 0 8px">${dest.beschrijving}</div>
             <div class="bestemming-meta-rij">
-                <span class="kleur-dimmed">Afstand</span><span>${afstand} lj</span>
+                <span>Afstand</span><span>${afstand} lj</span>
             </div>
             <div class="brandstof-vereist ${heeftGenoeg ? '' : 'brandstof-tekort'}" style="margin-top:6px">
                 <span class="bestemming-sub-label">Brandstofkosten</span>
@@ -669,7 +669,7 @@ const UI = {
             ${kanInstappen ? `<button class="knop succes klein" style="margin-top:10px" onclick="App.boardPassagiers()">Neem ${instappers} passagier${instappers > 1 ? 's' : ''} aan boord</button>` : ''}
             <div class="kleur-dimmed" style="font-size:0.8em;margin-top:8px">Passagiers betalen bij aankomst op de volgende planeet.</div>`;
         }
-        html += `<div class="haven-blok"><div class="haven-blok-header">🧳 Passagiers</div><div class="haven-blok-inhoud">${paxHtml}</div></div>`;
+        html += `<div class="haven-blok haven-blok-passagiers"><div class="haven-blok-header">🧳 Passagiers</div><div class="haven-blok-inhoud">${paxHtml}</div></div>`;
 
         // === MARKETING (alleen als passagiersschip + bestemming geselecteerd) ===
         const selP = state.geselecteerdePlaneet;
