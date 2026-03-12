@@ -96,7 +96,7 @@ Aqueron (25,75)               Techton (82,72)
 - Specialiteitsplaneten verkopen 40–55% onder basisprijs
 - Vraagplaneten betalen 165–200% van basisprijs
 - Prijzen fluctueren elke beurt via een volatiliteitsmodel
-- Met Handelsradar zijn prijstrends zichtbaar (↑↓)
+- Mortex Station hanteert een basiskorting van 35% op alle goederen (zwarte markt), bovenop eventuele specialiteitskorting
 
 ---
 
@@ -122,9 +122,7 @@ Aqueron (25,75)               Techton (82,72)
 ## 7. Upgrades
 
 ### Eenmalig
-| Naam | Prijs | Effect |
-|---|---|---|
-| **Handelsradar** 📡 | 3.500 cr | Toont prijstrends (↑↓) op de handelsmarkt |
+*(De Handelsradar is verwijderd in v4.0.0 — zie §15)*
 
 ### Oneindig (stapelbaar per niveau)
 | Categorie | Effect per niveau |
@@ -146,6 +144,62 @@ Upgradekosten stijgen exponentieel per niveau.
 - Passagiers betalen bij aankomst op de volgende planeet
 - Marketing-campagne (koopbaar in haven) verhoogt het aantal wachtende passagiers bij de bestemming
 - Lifter-event tijdens reis: extra passagier die je meeneemt
+
+---
+
+## 8b. Planeet-specifieke Diensten
+
+### Luxoria — 🎰 Casino Stellaris
+
+Een kaartspel waarbij de speler een kaart (1–13) trekt en de dealer ook. Hoogste kaart wint.
+
+**Inzetniveaus:** 500 / 1.000 / 2.500 / 5.000 / 10.000 credits
+
+**Regels:**
+- Speler en dealer trekken elk één kaart (1–13)
+- Hogere kaart wint het dubbele terug; bij gelijkspel krijgt de speler zijn inzet terug
+- Het casino verdient statistisch gezien: bij verlies verliest de speler zijn inzet; het huis heeft een kleine voorsprong
+
+**Beperkingen per bezoek:** maximaal 5 goktochten per Luxoria-landing
+
+**Achievements:** Huisvoordeel (3 wins op rij, +1.200 cr), Jackpot (win ≥10.000 cr in één tocht, +2.500 cr)
+
+---
+
+### Mortex Station — 🕵 Zwarte Markt
+
+Alle goederen zijn 35% goedkoper dan normaal (basiskorting op `_getPlanetGoedDoelFactor`). Goederen gekocht op Mortex zijn *verdacht* en worden gemarkeerd met ⚠️.
+
+**Douanerisico bij aankomst elders:**
+- 25% kans op douanecontrole per beurt met verdachte lading
+- Bij betrapping: alle verdachte lading geconfisqueerd + boete van 500 credits
+- Met **Afgeschermd Vrachtruim** daalt het risico van 25% naar 5%
+
+**Illegale Scheepswerf — Afgeschermd Vrachtruim:**
+- Kosten: 8.000 credits, eenmalig, alleen op Mortex Station
+- Douanekans: 25% → 5%
+
+**Achievement:** Zwarthandelaar (douane ontlopen met verdachte lading, +1.000 cr)
+
+---
+
+### Pyroflux — ⛽ Energieboorpost
+
+Brandstof is hier de goedkoopste van alle planeten dankzij vulkanische energiereserves. Elke aankoop telt mee voor het achievement.
+
+**Achievement:** Energieboer (10× getankt op Pyroflux, +600 cr)
+
+---
+
+### Nexoria / Techton — 🏛 Galactische Bank
+
+Leningen tot 8.000 credits. Rente 5% per 20 beurten. Alleen op Nexoria en Techton beschikbaar.
+
+---
+
+### Nexoria — 📈 Galactische Beurs (exclusief)
+
+Aandelen kunnen alleen worden gekocht en verkocht op Nexoria. Op alle andere planeten is het portfolio alleen-lezen zichtbaar in het **Financiën**-tabblad.
 
 ---
 
@@ -212,6 +266,9 @@ Achievements worden ontgrendeld bij het bereiken van mijlpalen en leveren een kr
 | **Schip** | Motorfanaat/Veteraan/Lichtsnelheid (lvl 10/25/50), idem voor vrachtruim, tank, passagiers |
 | **Beurs** | Beursgoeroe (4 aandelen), Beurswinst (1k/deal), Beursmagnaat (10k/deal), Galactisch Belegger (250k totaal) |
 | **Reizen & Events** | Wereldreiziger (alle 8 planeten), Ruimtereiziger (10 reizen), Piratenontkomer, Op de Rand (aankomst <10L), Taxiservice |
+| **Casino** | Huisvoordeel (3 wins op rij, +1.200 cr), Jackpot (win ≥10.000 cr in één gokbeurt, +2.500 cr) |
+| **Zwarte Markt** | Zwarthandelaar (douane ontlopen met verdachte lading, +1.000 cr) |
+| **Pyroflux** | Energieboer (10× getankt op Pyroflux, +600 cr) |
 
 ---
 
@@ -276,6 +333,12 @@ js/main.js        — App object, event handlers, init
 | Admin via Supabase Auth | Server-side authenticatie i.p.v. client-side wachtwoordcheck |
 | UPDATE na elke landing | Live data in admin dashboard; betere inzichten in spelverloop |
 | Geen automatische HP-slijtage | Zie boven — enkel event-gebaseerde schade |
+| Handelsradar upgrade verwijderd (v4.0.0) | Prijs/meerwaardeverhouding klopte niet — spelers kochten hem zelden en de trendpijlen voegden weinig toe |
+| Aandelenbeurs exclusief op Nexoria (v4.0.0) | Geeft Nexoria een unieke rol en dwingt spelers terug te keren; portfolio blijft elders leesbaar |
+| Financiën-tabblad (v4.0.0) | Bank en aandelenportfolio samengevoegd in één tab — logischer dan beide verspreid over Ruimtehaven en een losse Beurs-tab |
+| Logboek/Ranglijst/Prestaties naar topbalk (v4.0.0) | Vermindering tabbladen-rommel; deze schermen zijn secundair t.o.v. Handel/Haven/Planeet |
+| Planeet-tab als tegellayout (v4.0.0) | Consistentie met Ruimtehaven; elke dienst krijgt zijn eigen afgebakende tile |
+| Galactische markt: klikbare planeetkolommen (v4.0.0) | Snellere bestemming selecteren rechtstreeks vanuit de prijsoverzichtstabel |
 
 ---
 
@@ -294,4 +357,4 @@ js/main.js        — App object, event handlers, init
 
 ---
 
-*Laatste update: v3.0.9*
+*Laatste update: v4.0.0*
