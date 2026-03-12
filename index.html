@@ -216,6 +216,10 @@
                     <input type="file" id="save-upload-input" accept=".json" style="display:none" onchange="App.uploadSave(this)">
                 </label>
             </div>
+            <div class="instellingen-sectie">
+                <div class="instellingen-sectie-titel">Geluid</div>
+                <button class="knop dimmed instellingen-knop" id="mute-knop" onclick="App.toggleMute()"></button>
+            </div>
             <div class="instellingen-sectie instellingen-gevaar-sectie">
                 <div class="instellingen-sectie-titel">Nieuw spel</div>
                 <button class="knop gevaar instellingen-knop" onclick="App.nieuwSpelVanuitInstellingen()">🗑 Nieuw spel starten</button>
@@ -232,6 +236,7 @@
 <div id="transactie-toast"></div>
 
 <!-- Scripts -->
+<script src="js/audio.js"></script>
 <script src="js/config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="js/data.js?v=3.0.5"></script>

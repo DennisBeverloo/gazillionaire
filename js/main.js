@@ -7,6 +7,7 @@ const App = {
     init() {
         this.maakSterren();
         this.setupEventListeners();
+        this._updateMuteKnop();
         UI.initTopBalkTooltips();
         UI.toonScherm('intro-scherm');
         document.getElementById('speler-naam').addEventListener('keydown', e => {
@@ -40,6 +41,12 @@ const App = {
     },
 
     setupEventListeners() {
+        // Globale klik-sound op alle knoppen
+        document.addEventListener('click', e => {
+            if (e.target.closest('.knop, .tab, .bestemming-wijzig, .top-instellingen-knop'))
+                Audio.klik();
+        });
+
         document.getElementById('start-knop').addEventListener('click', () => this.startIntro());
         document.getElementById('doorgaan-knop')?.addEventListener('click', () => this.doorgaan());
         document.getElementById('wis-save-knop')?.addEventListener('click', () => {
@@ -159,6 +166,7 @@ const App = {
         if (!res || res === false) return;
         if (res.succes === false) { this._fout(res.reden); return; }
         state.geselecteerdePlaneet = null;
+        Audio.reis();
 
         UI.toonScherm('reis-scherm');
         UI.updateReisScherm(); // reset raket positie + planeet afbeeldingen
@@ -182,6 +190,7 @@ const App = {
         if (resultaat === 'aankomst') {
             // Geen event — ga direct naar fase 2 dan aankomst
             this._startFase2(() => {
+                Audio.landing();
                 const aankomstResult = state.aankomst();
                 if (aankomstResult?.passagiersInfo) {
                     const pi = aankomstResult.passagiersInfo;
@@ -235,6 +244,7 @@ const App = {
             if (state.fase === 'einde') { UI.toonEindeScherm(); return; }
 
             // Altijd aankomst na event (1 stap per reis)
+            Audio.landing();
             const aankomstResult = state.aankomst();
             if (aankomstResult?.passagiersInfo) {
                 const pi = aankomstResult.passagiersInfo;
@@ -275,7 +285,7 @@ const App = {
     koopGoed(goedId) {
         const n = parseInt(document.getElementById(`koop-${goedId}`)?.value) || 1;
         const res = state.koopGoed(goedId, n);
-        if (!res.succes) this._fout(res.reden); else UI.renderSpel();
+        if (!res.succes) this._fout(res.reden); else { Audio.koop(); UI.renderSpel(); }
     },
 
     koopMax(goedId) {
@@ -287,7 +297,7 @@ const App = {
         );
         if (maxN <= 0) return;
         const res = state.koopGoed(goedId, maxN);
-        if (!res.succes) this._fout(res.reden); else UI.renderSpel();
+        if (!res.succes) this._fout(res.reden); else { Audio.koop(); UI.renderSpel(); }
     },
 
     verkoopGoed(goedId) {
@@ -295,6 +305,7 @@ const App = {
         const res = state.verkoopGoed(goedId, n);
         if (!res.succes) this._fout(res.reden);
         else {
+            Audio.verkoop();
             UI.toonTransactieToast({ icoon: res.goed?.icoon ?? '📦', titel: `${n}× ${res.goed?.naam ?? goedId} verkocht`, totaal: res.totaal, winst: res.winst });
             UI.renderSpel();
         }
@@ -305,6 +316,7 @@ const App = {
         if (n <= 0) return;
         const res = state.verkoopGoed(goedId, n);
         if (res.succes) {
+            Audio.verkoop();
             UI.toonTransactieToast({ icoon: res.goed?.icoon ?? '📦', titel: `${n}× ${res.goed?.naam ?? goedId} verkocht`, totaal: res.totaal, winst: res.winst });
         }
         UI.renderSpel();
@@ -348,12 +360,12 @@ const App = {
 
     koopUpgrade(upgradeId) {
         const res = state.koopUpgrade(upgradeId);
-        if (!res.succes) this._fout(res.reden); else UI.renderSpel();
+        if (!res.succes) this._fout(res.reden); else { Audio.upgrade(); UI.renderSpel(); }
     },
 
     koopUpgradeStap(cat) {
         const res = state.koopUpgradeStap(cat);
-        if (!res.succes) this._fout(res.reden); else UI.renderSpel();
+        if (!res.succes) this._fout(res.reden); else { Audio.upgrade(); UI.renderSpel(); }
     },
 
     koopVerzekering() {
@@ -449,7 +461,18 @@ const App = {
     // HELPERS
     // =========================================================================
 
+    toggleMute() {
+        Audio.setGedempt(!Audio.isGedempt());
+        this._updateMuteKnop();
+    },
+
+    _updateMuteKnop() {
+        const knop = document.getElementById('mute-knop');
+        if (knop) knop.textContent = Audio.isGedempt() ? '🔇 Geluid uit' : '🔊 Geluid aan';
+    },
+
     _fout(tekst) {
+        Audio.negatief();
         state.voegBerichtToe(`⚠ ${tekst}`, 'waarschuwing');
         UI.updateBerichten();
     },

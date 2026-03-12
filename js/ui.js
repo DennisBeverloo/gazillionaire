@@ -1149,6 +1149,8 @@ const UI = {
     // =========================================================================
 
     toonEventPopup(event) {
+        if (event.type === 'gevaar') Audio.eventGevaar(); else Audio.eventPositief();
+
         const popup = document.getElementById('event-popup');
         popup.classList.remove('verborgen');
 
@@ -1287,6 +1289,7 @@ const UI = {
     // =========================================================================
 
     toonAchievementToast(ach) {
+        Audio.achievement();
         const toast = document.getElementById('achievement-toast');
         if (!toast) return;
         toast.innerHTML = `<span class="toast-icoon">${ach.icoon}</span>
@@ -1359,6 +1362,7 @@ const UI = {
 
     toonEindeScherm() {
         this.toonScherm('einde-scherm');
+        if (state.eindeReden === 'bankroet') Audio.bankroet();
         const netto = state.berekenNettowaarde();
         const reden = state.eindeReden;
 
