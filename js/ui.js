@@ -60,10 +60,11 @@ const UI = {
         this.updateBerichten();
 
         // Render actieve tab-inhoud
+        if (state.activeTab === 'beurs') state.activeTab = 'financien'; // migreer oude saves
         switch (state.activeTab) {
             case 'handel':       this.renderHandelTab();       break;
             case 'haven':        this.renderHavenTab();        break;
-            case 'beurs':        this.renderBeursTab();        break;
+            case 'financien':    this.renderFinancienTab();    break;
             case 'logboek':      this.renderLogboekTab();      break;
             case 'ranglijst':    this.renderRanglijstTab();    break;
             case 'achievements': this.renderAchievementsTab(); break;
@@ -80,6 +81,12 @@ const UI = {
         // Handel-tab label: Zwarte Markt op Mortex
         const handelTabKnop = document.querySelector('.tab[data-tab="handel"]');
         if (handelTabKnop) handelTabKnop.innerHTML = state.locatie === 'mortex' ? '💀 Zwarte Markt' : '⚖ Handel';
+
+        // Top-nav knoppen actief markeren (logboek/ranglijst/prestaties)
+        ['logboek','ranglijst','achievements'].forEach(tab => {
+            document.querySelector(`.top-nav-knop[onclick*="'${tab}'"]`)
+                ?.classList.toggle('actief', state.activeTab === tab);
+        });
     },
 
     renderBestemmingPaneel() {
@@ -491,7 +498,6 @@ const UI = {
         html += `<table class="handel-tabel"><thead><tr>
             <th>Goed</th>
             <th>Prijs hier</th>
-            ${state.schip?.heeftRadar ? '<th title="Prijstrend">Trend</th>' : ''}
             <th>In lading</th>
             <th colspan="2">Kopen</th>
             <th colspan="2">Verkopen</th>
@@ -519,14 +525,6 @@ const UI = {
                 marktLabelHtml = '<span class="markt-label label-specialiteit">🏭 Lokale productie</span>';
             } else if (planeet.vraag?.includes(goed.id)) {
                 marktLabelHtml = '<span class="markt-label label-vraag">📈 Hoge vraag</span>';
-            }
-
-            let trendTd = '';
-            if (state.schip?.heeftRadar) {
-                const vorig = state.vorigePrijzen[state.locatie]?.[goed.id] ?? prijs;
-                if      (prijs > vorig * 1.02) trendTd = '<td class="kleur-groen">↑</td>';
-                else if (prijs < vorig * 0.98) trendTd = '<td class="kleur-rood">↓</td>';
-                else                            trendTd = '<td class="kleur-dimmed">—</td>';
             }
 
             // Lading info (in cargo column)
@@ -558,7 +556,6 @@ const UI = {
             html += `<tr>
                 <td><span class="goed-icoon">${goed.icoon}</span><span class="goed-tip-wrap">${goed.naam}${marktLabelHtml}${tipHtml}</span></td>
                 <td class="${prijsKlas}" style="font-family:var(--font-data)">${state.formatteerKrediet(prijs)}</td>
-                ${state.schip?.heeftRadar ? trendTd : ''}
                 <td style="font-family:var(--font-data)">${ladingTd}</td>
                 <td>
                     <div class="actie-rij">
@@ -582,19 +579,24 @@ const UI = {
 
         // === GALACTISCHE MARKT ===
         html += '<div class="sectie-header" style="margin-top:22px">🌌 Galactische Markt — Prijsvergelijking</div>';
-        html += '<p class="kleur-dimmed" style="font-size:0.78em;margin:0 0 8px">Prijzen worden bijgewerkt na elke reis. <span class="badge-groen">■ Goedkoop</span> = koop hier &nbsp; <span class="badge-rood">■ Duur</span> = verkoop hier. Jouw huidige locatie is <u>onderstreept</u>.</p>';
+        html += '<p class="kleur-dimmed" style="font-size:0.78em;margin:0 0 8px">Prijzen worden bijgewerkt na elke reis. <span class="badge-groen">■ Goedkoop</span> = koop hier &nbsp; <span class="badge-rood">■ Duur</span> = verkoop hier. Klik een planeetkolom om als bestemming te selecteren.</p>';
         html += this._renderGalactischeMarkt();
 
         container.innerHTML = html;
     },
 
     _renderGalactischeMarkt() {
+        const bestemming = state.geselecteerdePlaneet;
         let html = '<div class="galact-wrap"><table class="galact-tabel"><thead><tr>';
         html += '<th class="galact-goed-col">Goed</th>';
 
         PLANETEN.forEach(p => {
             const isHier = p.id === state.locatie;
-            html += `<th class="${isHier ? 'galact-huidig-th' : ''}" style="color:${p.kleur}">${p.naam.replace(' Station','')}</th>`;
+            const isBest = p.id === bestemming;
+            let thKlas = isHier ? 'galact-huidig-th' : isBest ? 'galact-bestemming-th' : '';
+            const raket = isBest ? ' 🚀' : '';
+            const clickAttr = isHier ? '' : `onclick="App.selecteerBestemming('${p.id}')" style="cursor:pointer"`;
+            html += `<th class="${thKlas}" style="color:${p.kleur}" ${clickAttr}>${p.naam.replace(' Station','')}${raket}</th>`;
         });
         html += '</tr></thead><tbody>';
 
@@ -603,7 +605,6 @@ const UI = {
         );
 
         gesorteerdeGoederen.forEach(goed => {
-            // Kleur: laagste prijs = groen, hoogste = rood (per rij over alle planeten)
             const allePrijzen = PLANETEN.map(p => state.getPrijs(p.id, goed.id));
             const minPrijs = Math.min(...allePrijzen);
             const maxPrijs = Math.max(...allePrijzen);
@@ -616,8 +617,9 @@ const UI = {
             PLANETEN.forEach(p => {
                 const prijs = state.getPrijs(p.id, goed.id);
                 const isHier = p.id === state.locatie;
+                const isBest = p.id === bestemming;
 
-                let klasse = isHier ? 'galact-cel galact-huidig' : 'galact-cel';
+                let klasse = isHier ? 'galact-cel galact-huidig' : isBest ? 'galact-cel galact-bestemming' : 'galact-cel';
                 if (prijs === minPrijs) klasse += ' galact-goedkoop';
                 else if (prijs === maxPrijs) klasse += ' galact-duur';
 
@@ -748,20 +750,6 @@ const UI = {
         }
         html += `<div class="haven-blok haven-blok-verzekering"><div class="haven-blok-header">🛡️ Reisverzekering</div><div class="haven-blok-inhoud">${verzHtml}</div></div>`;
 
-        // === BANK (alleen op planeten met bank) ===
-        if (planeet.heeftBank) {
-            html += `<div class="haven-blok"><div class="haven-blok-header">💳 Galactische Bank</div><div class="haven-blok-inhoud">
-                <div class="stat-rij"><span class="stat-naam">Schuld</span><span class="stat-waarde kleur-oranje">${state.formatteerKrediet(state.speler.schuld)}</span></div>
-                <div class="stat-rij"><span class="stat-naam">Limiet</span><span class="stat-waarde">${state.formatteerKrediet(MAX_SCHULD)}</span></div>
-                <div class="stat-rij"><span class="stat-naam">Rente</span><span class="stat-waarde">${RENTE_PERCENTAGE*100}% per ${RENTE_INTERVAL} beurten</span></div>
-                <div class="actie-rij" style="margin-top:12px;gap:8px;flex-wrap:wrap">
-                    <input class="aantal-invoer" type="number" min="100" max="${Math.max(100,MAX_SCHULD-state.speler.schuld)}" step="100" value="1000" id="leen-bedrag" style="width:90px">
-                    <button class="knop primair klein" onclick="App.leenGeld()">Leen credits</button>
-                    <button class="knop gevaar klein" onclick="App.betaalLening()" ${state.speler.schuld<=0?'disabled':''}>Betaal af</button>
-                </div>
-            </div></div>`;
-        }
-
         // === UPGRADES (volle breedte) ===
         const stapUpgrades = [
             { cat: 'motor',         icoon: '⚙️', naam: 'Motor',           beschrijving: '+1 snelheid per niveau' },
@@ -784,33 +772,6 @@ const UI = {
             </div>`;
         });
         upgHtml += '</div>';
-        const eenmaligeCats = [
-            { id: 'extra', naam: '📡 Extra' },
-        ];
-        eenmaligeCats.forEach(cat => {
-            const catUpgrades = UPGRADES.filter(u => u.categorie === cat.id);
-            if (catUpgrades.length === 0) return;
-            upgHtml += `<div class="upgrade-categorie-header">${cat.naam}</div><div class="upgrade-raster">`;
-            catUpgrades.forEach(upg => {
-                const inst         = state.gekochteUpgrades.includes(upg.id);
-                const vereistNaam  = upg.vereist ? UPGRADES.find(u=>u.id===upg.vereist)?.naam : null;
-                const vereistMist  = upg.vereist && !state.gekochteUpgrades.includes(upg.vereist);
-                const kanAfrekenen = state.speler.krediet >= upg.prijs;
-                const btnDisabled  = inst || vereistMist || !kanAfrekenen;
-                const btnLabel     = !kanAfrekenen && !vereistMist && !inst ? 'Onvoldoende credits' : 'Installeer';
-                upgHtml += `<div class="upgrade-kaart ${inst ? 'al-geinstalleerd' : ''}">
-                    <div style="font-size:1.4em;margin-bottom:5px">${upg.icoon}</div>
-                    <h4>${upg.naam}</h4>
-                    <p>${upg.beschrijving}</p>
-                    <div class="upgrade-prijs">${state.formatteerKrediet(upg.prijs)}</div>
-                    ${vereistNaam ? `<div class="upgrade-vereist">Vereist: ${vereistNaam}</div>` : ''}
-                    ${inst
-                        ? `<span class="kleur-groen" style="font-size:0.8em">✓ Actief</span>`
-                        : `<button class="knop primair klein" ${btnDisabled?'disabled':''} onclick="App.koopUpgrade('${upg.id}')">${btnLabel}</button>`}
-                </div>`;
-            });
-            upgHtml += '</div>';
-        });
         html += `<div class="haven-blok haven-blok-vol-breed"><div class="haven-blok-header">⚙ Scheepsupgrades</div><div class="haven-blok-inhoud">${upgHtml}</div></div>`;
 
         html += '</div>'; // sluit haven-raster
@@ -833,7 +794,7 @@ const UI = {
     renderPlaneetTab() {
         const container = document.getElementById('planeet-tab');
         const planeet   = PLANETEN.find(p => p.id === state.locatie);
-        let html = `<div class="planeet-dienst-header">🪐 ${planeet.naam} — Planeetdiensten</div>`;
+        let html = `<div class="planeet-dienst-header">🪐 ${planeet.naam} — Planeetdiensten</div><div class="planeet-raster">`;
 
         if (state.locatie === 'nexoria') {
             html += this._renderNexoria();
@@ -851,6 +812,7 @@ const UI = {
             html += `<div class="planeet-geen-dienst">Geen speciale diensten beschikbaar op ${planeet.naam}.</div>`;
         }
 
+        html += '</div>'; // sluit planeet-raster
         container.innerHTML = html;
 
         // Initialiseer preview direct na render
@@ -863,7 +825,7 @@ const UI = {
 
     _renderNexoria() {
         const portWaarde = state.getPortefeuilleWaarde();
-        let html = `<div class="planeet-dienst-blok">
+        let html = `<div class="planeet-dienst-blok planeet-blok-vol-breed">
             <div class="sectie-header">📈 Galactische Beurs</div>
             <div class="beurs-handel-info">
                 Portefeuillewaarde: <strong class="kleur-goud">${state.formatteerKrediet(portWaarde)}</strong>
@@ -1212,7 +1174,51 @@ const UI = {
     },
 
     // =========================================================================
-    // BEURS TAB  (readonly portfolio-overzicht op alle planeten)
+    // FINANCIËN TAB — bank + portfolio als tegels
+    // =========================================================================
+
+    renderFinancienTab() {
+        const container = document.getElementById('financien-tab');
+        const planeet = PLANETEN.find(p => p.id === state.locatie);
+        let html = '<div class="haven-raster">';
+
+        // === BANK TEGEL ===
+        if (planeet?.heeftBank) {
+            html += `<div class="haven-blok"><div class="haven-blok-header">💳 Galactische Bank</div><div class="haven-blok-inhoud">
+                <div class="stat-rij"><span class="stat-naam">Schuld</span><span class="stat-waarde kleur-oranje">${state.formatteerKrediet(state.speler.schuld)}</span></div>
+                <div class="stat-rij"><span class="stat-naam">Limiet</span><span class="stat-waarde">${state.formatteerKrediet(MAX_SCHULD)}</span></div>
+                <div class="stat-rij"><span class="stat-naam">Rente</span><span class="stat-waarde">${RENTE_PERCENTAGE*100}% per ${RENTE_INTERVAL} beurten</span></div>
+                <div class="actie-rij" style="margin-top:12px;gap:8px;flex-wrap:wrap">
+                    <input class="aantal-invoer" type="number" min="100" max="${Math.max(100,MAX_SCHULD-state.speler.schuld)}" step="100" value="1000" id="leen-bedrag" style="width:90px">
+                    <button class="knop primair klein" onclick="App.leenGeld()">Leen credits</button>
+                    <button class="knop gevaar klein" onclick="App.betaalLening()" ${state.speler.schuld<=0?'disabled':''}>Betaal af</button>
+                </div>
+            </div></div>`;
+        } else {
+            html += `<div class="haven-blok"><div class="haven-blok-header">💳 Galactische Bank</div><div class="haven-blok-inhoud">
+                <div class="kleur-dimmed" style="font-size:0.88em">Geen bank op deze planeet. Bezoek <strong>Nexoria</strong> of <strong>Techton</strong> om geld te lenen of af te lossen.</div>
+                ${state.speler.schuld > 0 ? `<div class="kleur-oranje" style="font-size:0.85em;margin-top:8px">Openstaande schuld: <strong>${state.formatteerKrediet(state.speler.schuld)}</strong></div>` : ''}
+            </div></div>`;
+        }
+
+        // === PORTFOLIO TEGEL (full-width) ===
+        const portWaarde = state.getPortefeuilleWaarde();
+        html += `<div class="haven-blok haven-blok-vol-breed"><div class="haven-blok-header">📊 Aandelenportfolio</div><div class="haven-blok-inhoud">
+            <div style="margin-bottom:12px;font-size:0.88em">
+                Portefeuillewaarde: <strong class="kleur-goud">${state.formatteerKrediet(portWaarde)}</strong>
+                &nbsp;|&nbsp; Beschikbaar: <strong>${state.formatteerKrediet(state.speler.krediet)}</strong>
+                &nbsp;|&nbsp; <span class="kleur-dimmed" style="font-size:0.9em">Koersen bijgewerkt per reis</span>
+                ${state.locatie !== 'nexoria' ? `&nbsp;|&nbsp; <span class="kleur-dimmed" style="font-size:0.9em">🔒 Handel alleen op Nexoria (via 🪐 Planeet-tab)</span>` : `&nbsp;|&nbsp; <span class="kleur-accent" style="font-size:0.9em">📈 Handel via 🪐 Planeet-tab</span>`}
+            </div>
+            ${this._renderAandelenKaarten(false)}
+        </div></div>`;
+
+        html += '</div>';
+        container.innerHTML = html;
+    },
+
+    // =========================================================================
+    // BEURS TAB  (legacy — redirect naar financiën)
     // =========================================================================
 
     renderBeursTab() {

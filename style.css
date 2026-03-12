@@ -1072,6 +1072,17 @@ html, body {
 .galact-tabel tbody tr:hover .galact-cel { background-color: rgba(255,255,255,0.025); }
 .galact-tabel tbody tr:hover .galact-cel.galact-goedkoop { background: rgba(57,255,20,0.25); }
 .galact-tabel tbody tr:hover .galact-cel.galact-duur      { background: rgba(255,56,85,0.25); }
+.galact-tabel th.galact-bestemming-th {
+    border-bottom: 2px solid var(--goud);
+    background: rgba(255,215,0,0.07);
+    color: var(--goud) !important;
+    cursor: default;
+}
+.galact-cel.galact-bestemming {
+    background: rgba(255,215,0,0.07);
+    box-shadow: inset 1px 0 0 rgba(255,215,0,0.3), inset -1px 0 0 rgba(255,215,0,0.3);
+    color: var(--tekst);
+}
 
 /* Badges */
 .badge-groen { color: #39ff14; font-size: 0.85em; }
@@ -1194,6 +1205,7 @@ html, body {
 
     /* Haven grid: 1 of 2 kolommen */
     .haven-raster { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+    .planeet-raster { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
 }
 
 /* --- 480px: telefoon portrait --- */
@@ -1219,6 +1231,7 @@ html, body {
 
     /* Haven grid: 1 kolom */
     .haven-raster { grid-template-columns: 1fr; }
+    .planeet-raster { grid-template-columns: 1fr; }
 
     /* Handel tabel: nog minder kolommen */
     .handel-tabel th:nth-child(n+5), .handel-tabel td:nth-child(n+5) { display: none; }
@@ -1377,12 +1390,22 @@ html, body {
     letter-spacing: 0.08em;
     margin-bottom: 14px;
 }
+/* ===== PLANEET RASTER (tegels in planeet-tab) ===== */
+.planeet-raster {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 10px;
+    padding: 10px;
+    align-content: start;
+}
+.planeet-blok-vol-breed { grid-column: 1 / -1; }
+
 .planeet-dienst-blok {
     background: var(--bg-paneel-licht);
     border: 1px solid var(--rand);
     border-radius: 8px;
     padding: 16px 18px;
-    margin-bottom: 14px;
+    margin-bottom: 0;
 }
 .planeet-dienst-rij {
     display: flex;
@@ -1678,6 +1701,26 @@ body[data-planeet="mortex"]  { --planet-accent: #8b0000; }
     line-height: 1;
 }
 .top-instellingen-knop:hover { color: var(--accent); border-color: var(--accent); }
+
+/* ===== TOP NAV KNOPPEN (logboek/ranglijst/achievements) ===== */
+.top-nav-knop {
+    background: none;
+    border: 1px solid var(--rand-actief);
+    border-radius: 6px;
+    color: var(--tekst-dim);
+    font-size: 1.05em;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s, border-color 0.2s, background 0.2s;
+    padding: 0;
+    line-height: 1;
+}
+.top-nav-knop:hover { color: var(--accent); border-color: var(--accent); }
+.top-nav-knop.actief { color: var(--accent); border-color: var(--accent); background: rgba(0,212,255,0.1); }
 
 /* ===== INSTELLINGEN MODAL ===== */
 #instellingen-overlay {

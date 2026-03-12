@@ -157,6 +157,11 @@ const App = {
         UI.renderKaart();
     },
 
+    switchTab(naam) {
+        state.activeTab = naam;
+        UI.renderSpel();
+    },
+
     // =========================================================================
     // REIZEN — met animatie in twee fasen
     // =========================================================================

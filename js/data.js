@@ -152,19 +152,7 @@ const SCHEPEN = [
     },
 ];
 
-const UPGRADES = [
-    {
-        id: 'radar',
-        naam: 'Handelsradar',
-        categorie: 'extra',
-        beschrijving: 'Toont prijstrends (↑↓) op de markt. Onmisbaar voor slimme handelaars.',
-        icoon: '📡',
-        prijs: 3500,
-        vereist: null,
-        effect: { radar: true },
-        niveau: 1,
-    },
-];
+const UPGRADES = [];
 
 // Kansen optellen naar 1.0
 const EVENTS = [

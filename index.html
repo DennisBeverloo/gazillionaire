@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gazillionaire</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>">
-    <link rel="stylesheet" href="style.css?v=3.9.0">
+    <link rel="stylesheet" href="style.css?v=4.0.0">
 </head>
 <body>
 
@@ -45,7 +45,7 @@
         </div>
         <button class="knop primair groot" id="start-knop">Begin de reis &rarr;</button>
     </div>
-    <span class="versie-label">v3.9.0</span>
+    <span class="versie-label">v4.0.0</span>
 </div>
 
 <!-- ============================================================
@@ -64,7 +64,7 @@
      ============================================================ -->
 <div id="spel-scherm" class="scherm">
 
-    <!-- Top balk: logo | kapitein | schip | cargo | passagiers | brandstof — rechts: credits | beurt | ⚙ -->
+    <!-- Top balk: logo | kapitein | schip | cargo | passagiers | brandstof | credits — rechts: beurt | logboek | ranglijst | prestaties | ⚙ -->
     <div id="top-balk">
         <span class="game-logo">✦ GAZILLIONAIRE</span>
         <span class="scheidslijn">|</span>
@@ -77,9 +77,12 @@
         <span id="passagiers-display">🧳 0/0</span>
         <span class="scheidslijn">|</span>
         <span id="brandstof-display">⛽ 0/0 l</span>
-        <span id="krediet-display">💰 0 credits</span>
         <span class="scheidslijn">|</span>
-        <span id="beurt-display">Beurt 0/150</span>
+        <span id="krediet-display">💰 0 credits</span>
+        <span id="beurt-display" style="margin-left:auto">Beurt 0/150</span>
+        <button class="top-nav-knop" onclick="App.switchTab('logboek')" title="Reislogboek — alle gebeurtenissen en berichten">📋</button>
+        <button class="top-nav-knop" onclick="App.switchTab('ranglijst')" title="Ranglijst — de rijkste handelaars">🏅</button>
+        <button class="top-nav-knop" onclick="App.switchTab('achievements')" title="Prestaties — behaalde achievements">🏆</button>
         <button class="top-instellingen-knop" onclick="UI.toonInstellingen()" title="Instellingen">⚙</button>
     </div>
 
@@ -91,16 +94,13 @@
             <div id="tabbladen">
                 <button class="tab actief" data-tab="handel">⚖ Handel</button>
                 <button class="tab" data-tab="haven">🛸 Ruimtehaven</button>
-                <button class="tab" data-tab="beurs">📈 Beurs</button>
-                <button class="tab" data-tab="logboek">📋 Logboek</button>
-                <button class="tab" data-tab="ranglijst">🏅 Ranglijst</button>
-                <button class="tab" data-tab="achievements">🏆 Prestaties</button>
+                <button class="tab" data-tab="financien">💶 Financiën</button>
                 <button class="tab tab-planeet" data-tab="planeet" id="planeet-tab-knop">🪐 Planeet</button>
             </div>
             <div id="tab-inhoud">
                 <div id="handel-tab"       class="tab-paneel actief"></div>
                 <div id="haven-tab"        class="tab-paneel"></div>
-                <div id="beurs-tab"        class="tab-paneel"></div>
+                <div id="financien-tab"    class="tab-paneel"></div>
                 <div id="logboek-tab"      class="tab-paneel"></div>
                 <div id="ranglijst-tab"    class="tab-paneel"></div>
                 <div id="achievements-tab" class="tab-paneel"></div>
@@ -241,10 +241,10 @@
 <script src="js/audio.js"></script>
 <script src="js/config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="js/data.js?v=3.9.0"></script>
-<script src="js/state.js?v=3.9.0"></script>
-<script src="js/ui.js?v=3.9.0"></script>
-<script src="js/db.js?v=3.9.0"></script>
-<script src="js/main.js?v=3.9.0"></script>
+<script src="js/data.js?v=4.0.0"></script>
+<script src="js/state.js?v=4.0.0"></script>
+<script src="js/ui.js?v=4.0.0"></script>
+<script src="js/db.js?v=4.0.0"></script>
+<script src="js/main.js?v=4.0.0"></script>
 </body>
 </html>
