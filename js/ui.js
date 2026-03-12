@@ -121,46 +121,47 @@ const UI = {
         const container = document.getElementById('bestemming-paneel-container');
         if (!container) return;
 
-        // Geen bestemming geselecteerd: hint om op de kaart te klikken
-        if (!state.geselecteerdePlaneet) {
-            container.innerHTML = '';
-            return;
-        }
+        const dest = state.geselecteerdePlaneet
+            ? PLANETEN.find(p => p.id === state.geselecteerdePlaneet)
+            : null;
 
-        const dest = PLANETEN.find(p => p.id === state.geselecteerdePlaneet);
-        if (!dest) { container.innerHTML = ''; return; }
-
-        const brandstofNodig = state.berekenBrandstofVerbruik(state.locatie, dest.id);
-        const heeftGenoeg = state.brandstof >= brandstofNodig;
-        const afstand = Math.round(state.berekenAfstand(state.locatie, dest.id));
-        const services = this._getPlaneetServiceTags(dest);
-        const servicesHtml = services.length
+        const brandstofNodig = dest ? state.berekenBrandstofVerbruik(state.locatie, dest.id) : 0;
+        const heeftGenoeg   = dest ? state.brandstof >= brandstofNodig : false;
+        const afstand        = dest ? Math.round(state.berekenAfstand(state.locatie, dest.id)) : 0;
+        const services       = dest ? this._getPlaneetServiceTags(dest) : [];
+        const servicesHtml   = services.length
             ? `<div class="bestemming-services">${services.map(s => `<span class="planeet-tag">${s}</span>`).join('')}</div>`
-            : '';
+            : '<div class="bestemming-services"></div>';
+
+        // Inhoud altijd renderen maar verbergen als er geen bestemming is (behoudt hoogte)
+        const verbergStijl = dest ? '' : 'visibility:hidden';
 
         container.innerHTML = `<div class="bestemming-paneel">
-            <div class="bestemming-label">Bestemming
-                <button class="bestemming-wijzig" onclick="App.selecteerBestemming('')">✕ Wis</button>
-            </div>
-            <div class="bestemming-paneel-naam">
-                <span class="planeet-bol" style="background:${dest.kleur};width:13px;height:13px"></span>
-                <strong>${dest.naam}</strong>
-                ${dest.isGevaarlijk ? '<span class="kleur-rood" style="font-size:0.78em">⚠ Gevaarlijk</span>' : ''}
-            </div>
-            <div class="kleur-dimmed" style="font-size:0.82em;margin:4px 0 6px">${dest.beschrijving}</div>
-            ${servicesHtml}
-            <div class="bestemming-meta-rij" style="margin-top:8px">
-                <span>Afstand</span><span>${afstand} lj</span>
-            </div>
-            <div class="brandstof-vereist ${heeftGenoeg ? '' : 'brandstof-tekort'}" style="margin-top:6px">
-                <span class="bestemming-sub-label">Brandstofkosten</span>
-                <div>${FUEL_IMG} ${brandstofNodig} l
-                ${heeftGenoeg
-                    ? `<span class="kleur-groen">✓</span>`
-                    : `<span class="kleur-rood">✗ tekort: ${brandstofNodig - state.brandstof} l</span>`}
+            <div class="bestemming-inhoud" style="${verbergStijl}">
+                <div class="bestemming-paneel-naam">
+                    <span class="planeet-bol" style="background:${dest?.kleur ?? 'transparent'};width:13px;height:13px"></span>
+                    <strong>${dest?.naam ?? '—'}</strong>
+                    ${dest?.isGevaarlijk ? '<span class="kleur-rood" style="font-size:0.78em">⚠ Gevaarlijk</span>' : ''}
+                </div>
+                <div class="kleur-dimmed" style="font-size:0.82em;margin:4px 0 6px">${dest?.beschrijving ?? '—'}</div>
+                ${servicesHtml}
+                <div class="bestemming-meta-rij" style="margin-top:8px">
+                    <span>Afstand</span><span>${afstand} lj</span>
+                </div>
+                <div class="brandstof-vereist ${heeftGenoeg ? '' : 'brandstof-tekort'}" style="margin-top:6px">
+                    <span class="bestemming-sub-label">Brandstofkosten</span>
+                    <div>${FUEL_IMG} ${brandstofNodig} l
+                    ${heeftGenoeg
+                        ? `<span class="kleur-groen">✓</span>`
+                        : dest ? `<span class="kleur-rood">✗ tekort: ${brandstofNodig - state.brandstof} l</span>` : ''}
+                    </div>
                 </div>
             </div>
-            <button class="knop ${heeftGenoeg ? 'primair' : 'gevaar'}" style="width:100%;padding:10px 0;margin-top:8px" onclick="App.reisNaar('${dest.id}')">🚀 Reis naar ${dest.naam} →</button>
+            <button class="knop ${dest && heeftGenoeg ? 'primair' : dest ? 'gevaar' : 'dimmed'}"
+                    style="width:100%;padding:10px 0;margin-top:8px"
+                    ${dest ? `onclick="App.reisNaar('${dest.id}')"` : 'disabled'}>
+                ${dest ? `🚀 Reis naar ${dest.naam} →` : 'Selecteer bestemming'}
+            </button>
         </div>`;
     },
 
