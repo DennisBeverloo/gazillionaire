@@ -204,12 +204,12 @@
     </table>
 </div>
 
+<script src="js/config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
-    const SUPABASE_URL = 'https://iznjmlapxpalrousycxy.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_0VCRyg7bJPhX3c-rgge6Ew_xT8zgfDM';
-    // Admin password (simple client-side check — voor persoonlijk gebruik)
-    const ADMIN_PW = 'gazillionaire-admin-2025';
+    const SUPABASE_URL = (typeof CONFIG !== 'undefined') ? CONFIG.SUPABASE_URL : '';
+    const SUPABASE_KEY = (typeof CONFIG !== 'undefined') ? CONFIG.SUPABASE_KEY : '';
+    const ADMIN_PW    = (typeof CONFIG !== 'undefined') ? CONFIG.ADMIN_PW    : '';
 
     let db = null;
     let alleSessies = [];

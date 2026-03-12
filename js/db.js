@@ -2,8 +2,8 @@
 // GAZILLIONAIRE - Supabase database module
 // =============================================================================
 
-const SUPABASE_URL = 'https://iznjmlapxpalrousycxy.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_0VCRyg7bJPhX3c-rgge6Ew_xT8zgfDM';
+const SUPABASE_URL = (typeof CONFIG !== 'undefined') ? CONFIG.SUPABASE_URL : '';
+const SUPABASE_KEY = (typeof CONFIG !== 'undefined') ? CONFIG.SUPABASE_KEY : '';
 
 const DB = (() => {
     let _client = null;
