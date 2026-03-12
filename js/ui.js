@@ -830,6 +830,8 @@ const UI = {
             html += this._renderAgria();
         } else if (state.locatie === 'techton') {
             html += this._renderTechton();
+        } else if (state.locatie === 'luxoria') {
+            html += this._renderLuxoria();
         } else {
             html += `<div class="planeet-geen-dienst">Geen speciale diensten beschikbaar op ${planeet.naam}.</div>`;
         }
@@ -1063,6 +1065,82 @@ const UI = {
         });
 
         html += '</div></div>';
+        return html;
+    },
+
+    // =========================================================================
+    // LUXORIA CASINO
+    // =========================================================================
+
+    _casinoAnimeer: false,
+
+    _renderLuxoria() {
+        const casino = state.luxoriaCasino;
+        const resterend = 3 - casino.gokbeurtenDitBezoek;
+        const laatste = casino.laatste;
+
+        let html = `<div class="planeet-dienst-blok">
+            <div class="sectie-header">🎰 Casino Stellaris</div>
+            <p class="kleur-dimmed" style="font-size:0.83em;margin:4px 0 12px">
+                Galactisch Kaartspel — hoogste kaart wint. Gelijkspel is verlies.<br>
+                Winkans: 45% &nbsp;|&nbsp; Uitbetaling bij winst: 1.9×
+            </p>
+            <div class="casino-beurten">Gokbeurten resterend dit bezoek: <strong>${resterend}/3</strong></div>`;
+
+        // Kaart arena
+        const animeer = this._casinoAnimeer && laatste;
+        this._casinoAnimeer = false;
+
+        if (laatste) {
+            const sWin = laatste.gewonnen;
+            const sKls = sWin ? 'casino-kaart-winnaar' : 'casino-kaart-verliezer';
+            const cKls = sWin ? 'casino-kaart-verliezer' : 'casino-kaart-winnaar';
+            html += `<div class="casino-arena">
+                <div class="casino-kaart-wrap">
+                    <div class="casino-kaart ${sKls}${animeer ? ' animeer' : ''}">${laatste.spelerKaart}</div>
+                    <div class="casino-label">Jij</div>
+                </div>
+                <div class="casino-vs">VS</div>
+                <div class="casino-kaart-wrap">
+                    <div class="casino-kaart ${cKls}${animeer ? ' animeer animeer-vertraagd' : ''}">${laatste.casinoKaart}</div>
+                    <div class="casino-label">Casino</div>
+                </div>
+            </div>`;
+            const netto = sWin ? Math.floor(laatste.inzet * 0.9) : -laatste.inzet;
+            const resultKls = sWin ? 'casino-resultaat-gewonnen' : 'casino-resultaat-verloren';
+            const resultTekst = sWin
+                ? `🏆 Gewonnen! +${state.formatteerKrediet(netto)}`
+                : `💀 Verloren. −${state.formatteerKrediet(laatste.inzet)}`;
+            html += `<div class="casino-resultaat ${resultKls}">${resultTekst}</div>`;
+        } else {
+            html += `<div class="casino-arena">
+                <div class="casino-kaart-wrap">
+                    <div class="casino-kaart casino-kaart-wacht">?</div>
+                    <div class="casino-label">Jij</div>
+                </div>
+                <div class="casino-vs">VS</div>
+                <div class="casino-kaart-wrap">
+                    <div class="casino-kaart casino-kaart-wacht">?</div>
+                    <div class="casino-label">Casino</div>
+                </div>
+            </div>`;
+        }
+
+        // Inzetknopen
+        const uitgespeeld = resterend <= 0;
+        html += `<div class="casino-inzet-rij">`;
+        [100, 1000, 2500, 5000].forEach(inzet => {
+            const geenKrediet = state.speler.krediet < inzet;
+            const dis = uitgespeeld || geenKrediet ? 'disabled' : '';
+            html += `<button class="knop dimmed klein" onclick="App.speelCasino(${inzet})" ${dis}>${state.formatteerKrediet(inzet)}</button>`;
+        });
+        html += `</div>`;
+
+        if (uitgespeeld) {
+            html += `<p class="kleur-dimmed" style="font-size:0.82em;margin-top:8px">Geen gokbeurten meer. Kom terug bij een volgend bezoek.</p>`;
+        }
+
+        html += '</div>';
         return html;
     },
 

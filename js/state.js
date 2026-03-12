@@ -37,8 +37,11 @@ class GameState {
         this.gekochteUpgrades = [];
         this.geselecteerdePlaneet = null; // for map click
         this.tipsGezien = {};
-        this.statistieken = { handelstransacties: 0, gereisd: 0, eventsMeegemaakt: 0, passagiersAfgeleverd: 0, verkopen: 0, cargoTonVervoerd: 0, ferroietVerwerkt: 0, veilingenGewonnen: 0, schepenGekocht: 0, pyrofluxTankbeurten: 0 };
+        this.statistieken = { handelstransacties: 0, gereisd: 0, eventsMeegemaakt: 0, passagiersAfgeleverd: 0, verkopen: 0, cargoTonVervoerd: 0, ferroietVerwerkt: 0, veilingenGewonnen: 0, schepenGekocht: 0, pyrofluxTankbeurten: 0, casinoWinstStreak: 0, casinoBigWin: 0 };
         this._pyrofluxGetankt = false;
+
+        // Casino Luxoria
+        this.luxoriaCasino = { gokbeurtenDitBezoek: 0, laatste: null };
         this.planeetBezoeken = {};
 
         // Nieuwe velden
@@ -387,6 +390,7 @@ class GameState {
         // Planeet-specifieke diensten initialiseren
         if (this.locatie === 'agria') this.initAgriaVeiling();
         if (this.locatie === 'pyroflux') this._pyrofluxGetankt = false;
+        if (this.locatie === 'luxoria') { this.luxoriaCasino.gokbeurtenDitBezoek = 0; this.luxoriaCasino.laatste = null; }
 
         this.controleerAchievements();
         this.controleerSpelEinde();
@@ -544,6 +548,40 @@ class GameState {
     // =========================================================================
     // PLANEET-SPECIFIEKE DIENSTEN
     // =========================================================================
+
+    speelCasino(inzet) {
+        const INZETTEN = [100, 1000, 2500, 5000];
+        if (!INZETTEN.includes(inzet)) return { succes: false, reden: 'Ongeldige inzet.' };
+        if (this.locatie !== 'luxoria') return { succes: false, reden: 'Alleen beschikbaar op Luxoria.' };
+        const casino = this.luxoriaCasino;
+        if (casino.gokbeurtenDitBezoek >= 3) return { succes: false, reden: 'Geen gokbeurten meer dit bezoek.' };
+        if (this.speler.krediet < inzet) return { succes: false, reden: 'Onvoldoende credits.' };
+
+        const spelerKaart = Math.ceil(Math.random() * 10);
+        const casinoKaart = Math.ceil(Math.random() * 10);
+        const gewonnen = spelerKaart > casinoKaart;
+
+        this.speler.krediet -= inzet;
+        if (gewonnen) this.speler.krediet += Math.floor(inzet * 1.9);
+
+        casino.gokbeurtenDitBezoek += 1;
+
+        if (gewonnen) {
+            this.statistieken.casinoWinstStreak = (this.statistieken.casinoWinstStreak || 0) + 1;
+            const netto = Math.floor(inzet * 0.9);
+            if (netto >= 3000) this.statistieken.casinoBigWin = (this.statistieken.casinoBigWin || 0) + 1;
+        } else {
+            this.statistieken.casinoWinstStreak = 0;
+        }
+
+        casino.laatste = { spelerKaart, casinoKaart, gewonnen, inzet };
+        const msg = gewonnen
+            ? `🎰 Casino gewonnen! +${this.formatteerKrediet(Math.floor(inzet * 0.9))}`
+            : `🎰 Casino verloren. −${this.formatteerKrediet(inzet)}`;
+        this.voegBerichtToe(msg, gewonnen ? 'goud' : 'gevaar');
+        this.controleerAchievements();
+        return { succes: true };
+    }
 
     verwerkFerroiet(batches) {
         if (!Number.isInteger(batches) || batches < 1)
@@ -1487,6 +1525,9 @@ class GameState {
             if (this.statistieken.cargoTonVervoerd === undefined) this.statistieken.cargoTonVervoerd = 0;
             if (this.statistieken.pyrofluxTankbeurten === undefined) this.statistieken.pyrofluxTankbeurten = 0;
             if (this._pyrofluxGetankt === undefined) this._pyrofluxGetankt = false;
+            if (!this.luxoriaCasino) this.luxoriaCasino = { gokbeurtenDitBezoek: 0, laatste: null };
+            if (this.statistieken.casinoWinstStreak === undefined) this.statistieken.casinoWinstStreak = 0;
+            if (this.statistieken.casinoBigWin === undefined) this.statistieken.casinoBigWin = 0;
             return true;
         } catch(e) {
             return false;

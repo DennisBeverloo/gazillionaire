@@ -752,6 +752,24 @@ const ACHIEVEMENTS = [
         beloning: 600,
         check: s => (s.statistieken.pyrofluxTankbeurten ?? 0) >= 10,
     },
+    {
+        id: 'huisvoordeel',
+        naam: 'Huisvoordeel',
+        icoon: '🃏',
+        categorie: 'events',
+        beschrijving: 'Win 3× op rij in het Casino Stellaris op Luxoria.',
+        beloning: 1200,
+        check: s => (s.statistieken.casinoWinstStreak ?? 0) >= 3,
+    },
+    {
+        id: 'jackpot',
+        naam: 'Jackpot',
+        icoon: '🎰',
+        categorie: 'events',
+        beschrijving: 'Win 3.000+ credits in één gokbeurt.',
+        beloning: 2500,
+        check: s => (s.statistieken.casinoBigWin ?? 0) >= 1,
+    },
 ];
 
 // =============================================================================

@@ -387,6 +387,13 @@ const App = {
         else { Audio.upgrade(); UI.renderSpel(); }
     },
 
+    speelCasino(inzet) {
+        UI._casinoAnimeer = true;
+        const res = state.speelCasino(inzet);
+        if (!res.succes) { UI._casinoAnimeer = false; this._fout(res.reden); }
+        else UI.renderSpel();
+    },
+
     koopVerzekering() {
         const res = state.koopVerzekering();
         if (!res.succes) this._fout(res.reden); else UI.renderSpel();
