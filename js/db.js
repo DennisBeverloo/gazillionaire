@@ -58,12 +58,14 @@ const DB = (() => {
             if (!db) return;
 
             const fase = state.fase === 'einde' ? 'einde' : 'spel';
-            const { error } = await db
+            const { data, error } = await db
                 .from('game_sessions')
                 .update(_payload(fase))
-                .eq('id', _sessieId);
+                .eq('id', _sessieId)
+                .select('id');
 
             if (error) console.warn('[DB] updateSessie mislukt:', error.message, error.code);
+            else if (!data || data.length === 0) console.warn('[DB] updateSessie: geen rij bijgewerkt — UPDATE RLS policy ontbreekt?');
             else console.log('[DB] Sessie bijgewerkt — beurt', state.beurt, '/', fase);
         },
 
