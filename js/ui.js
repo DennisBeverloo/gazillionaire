@@ -646,7 +646,7 @@ const UI = {
                 repHtml += `<button class="knop ${hpPct < 50 ? 'gevaar' : 'primair'} klein" onclick="App.repareerSchip()" ${!kanBetalen ? 'disabled' : ''}>Repareer volledig (${state.formatteerKrediet(repKosten)})</button>`;
                 if (!kanBetalen) repHtml += `<div class="kleur-rood" style="font-size:0.8em;margin-top:5px">Onvoldoende credits</div>`;
             }
-            html += `<div class="haven-blok haven-blok-vol-breed"><div class="haven-blok-header">🔧 Scheepsconditie</div><div class="haven-blok-inhoud">${repHtml}</div></div>`;
+            html += `<div class="haven-blok"><div class="haven-blok-header">🔧 Scheepsconditie</div><div class="haven-blok-inhoud">${repHtml}</div></div>`;
         }
 
         // === PASSAGIERS ===
