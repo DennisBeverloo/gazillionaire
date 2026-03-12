@@ -22,8 +22,16 @@ const UI = {
         const container = document.getElementById('schip-opties');
         container.innerHTML = '';
 
-        SCHEPEN.forEach(schip => {
+        const startSchepen = SCHEPEN.filter(s => s.mark === 1);
+        const typeInfo = {
+            vracht: { pad: 'Tanker of Secure Hauler (Mark III)', kleur: '#8B6914' },
+            pax:    { pad: 'Luxury Liner of Space Bus (Mark III)', kleur: '#1E90FF' },
+            snel:   { pad: 'Spearhead of Shadow (Mark III)', kleur: '#FF6B35' },
+        };
+
+        startSchepen.forEach(schip => {
             const resterend = START_KREDIET - schip.prijs;
+            const info = typeInfo[schip.type] || {};
             const div = document.createElement('div');
             div.className = 'schip-kaart';
 
@@ -33,14 +41,15 @@ const UI = {
                     <h3>${schip.naam}</h3>
                     <div class="prijs">${state.formatteerKrediet(schip.prijs)}</div>
                     <p>${schip.beschrijving}</p>
+                    <div style="font-size:0.78em;color:var(--accent);margin-top:4px">Specialisatie bij Mark III: ${info.pad}</div>
                 </div>
                 <div class="schip-kaart-stats">
-                    <div class="schip-stat"><span>Snelheid</span><span class="waarde ster-rating">${'★'.repeat(schip.snelheid)}${'☆'.repeat(5-schip.snelheid)}</span></div>
+                    <div class="schip-stat"><span>Snelheid</span><span class="waarde">${schip.snelheid}</span></div>
                     <div class="schip-stat"><span>Laadruimte</span><span class="waarde">${schip.laadruimte} ton</span></div>
                     <div class="schip-stat"><span>Brandstoftank</span><span class="waarde">${schip.brandstofTank} l</span></div>
                     <div class="schip-stat"><span>Passagiers</span><span class="waarde">${schip.passagiersCapaciteit > 0 ? schip.passagiersCapaciteit : '—'}</span></div>
-                    <div class="schip-stat"><span>Schild</span><span class="waarde ster-rating">${'★'.repeat(schip.schild)}${'☆'.repeat(5-schip.schild)}</span></div>
-                    <div class="schip-stat"><span>Startkapitaal</span><span class="waarde ${resterend < 500 ? 'kleur-rood' : 'kleur-groen'}">${state.formatteerKrediet(resterend)}</span></div>
+                    <div class="schip-stat"><span>Schild</span><span class="waarde">${schip.schild}</span></div>
+                    <div class="schip-stat"><span>Startkapitaal</span><span class="waarde ${resterend < 2000 ? 'kleur-rood' : 'kleur-groen'}">${state.formatteerKrediet(resterend)}</span></div>
                 </div>
                 <button class="knop primair schip-kies-knop" onclick="App.selecteerSchip('${schip.id}')">Dit schip kiezen</button>
             `;
@@ -422,7 +431,7 @@ const UI = {
             </div>
             <div class="stat-rij">
                 <span class="stat-naam">Snelheid</span>
-                <span class="stat-waarde ster-rating">${'★'.repeat(s.snelheid)}${'☆'.repeat(Math.max(0,5-s.snelheid))}</span>
+                <span class="stat-waarde">${s.snelheid}</span>
             </div>
             <div class="stat-rij">
                 <span class="stat-naam">Lading</span>
@@ -433,9 +442,9 @@ const UI = {
             </div>
             <div class="stat-rij" style="margin-top:5px">
                 <span class="stat-naam">Schild</span>
-                <span class="stat-waarde">${'★'.repeat(s.schild)}${'☆'.repeat(Math.max(0,5-s.schild))}</span>
+                <span class="stat-waarde">${s.schild}</span>
             </div>
-            ${(s.passagiersCapaciteit || 0) > 0 ? `<div class="stat-rij"><span class="stat-naam">Passagiers</span><span class="stat-waarde">${state.passagiers?.length || 0}/${s.passagiersCapaciteit}</span></div>` : ''}
+            ${(s.passagiersCapaciteit || 0) > 0 ? `<div class="stat-rij"><span class="stat-naam">Passagiers</span><span class="stat-waarde">${state.passagiers || 0}/${s.passagiersCapaciteit}</span></div>` : ''}
             <div class="stat-rij">
                 <span class="stat-naam">⛽ Brandstof</span>
                 <span class="stat-waarde ${state.brandstof < 20 ? 'kleur-rood' : state.brandstof < 40 ? 'kleur-oranje' : ''}">${state.brandstof}/${s.brandstofTank} l</span>
@@ -444,7 +453,6 @@ const UI = {
                 <div class="lading-balk" style="width:${Math.round(state.brandstof/s.brandstofTank*100)}%;background:${state.brandstof < 20 ? 'var(--rood)' : state.brandstof < 40 ? 'var(--oranje)' : 'var(--groen)'}"></div>
             </div>
             ${state.schipBeschadigd ? '<div class="stat-rij"><span class="kleur-rood" style="font-size:0.78em">⚠ Schip beschadigd!</span></div>' : ''}
-            ${s.heeftRadar ? '<div class="stat-rij"><span class="stat-naam">Radar</span><span class="stat-waarde kleur-groen">📡 Actief</span></div>' : ''}
             <div class="stat-rij">
                 <span class="stat-naam">Schuld</span>
                 <span class="stat-waarde ${state.speler.schuld > 0 ? 'kleur-oranje' : 'kleur-dimmed'}">${state.formatteerKrediet(state.speler.schuld)}</span>
@@ -750,30 +758,6 @@ const UI = {
         }
         html += `<div class="haven-blok haven-blok-verzekering"><div class="haven-blok-header">🛡️ Reisverzekering</div><div class="haven-blok-inhoud">${verzHtml}</div></div>`;
 
-        // === UPGRADES (volle breedte) ===
-        const stapUpgrades = [
-            { cat: 'motor',         icoon: '⚙️', naam: 'Motor',           beschrijving: '+1 snelheid per niveau' },
-            { cat: 'ruim',          icoon: '📦', naam: 'Vrachtruim',       beschrijving: '+10 ton laadruimte per niveau' },
-            { cat: 'brandstofTank', icoon: '⛽', naam: 'Brandstoftank',    beschrijving: '+10 l tankinhoud per niveau' },
-            { cat: 'passagiers',    icoon: '🧳', naam: 'Passagiersruimte', beschrijving: '+2 passagiersplaatsen per niveau' },
-            { cat: 'schild',        icoon: '🛡️', naam: 'Schild',           beschrijving: '+1 schildsterkte per niveau (betere ontsnappingskans en bescherming)' },
-        ];
-        let upgHtml = '<div class="upgrade-raster">';
-        stapUpgrades.forEach(u => {
-            const niv   = state.upgradeNiveaus?.[u.cat] ?? 0;
-            const prijs = state._upgradeStapPrijs(u.cat);
-            const kan   = state.speler.krediet >= prijs;
-            upgHtml += `<div class="upgrade-kaart">
-                <div style="font-size:1.4em;margin-bottom:5px">${u.icoon}</div>
-                <h4>${u.naam} <span class="kleur-dimmed" style="font-weight:normal;font-size:0.8em">niv. ${niv}</span></h4>
-                <p>${u.beschrijving}</p>
-                <div class="upgrade-prijs">${state.formatteerKrediet(prijs)}</div>
-                <button class="knop primair klein" ${!kan ? 'disabled' : ''} onclick="App.koopUpgradeStap('${u.cat}')">${kan ? 'Upgrade →' : 'Onvoldoende credits'}</button>
-            </div>`;
-        });
-        upgHtml += '</div>';
-        html += `<div class="haven-blok haven-blok-vol-breed"><div class="haven-blok-header">⚙ Scheepsupgrades</div><div class="haven-blok-inhoud">${upgHtml}</div></div>`;
-
         html += '</div>'; // sluit haven-raster
         container.innerHTML = html;
 
@@ -1025,41 +1009,73 @@ const UI = {
     // =========================================================================
 
     _renderTechton() {
-        const verkoopwaarde = Math.round(SCHEPEN.find(s => s.id === state.schip.id).prijs * 0.60);
-        const andereSchepen = SCHEPEN.filter(s => s.id !== state.schip.id);
+        const huidig = state.schip;
+        const verkoopwaarde = Math.round(huidig.prijs * 0.60);
+        const volgendMark = huidig.mark + 1;
 
-        let html = `<div class="planeet-dienst-blok">
+        let html = `<div class="planeet-dienst-blok planeet-blok-vol-breed">
             <div class="sectie-header">🛸 Geavanceerde Scheepswerf</div>
             <p class="kleur-dimmed" style="font-size:0.83em;margin:4px 0 12px">
-                Ruil je huidige schip in voor een ander model. Upgrades vervallen bij inruil.
-                Inruilwaarde <strong>${state.schip.naam}</strong>:
+                Inruilwaarde <strong>${huidig.naam}</strong>:
                 <strong class="kleur-goud">${state.formatteerKrediet(verkoopwaarde)}</strong>
-            </p>
-            <div class="upgrade-raster">`;
+                ${huidig.mark >= 4 ? '<br><span style="color:var(--groen)">Je hebt het hoogste Mark bereikt voor dit scheepstype.</span>' : ''}
+            </p>`;
 
-        andereSchepen.forEach(schip => {
+        if (huidig.mark >= 4) {
+            html += `</div>`;
+            return html;
+        }
+
+        // Bepaal beschikbare opties
+        const opties = SCHEPEN.filter(s =>
+            s.type === huidig.type &&
+            s.mark === volgendMark &&
+            (huidig.specialisatie === null || s.specialisatie === huidig.specialisatie || volgendMark === 3)
+        );
+
+        if (opties.length === 0) {
+            html += `<p class="kleur-dimmed">Geen upgrades beschikbaar.</p></div>`;
+            return html;
+        }
+
+        if (volgendMark === 3) {
+            html += `<p style="font-size:0.85em;margin-bottom:12px;color:var(--accent)">⚠ Kies je specialisatie — deze keuze is permanent.</p>`;
+        }
+
+        html += `<div class="upgrade-raster">`;
+
+        opties.forEach(schip => {
             const netto = schip.prijs - verkoopwaarde;
             const kan   = state.speler.krediet >= netto;
+            const specials = [];
+            if (schip.immuunPiraten) specials.push('🛡️ Immuun voor piraten');
+            if (schip.immuunMortexConfiscatie) specials.push('🔒 Mortex-lading beschermd');
+            if (schip.douaneKansOverride !== null && schip.douaneKansOverride !== undefined) specials.push(`🕵️ Douanekans ${Math.round(schip.douaneKansOverride * 100)}%`);
+            if (schip.spearheadBonus) specials.push('⚡ −8% aankoopprijzen');
+            if (schip.ticketMultiplier > 1) specials.push(`🥂 Tickets ×${schip.ticketMultiplier}`);
+            if (schip.ticketMultiplier < 1) specials.push(`🚌 Tickets ×${schip.ticketMultiplier} (volume)`);
+
             html += `<div class="upgrade-kaart">
-                <div style="font-size:1.4em;margin-bottom:5px">${schip.icoon}</div>
+                <div style="font-size:1.6em;margin-bottom:5px">${schip.icoon}</div>
                 <h4>${schip.naam}</h4>
-                <p>${schip.beschrijving}</p>
-                <div class="schip-stat"><span>Snelheid</span>
-                    <span class="waarde ster-rating">${'★'.repeat(schip.snelheid)}${'☆'.repeat(5-schip.snelheid)}</span></div>
+                <p style="font-size:0.83em">${schip.beschrijving}</p>
+                <div class="schip-stat"><span>Snelheid</span><span class="waarde">${schip.snelheid}</span></div>
                 <div class="schip-stat"><span>Laadruimte</span><span class="waarde">${schip.laadruimte} ton</span></div>
                 <div class="schip-stat"><span>Brandstoftank</span><span class="waarde">${schip.brandstofTank} l</span></div>
-                <div class="schip-stat"><span>Passagiers</span><span class="waarde">${schip.passagiersCapaciteit}</span></div>
+                <div class="schip-stat"><span>Passagiers</span><span class="waarde">${schip.passagiersCapaciteit > 0 ? schip.passagiersCapaciteit : '—'}</span></div>
+                <div class="schip-stat"><span>Schild</span><span class="waarde">${schip.schild}</span></div>
+                ${specials.length > 0 ? `<div style="margin:6px 0;font-size:0.78em;color:var(--accent)">${specials.join('<br>')}</div>` : ''}
                 <div class="upgrade-prijs" style="margin-top:8px">
                     Netto: <strong>${state.formatteerKrediet(Math.max(0, netto))}</strong>
-                    ${netto < 0 ? `<span class="kleur-groen">(+${state.formatteerKrediet(-netto)} retour)</span>` : ''}
+                    ${netto < 0 ? `<span class="kleur-groen"> (+${state.formatteerKrediet(-netto)} retour)</span>` : ''}
                 </div>
                 <button class="knop primair klein" ${!kan ? 'disabled' : ''} onclick="App.koopSchip('${schip.id}')">
-                    ${kan ? 'Koop schip' : 'Onvoldoende credits'}
+                    ${kan ? (volgendMark === 3 ? 'Specialiseer →' : 'Upgrade →') : 'Onvoldoende credits'}
                 </button>
             </div>`;
         });
 
-        html += '</div></div>';
+        html += `</div></div>`;
         return html;
     },
 

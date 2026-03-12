@@ -3,7 +3,7 @@
 // =============================================================================
 
 const MAX_BEURTEN = 150;
-const START_KREDIET = 10000;
+const START_KREDIET = 25000;
 const MAX_SCHULD = 8000;
 const RENTE_PERCENTAGE = 0.05;
 const RENTE_INTERVAL = 20;
@@ -74,9 +74,6 @@ class GameState {
         // Verzekering
         this.verzekering = null;            // null of { actief: true }
 
-        // Oneindige upgrade niveaus
-        this.upgradeNiveaus = { motor: 0, ruim: 0, brandstofTank: 0, passagiers: 0, schild: 0 };
-
         // Concurrenten
         this.concurrenten = [];             // [{id, locatie, krediet, waardeGeschiedenis}]
         this.nettoWaardeGeschiedenisSpeler = [];
@@ -100,11 +97,7 @@ class GameState {
     init(spelerNaam, schipId) {
         this.speler.naam = spelerNaam || 'Kapitein';
         const schipTemplate = SCHEPEN.find(s => s.id === schipId);
-        this.schip = {
-            ...schipTemplate,
-            maxSnelheid: schipTemplate.snelheid,
-            maxLaadruimte: schipTemplate.laadruimte,
-        };
+        this.schip = { ...schipTemplate };
         this.speler.krediet -= schipTemplate.prijs;
         this.schipHP = schipTemplate.maxHP;
         this.fase = 'spel';
@@ -400,26 +393,31 @@ class GameState {
         // Douane check — verdachte Mortex-lading bij eerste landing na Mortex
         const verdachteEntries = Object.entries(this.ladingVerdacht || {}).filter(([, v]) => v > 0);
         if (verdachteEntries.length > 0 && this.locatie !== 'mortex') {
-            const douaneKans = this.mortexUpgrades?.afgeschermd ? 0.05 : 0.25;
-            if (Math.random() < douaneKans) {
-                let boete = 0;
-                verdachteEntries.forEach(([goedId, ton]) => {
-                    const aankoopPrijs = this.aankoopPrijzen[goedId] || 50;
-                    boete += Math.round(aankoopPrijs * ton * 0.25);
-                });
-                boete = Math.min(boete, this.speler.krediet);
-                this.speler.krediet -= boete;
-                this.voegBerichtToe(`🚨 Douanecontrole! Verdachte lading ontdekt. Boete: ${this.formatteerKrediet(boete)}.`, 'gevaar');
-                this.huidigAankomstEvent = {
-                    icoon: '🚨',
-                    naam: 'Douanecontrole',
-                    beschrijving: `Inspecteurs doorzoeken je schip op ${planeet.naam}. Verdachte lading ontdekt — boete: ${this.formatteerKrediet(boete)}.`,
-                    type: 'gevaar',
-                };
+            if (this.schip?.immuunMortexConfiscatie) {
+                this.ladingVerdacht = {};
+                this.voegBerichtToe('🔒 Secure Hauler: douane kan je gepantserde vrachtruim niet doorzoeken.', 'info');
             } else {
-                this.statistieken.mortexGladGestreken = (this.statistieken.mortexGladGestreken || 0) + 1;
+                const douaneKans = this.schip?.douaneKansOverride ?? (this.mortexUpgrades?.afgeschermd ? 0.05 : 0.25);
+                if (Math.random() < douaneKans) {
+                    let boete = 0;
+                    verdachteEntries.forEach(([goedId, ton]) => {
+                        const aankoopPrijs = this.aankoopPrijzen[goedId] || 50;
+                        boete += Math.round(aankoopPrijs * ton * 0.25);
+                    });
+                    boete = Math.min(boete, this.speler.krediet);
+                    this.speler.krediet -= boete;
+                    this.voegBerichtToe(`🚨 Douanecontrole! Verdachte lading ontdekt. Boete: ${this.formatteerKrediet(boete)}.`, 'gevaar');
+                    this.huidigAankomstEvent = {
+                        icoon: '🚨',
+                        naam: 'Douanecontrole',
+                        beschrijving: `Inspecteurs doorzoeken je schip op ${planeet.naam}. Verdachte lading ontdekt — boete: ${this.formatteerKrediet(boete)}.`,
+                        type: 'gevaar',
+                    };
+                } else {
+                    this.statistieken.mortexGladGestreken = (this.statistieken.mortexGladGestreken || 0) + 1;
+                }
+                this.ladingVerdacht = {};
             }
-            this.ladingVerdacht = {};
         }
 
         this.controleerAchievements();
@@ -490,9 +488,10 @@ class GameState {
         const instappers = Math.min(wachtend.aantal, cap - this.passagiers);
         if (instappers > 0) {
             this.passagiers += instappers;
-            this.passagiersTicketprijs = wachtend.prijs;
+            this.passagiersTicketprijs = Math.round(wachtend.prijs * (this.schip?.ticketMultiplier ?? 1));
             this.wachtendePassagiers[this.locatie].aantal -= instappers;
-            this.voegBerichtToe(`${instappers} passagier(s) aan boord. Ticketprijs: ${this.formatteerKrediet(wachtend.prijs)}/pp`, 'info');
+            const getoondePrijs = wachtend.prijs;
+            this.voegBerichtToe(`${instappers} passagier(s) aan boord. Ticketprijs: ${this.formatteerKrediet(this.passagiersTicketprijs)}/pp`, 'info');
         }
     }
 
@@ -582,6 +581,8 @@ class GameState {
     koopAfgeschermdVrachtruim() {
         if (this.locatie !== 'mortex') return { succes: false, reden: 'Alleen beschikbaar op Mortex.' };
         if (this.mortexUpgrades?.afgeschermd) return { succes: false, reden: 'Al geïnstalleerd.' };
+        if (this.schip?.douaneKansOverride !== null && this.schip?.douaneKansOverride !== undefined) return { succes: false, reden: 'Je Shadow-schip heeft al ingebouwde douanebescherming.' };
+        if (this.schip?.immuunMortexConfiscatie) return { succes: false, reden: 'Je Secure Hauler heeft al ingebouwde lading­bescherming.' };
         const kosten = 8000;
         if (this.speler.krediet < kosten) return { succes: false, reden: 'Onvoldoende credits.' };
         this.speler.krediet -= kosten;
@@ -746,6 +747,10 @@ class GameState {
 
         switch (eventId) {
             case 'piraten': {
+                if (this.schip?.immuunPiraten) {
+                    resultaat.bericht = 'Piraten detecteren je schip maar laten je met rust. 🛡️';
+                    break;
+                }
                 if (keuzeId === 'betaal') {
                     const bedrag = Math.min(Math.round(this.speler.krediet * 0.25 + 100), 800);
                     if (this.verzekering?.actief) {
@@ -1095,7 +1100,8 @@ class GameState {
         if (!Number.isInteger(aantal) || aantal < 1) return { succes: false, reden: 'Ongeldig aantal.' };
         const goed = GOEDEREN.find(g => g.id === goedId);
         const prijs = this.getPrijs(this.locatie, goedId);
-        const totaal = prijs * aantal;
+        const effectiefPrijs = this.schip?.spearheadBonus ? Math.round(prijs * 0.92) : prijs;
+        const totaal = effectiefPrijs * aantal;
         const gewicht = goed.gewicht * aantal;
         const vrijeRuimte = this.schip.laadruimte - this.getLadingGewicht();
 
@@ -1109,15 +1115,15 @@ class GameState {
 
         // Werk gewogen gemiddelde aankoopprijs bij
         const huidigAant = this.aankoopAantallen[goedId] || 0;
-        const huidigAvg = this.aankoopPrijzen[goedId] || prijs;
-        this.aankoopPrijzen[goedId] = Math.round((huidigAvg * huidigAant + prijs * aantal) / (huidigAant + aantal));
+        const huidigAvg = this.aankoopPrijzen[goedId] || effectiefPrijs;
+        this.aankoopPrijzen[goedId] = Math.round((huidigAvg * huidigAant + effectiefPrijs * aantal) / (huidigAant + aantal));
         this.aankoopAantallen[goedId] = huidigAant + aantal;
 
         if (this.locatie === 'mortex') {
             this.ladingVerdacht[goedId] = (this.ladingVerdacht[goedId] || 0) + aantal;
         }
 
-        this.voegBerichtToe(`Gekocht: ${aantal}× ${goed.naam} voor ${this.formatteerKrediet(totaal)}.`, 'info');
+        this.voegBerichtToe(`Gekocht: ${aantal}× ${goed.naam} voor ${this.formatteerKrediet(totaal)}${this.schip?.spearheadBonus ? ' (−8% Spearhead)' : ''}.`, 'info');
         this.controleerAchievements();
         return { succes: true };
     }
@@ -1180,58 +1186,6 @@ class GameState {
     // SCHIP & UPGRADES
     // =========================================================================
 
-    koopUpgrade(upgradeId) {
-        const upgrade = UPGRADES.find(u => u.id === upgradeId);
-        if (!upgrade) return { succes: false, reden: 'Upgrade niet gevonden.' };
-        if (this.gekochteUpgrades.includes(upgradeId)) return { succes: false, reden: 'Al geïnstalleerd.' };
-        if (upgrade.vereist && !this.gekochteUpgrades.includes(upgrade.vereist)) return { succes: false, reden: 'Vereiste upgrade ontbreekt.' };
-        if (this.speler.krediet < upgrade.prijs) return { succes: false, reden: 'Onvoldoende krediet!' };
-
-        this.speler.krediet -= upgrade.prijs;
-        this.gekochteUpgrades.push(upgradeId);
-
-        // Apply effect
-        if (upgrade.effect.snelheid) this.schip.snelheid += upgrade.effect.snelheid;
-        if (upgrade.effect.laadruimte) this.schip.laadruimte += upgrade.effect.laadruimte;
-        if (upgrade.effect.schild) this.schip.schild += upgrade.effect.schild;
-        if (upgrade.effect.radar) this.schip.heeftRadar = true;
-        if (upgrade.effect.brandstofTank) this.schip.brandstofTank += upgrade.effect.brandstofTank;
-
-        this.voegBerichtToe(`${upgrade.naam} geïnstalleerd voor ${this.formatteerKrediet(upgrade.prijs)}.`, 'succes');
-        this.controleerAchievements();
-        return { succes: true };
-    }
-
-    _upgradeStapPrijs(cat) {
-        const niveau = this.upgradeNiveaus?.[cat] ?? 0;
-        const basis  = { motor: 2500, ruim: 1200, brandstofTank: 800, passagiers: 2500, schild: 1800 }[cat] ?? 1000;
-        const factor = { motor: 2.0,  ruim: 1.8,  brandstofTank: 1.7, passagiers: 2.2, schild: 1.9  }[cat] ?? 2.0;
-        return Math.round(basis * Math.pow(factor, niveau));
-    }
-
-    koopUpgradeStap(cat) {
-        if (!this.upgradeNiveaus || !this.upgradeNiveaus.hasOwnProperty(cat))
-            return { succes: false, reden: 'Onbekende categorie.' };
-        const huidigNiveau = this.upgradeNiveaus[cat] ?? 0;
-        if (this.locatie !== 'techton' && huidigNiveau >= 10)
-            return { succes: false, reden: '⚙️ Niveau 11+ vereist de Geavanceerde Scheepswerf op Techton.' };
-        const prijs = this._upgradeStapPrijs(cat);
-        if (this.speler.krediet < prijs)
-            return { succes: false, reden: 'Onvoldoende krediet!' };
-        this.speler.krediet -= prijs;
-        this.upgradeNiveaus[cat]++;
-        const n = this.upgradeNiveaus[cat];
-        if (cat === 'motor')        this.schip.snelheid             += 1;
-        if (cat === 'ruim')         this.schip.laadruimte           += 10;
-        if (cat === 'brandstofTank') this.schip.brandstofTank       += 10;
-        if (cat === 'passagiers')   this.schip.passagiersCapaciteit += 2;
-        if (cat === 'schild')       this.schip.schild               += 1;
-        const namen = { motor: 'Motor', ruim: 'Vrachtruim', brandstofTank: 'Brandstoftank', passagiers: 'Passagiersruimte', schild: 'Schild' };
-        this.voegBerichtToe(`${namen[cat]} opgewaardeerd naar niveau ${n} voor ${this.formatteerKrediet(prijs)}.`, 'succes');
-        this.controleerAchievements();
-        return { succes: true };
-    }
-
     _berekenVerzekeringsPrijs() {
         const cap = this.schip?.laadruimte ?? 30;
         const pax = this.schip?.passagiersCapaciteit ?? 0;
@@ -1274,45 +1228,29 @@ class GameState {
         if (this.schip.id === schipId) return { succes: false, reden: 'Je hebt dit schip al.' };
         if (this.locatie !== 'techton') return { succes: false, reden: 'Scheepsaankoop is alleen mogelijk op Techton.' };
 
-        // Verkoopwaarde huidig schip: 60% van basisprijs
-        const verkoopwaarde = Math.round(SCHEPEN.find(s => s.id === this.schip.id).prijs * 0.60);
+        // Zelfde type vereist
+        if (nieuwSchip.type !== this.schip.type)
+            return { succes: false, reden: 'Je kunt niet van scheepstype wisselen.' };
+
+        // Exact één Mark hoger
+        if (nieuwSchip.mark !== this.schip.mark + 1)
+            return { succes: false, reden: `Je kunt alleen upgraden naar Mark ${this.schip.mark + 1}.` };
+
+        // Bij Mark IV: specialisatie moet overeenkomen met Mark III
+        if (nieuwSchip.mark === 4 && this.schip.specialisatie && nieuwSchip.specialisatie !== this.schip.specialisatie)
+            return { succes: false, reden: 'Je kunt je specialisatie niet wijzigen.' };
+
+        const verkoopwaarde = Math.round(this.schip.prijs * 0.60);
         const nettoPrijs = nieuwSchip.prijs - verkoopwaarde;
 
-        if (nettoPrijs > this.speler.krediet) {
-            return { succes: false, reden: `Onvoldoende krediet. Je ontvangt ${this.formatteerKrediet(verkoopwaarde)} voor je huidige schip. Netto prijs: ${this.formatteerKrediet(nettoPrijs)}.` };
-        }
+        if (nettoPrijs > this.speler.krediet)
+            return { succes: false, reden: `Onvoldoende krediet. Inruilwaarde: ${this.formatteerKrediet(verkoopwaarde)}. Netto: ${this.formatteerKrediet(nettoPrijs)}.` };
 
-        // Bewaar eenmalige upgrades (schild, radar)
-        const upgradesNieuw = this.gekochteUpgrades.filter(uid => {
-            const upg = UPGRADES.find(u => u.id === uid);
-            return upg != null;
-        });
-
-        this.schip = {
-            ...nieuwSchip,
-            heeftRadar: this.schip.heeftRadar,
-        };
+        this.schip = { ...nieuwSchip };
         this.schipHP = nieuwSchip.maxHP;
-
-        // Herbereken eenmalige upgrades
-        this.gekochteUpgrades = upgradesNieuw;
-        upgradesNieuw.forEach(uid => {
-            const upg = UPGRADES.find(u => u.id === uid);
-            if (upg.effect.schild) this.schip.schild += upg.effect.schild;
-        });
-
-        // Herbereken oneindige upgrade niveaus
-        if (this.upgradeNiveaus) {
-            this.schip.snelheid             += this.upgradeNiveaus.motor;
-            this.schip.laadruimte           += this.upgradeNiveaus.ruim * 10;
-            this.schip.brandstofTank        += this.upgradeNiveaus.brandstofTank * 10;
-            this.schip.passagiersCapaciteit += this.upgradeNiveaus.passagiers * 2;
-            this.schip.schild               += (this.upgradeNiveaus.schild ?? 0);
-        }
-
-        this.speler.krediet = this.speler.krediet - nettoPrijs;
+        this.speler.krediet -= nettoPrijs;
         this.statistieken.schepenGekocht = (this.statistieken.schepenGekocht || 0) + 1;
-        this.voegBerichtToe(`Je nieuwe ${nieuwSchip.naam} is klaar voor de ruimte! Nettobetaling: ${this.formatteerKrediet(nettoPrijs)}.`, 'goud');
+        this.voegBerichtToe(`${nieuwSchip.naam} aangeschaft! Nettobetaling: ${this.formatteerKrediet(nettoPrijs)}.`, 'goud');
         this.controleerAchievements();
         return { succes: true, verkoopwaarde, nettoPrijs };
     }
@@ -1546,7 +1484,6 @@ class GameState {
                 brandstofPrijzen: this.brandstofPrijzen,
                 eindeReden: this.eindeReden || null,
                 marketingActief: this.marketingActief || null,
-                upgradeNiveaus: this.upgradeNiveaus,
                 verzekering: this.verzekering || null,
                 concurrenten: this.concurrenten,
                 nettoWaardeGeschiedenisSpeler: this.nettoWaardeGeschiedenisSpeler,
@@ -1568,8 +1505,9 @@ class GameState {
             this.achievements = new Set(data.achievements || []);
             this.reisData = null;
             this.geselecteerdePlaneet = null;
-            if (!this.upgradeNiveaus) this.upgradeNiveaus = { motor: 0, ruim: 0, brandstofTank: 0, passagiers: 0, schild: 0 };
-            if (this.upgradeNiveaus.schild === undefined) this.upgradeNiveaus.schild = 0;
+            // Migratie: oude saves met het pre-v5 schipsysteem zijn niet compatibel
+            const oudeSchipIds = ['rondsloffer', 'handelaar', 'vleugelschipper'];
+            if (oudeSchipIds.includes(this.schip?.id)) return false;
             // Migratie: old saves had passagiers as array
             if (Array.isArray(this.passagiers)) this.passagiers = this.passagiers.length;
             if (!this.passagiersTicketprijs) this.passagiersTicketprijs = 0;

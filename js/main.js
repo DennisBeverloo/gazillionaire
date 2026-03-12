@@ -366,16 +366,6 @@ const App = {
         UI.renderSpel();
     },
 
-    koopUpgrade(upgradeId) {
-        const res = state.koopUpgrade(upgradeId);
-        if (!res.succes) this._fout(res.reden); else { Audio.upgrade(); UI.renderSpel(); }
-    },
-
-    koopUpgradeStap(cat) {
-        const res = state.koopUpgradeStap(cat);
-        if (!res.succes) this._fout(res.reden); else { Audio.upgrade(); UI.renderSpel(); }
-    },
-
     plaatsVeilingBod() {
         const input = document.getElementById('agria-bod');
         const bod   = input ? parseInt(input.value, 10) : 0;
@@ -412,14 +402,16 @@ const App = {
 
     koopSchip(schipId) {
         const nieuw = SCHEPEN.find(s => s.id === schipId);
-        const verkoopwaarde = Math.round(SCHEPEN.find(s => s.id === state.schip.id).prijs * 0.60);
+        if (!nieuw) return;
+        const verkoopwaarde = Math.round(state.schip.prijs * 0.60);
         const netto = nieuw.prijs - verkoopwaarde;
         const betalingTekst = netto >= 0
             ? `Netto betaling: ${state.formatteerKrediet(netto)}`
-            : `Je ontvangt: ${state.formatteerKrediet(-netto)} (goedkoper schip)`;
-        if (!confirm(`Wil je de ${state.schip.naam} inruilen voor een ${nieuw.naam}?\n${betalingTekst}`)) return;
+            : `Je ontvangt: ${state.formatteerKrediet(-netto)} retour`;
+        const label = nieuw.mark === 3 ? 'specialiseren naar' : 'upgraden naar';
+        if (!confirm(`${state.schip.naam} inruilen en ${label} ${nieuw.naam}?\n${betalingTekst}`)) return;
         const res = state.koopSchip(schipId);
-        if (!res.succes) this._fout(res.reden); else UI.renderSpel();
+        if (!res.succes) this._fout(res.reden); else { Audio.upgrade(); UI.renderSpel(); }
     },
 
     repareerSchip() {
