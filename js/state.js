@@ -68,6 +68,14 @@ class GameState {
         // Marketing
         this.marketingActief = null;        // { planeet: planeetId, kosten } of null
 
+        // Marktmodifiers (koop/verkoop impact)
+        this.marktModifiers = {};           // { planeetId: { goedId: multiplier } }
+
+        // Missies
+        this.missies = [];                  // actieve/geaccepteerde missies
+        this.beschikbareMissies = [];       // gegenereerde maar nog niet geaccepteerd
+        this._missieIdTeller = 0;
+
         // Agria veiling
         this.agriaVeiling = null;
 
@@ -197,7 +205,31 @@ class GameState {
     }
 
     getPrijs(planeetId, goedId) {
-        return this.planetPrijzen[planeetId]?.[goedId] ?? 0;
+        const basis = this.planetPrijzen[planeetId]?.[goedId] ?? 0;
+        const mod = this.marktModifiers?.[planeetId]?.[goedId] ?? 1.0;
+        return mod === 1.0 ? basis : Math.max(5, Math.round(basis * mod));
+    }
+
+    _pasMarktAan(planeetId, goedId, delta) {
+        if (!this.marktModifiers[planeetId]) this.marktModifiers[planeetId] = {};
+        const huidig = this.marktModifiers[planeetId][goedId] ?? 1.0;
+        const nieuw = Math.max(0.55, Math.min(1.45, huidig + delta));
+        this.marktModifiers[planeetId][goedId] = nieuw;
+    }
+
+    _vervalMarktModifiers() {
+        const vervalFactor = 0.88; // elke beurt 12% terug naar 1.0
+        for (const planeetId of Object.keys(this.marktModifiers ?? {})) {
+            for (const goedId of Object.keys(this.marktModifiers[planeetId])) {
+                const m = this.marktModifiers[planeetId][goedId];
+                const nieuw = 1.0 + (m - 1.0) * vervalFactor;
+                if (Math.abs(nieuw - 1.0) < 0.005) {
+                    delete this.marktModifiers[planeetId][goedId];
+                } else {
+                    this.marktModifiers[planeetId][goedId] = nieuw;
+                }
+            }
+        }
     }
 
     getTrend(planeetId, goedId) {
@@ -206,6 +238,116 @@ class GameState {
         if (huidig > vorig * 1.02) return 'op';
         if (huidig < vorig * 0.98) return 'neer';
         return 'gelijk';
+    }
+
+    // =========================================================================
+    // MISSIES
+    // =========================================================================
+
+    genereerMissies() {
+        // Genereer nieuwe beschikbare missies bij aankomst op planeet
+        const andereplaneten = PLANETEN.filter(p => p.id !== this.locatie);
+        const goederen = [...GOEDEREN];
+        const nieuweM = [];
+
+        // 2 cargo-missies
+        for (let i = 0; i < 2; i++) {
+            const goed = goederen[Math.floor(Math.random() * goederen.length)];
+            const bestemming = andereplaneten[Math.floor(Math.random() * andereplaneten.length)];
+            const hoeveelheid = 5 + Math.floor(Math.random() * 16); // 5–20 ton
+            const basisBeloning = Math.round(goed.basisPrijs * hoeveelheid * (0.4 + Math.random() * 0.4));
+            nieuweM.push({
+                id: ++this._missieIdTeller,
+                type: 'cargo',
+                goedId: goed.id,
+                goedNaam: goed.naam,
+                goedIcoon: goed.icoon,
+                hoeveelheid,
+                bestemmingId: bestemming.id,
+                bestemmingNaam: bestemming.naam,
+                beloning: basisBeloning,
+                deadline: this.beurt + 20 + Math.floor(Math.random() * 11),
+                actief: false,
+            });
+        }
+
+        // 1 VIP-missie (alleen als schip passagiersruimte heeft of altijd aanbieden)
+        const vipBestemming = andereplaneten[Math.floor(Math.random() * andereplaneten.length)];
+        const vipBeloning = 800 + Math.floor(Math.random() * 1201); // 800–2000
+        nieuweM.push({
+            id: ++this._missieIdTeller,
+            type: 'vip',
+            bestemmingId: vipBestemming.id,
+            bestemmingNaam: vipBestemming.naam,
+            beloning: vipBeloning,
+            deadline: this.beurt + 15 + Math.floor(Math.random() * 11),
+            actief: false,
+            vipAanBoord: false,
+        });
+
+        this.beschikbareMissies = nieuweM;
+    }
+
+    accepteerMissie(missieId) {
+        if ((this.missies?.length ?? 0) >= 3) return { succes: false, reden: 'Je hebt al 3 actieve missies.' };
+        const idx = this.beschikbareMissies.findIndex(m => m.id === missieId);
+        if (idx < 0) return { succes: false, reden: 'Missie niet gevonden.' };
+        const missie = this.beschikbareMissies[idx];
+
+        if (missie.type === 'vip') {
+            const cap = this.schip?.passagiersCapaciteit || 0;
+            if (cap === 0) return { succes: false, reden: 'Je schip heeft geen passagiersruimte voor een VIP.' };
+            if (this.passagiers >= cap) return { succes: false, reden: 'Geen vrije passagiersplaats.' };
+            this.passagiers++;
+            missie.vipAanBoord = true;
+        }
+
+        missie.actief = true;
+        this.missies.push(missie);
+        this.beschikbareMissies.splice(idx, 1);
+        const naam = missie.type === 'vip'
+            ? `VIP-transport naar ${missie.bestemmingNaam}`
+            : `${missie.goedIcoon} ${missie.hoeveelheid}t ${missie.goedNaam} → ${missie.bestemmingNaam}`;
+        this.voegBerichtToe(`🎯 Missie geaccepteerd: ${naam}. Beloning: ${this.formatteerKrediet(missie.beloning)}`, 'goud');
+        return { succes: true };
+    }
+
+    _controleerMissieVoltooiing() {
+        if (!this.missies?.length) return;
+        const voltooide = [];
+
+        this.missies = this.missies.filter(m => {
+            // Verlopen missies verwijderen
+            if (this.beurt > m.deadline) {
+                if (m.type === 'vip' && m.vipAanBoord) this.passagiers = Math.max(0, this.passagiers - 1);
+                this.voegBerichtToe(`⌛ Missie verlopen: ${m.type === 'vip' ? 'VIP-transport' : m.goedNaam} naar ${m.bestemmingNaam}`, 'gevaar');
+                return false;
+            }
+            // Cargo: check of we op bestemming zijn met genoeg lading
+            if (m.type === 'cargo' && m.bestemmingId === this.locatie) {
+                const inHold = this.lading[m.goedId] || 0;
+                if (inHold >= m.hoeveelheid) {
+                    this.lading[m.goedId] -= m.hoeveelheid;
+                    if (this.lading[m.goedId] === 0) delete this.aankoopPrijzen[m.goedId];
+                    this.aankoopAantallen[m.goedId] = Math.max(0, (this.aankoopAantallen[m.goedId] || 0) - m.hoeveelheid);
+                    const marktwaarde = this.getPrijs(this.locatie, m.goedId) * m.hoeveelheid;
+                    const totaal = marktwaarde + m.beloning;
+                    this.speler.krediet += totaal;
+                    this.voegBerichtToe(`🎯 Missie voltooid! ${m.goedIcoon} ${m.hoeveelheid}t ${m.goedNaam} afgeleverd. +${this.formatteerKrediet(totaal)} (incl. ${this.formatteerKrediet(m.beloning)} bonus)`, 'goud');
+                    voltooide.push(m);
+                    return false;
+                }
+            }
+            // VIP: check of we op bestemming zijn
+            if (m.type === 'vip' && m.bestemmingId === this.locatie && m.vipAanBoord) {
+                this.passagiers = Math.max(0, this.passagiers - 1);
+                this.speler.krediet += m.beloning;
+                this.voegBerichtToe(`🎯 VIP-missie voltooid! VIP afgeleverd op ${m.bestemmingNaam}. +${this.formatteerKrediet(m.beloning)}`, 'goud');
+                voltooide.push(m);
+                return false;
+            }
+            return true;
+        });
     }
 
     // =========================================================================
@@ -274,6 +416,7 @@ class GameState {
         this.updateAandeelKoersen();
         this.updateBrandstofPrijzen();
         this.controleerRente();
+        this._vervalMarktModifiers();
 
         this._simuleerConcurrenten();
 
@@ -419,6 +562,10 @@ class GameState {
                 this.ladingVerdacht = {};
             }
         }
+
+        // Missies: voltooiing check dan nieuwe missies genereren
+        this._controleerMissieVoltooiing();
+        this.genereerMissies();
 
         this.controleerAchievements();
         this.controleerSpelEinde();
@@ -1124,6 +1271,9 @@ class GameState {
             this.ladingVerdacht[goedId] = (this.ladingVerdacht[goedId] || 0) + aantal;
         }
 
+        // Marktimpact: vraag drijft prijs op
+        this._pasMarktAan(this.locatie, goedId, aantal * 0.004);
+
         this.voegBerichtToe(`Gekocht: ${aantal}× ${goed.naam} voor ${this.formatteerKrediet(totaal)}${this.schip?.spearheadBonus ? ' (−8% Spearhead)' : ''}.`, 'info');
         this.controleerAchievements();
         return { succes: true };
@@ -1155,6 +1305,9 @@ class GameState {
         this.speler.krediet += totaal;
         this.statistieken.handelstransacties++;
         this.statistieken.verkopen = (this.statistieken.verkopen ?? 0) + 1;
+
+        // Marktimpact: aanbod drijft prijs omlaag
+        this._pasMarktAan(this.locatie, goedId, -aantal * 0.005);
 
         // Werk aankoopregistratie bij
         this.aankoopAantallen[goedId] = Math.max(0, (this.aankoopAantallen[goedId] || 0) - aantal);

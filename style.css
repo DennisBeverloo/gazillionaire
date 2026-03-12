@@ -1969,3 +1969,63 @@ body[data-planeet="mortex"]  { --planet-accent: #8b0000; }
 .casino-kaart.animeer-vertraagd {
     animation-delay: 0.3s;
 }
+
+/* ===== MARKTMODIFIER INDICATOR ===== */
+.markt-mod {
+    font-size: 0.72em;
+    margin-left: 3px;
+    vertical-align: middle;
+}
+.markt-mod-op   { color: var(--rood); }
+.markt-mod-neer { color: var(--groen); }
+
+/* ===== MISSIES TAB ===== */
+.missie-sectie-titel {
+    font-size: 0.82em;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    margin-bottom: 8px;
+}
+.missie-kaart {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg-paneel-licht);
+    border: 1px solid var(--rand);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+}
+.missie-kaart.missie-actief {
+    border-color: var(--accent-dim);
+    background: rgba(0, 100, 136, 0.12);
+}
+.missie-type-icoon {
+    font-size: 1.4em;
+    flex-shrink: 0;
+}
+.missie-info {
+    flex: 1;
+    min-width: 0;
+}
+.missie-titel {
+    font-size: 0.9em;
+    color: var(--tekst);
+    margin-bottom: 3px;
+}
+.missie-meta {
+    font-size: 0.78em;
+}
+.missie-beloning {
+    font-family: var(--font-data);
+    font-size: 0.88em;
+    color: var(--goud);
+    text-align: right;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.missie-knop {
+    flex-shrink: 0;
+    margin-left: 6px;
+}

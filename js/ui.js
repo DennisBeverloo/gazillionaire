@@ -78,6 +78,7 @@ const UI = {
             case 'ranglijst':    this.renderRanglijstTab();    break;
             case 'achievements': this.renderAchievementsTab(); break;
             case 'planeet':      this.renderPlaneetTab();      break;
+            case 'missies':      this.renderMissieTab();       break;
         }
 
         // *** KRITIEKE FIX: toggle tab-panelen ÉN tab-knoppen ***
@@ -577,9 +578,14 @@ const UI = {
                 verkInfoHtml += '</div>';
             }
 
+            const mod = state.marktModifiers?.[state.locatie]?.[goed.id] ?? 1.0;
+            let modHtml = '';
+            if (mod > 1.03) modHtml = `<span class="markt-mod markt-mod-op" title="Marktdruk: prijs gestegen door vraag">▲</span>`;
+            else if (mod < 0.97) modHtml = `<span class="markt-mod markt-mod-neer" title="Marktdruk: prijs gedaald door aanbod">▼</span>`;
+
             html += `<tr>
                 <td><span class="goed-icoon">${goed.icoon}</span><span class="goed-tip-wrap">${goed.naam}${marktLabelHtml}${tipHtml}</span></td>
-                <td class="${prijsKlas}" style="font-family:var(--font-data)">${state.formatteerKrediet(prijs)}</td>
+                <td class="${prijsKlas}" style="font-family:var(--font-data)">${state.formatteerKrediet(prijs)}${modHtml}</td>
                 <td style="font-family:var(--font-data)">${ladingTd}</td>
                 <td>
                     <div class="actie-rij">
@@ -1871,4 +1877,92 @@ const UI = {
             <div class="stat-einde"><span class="naam">Achievements</span><span class="waarde kleur-goud">${state.achievements.size}/${ACHIEVEMENTS.length}</span></div>
         `;
     },
+
+    // =========================================================================
+    // MISSIES TAB
+    // =========================================================================
+
+    renderMissieTab() {
+        const container = document.getElementById('missies-tab');
+        if (!container) return;
+
+        const beurt = state.beurt;
+        const actief = state.missies ?? [];
+        const beschikbaar = state.beschikbareMissies ?? [];
+        const maxActief = 3;
+
+        let html = '<div class="sectie-header">🎯 Missies</div>';
+        html += `<p class="kleur-dimmed" style="font-size:0.82em;margin:0 0 12px">Accepteer missies voor bonusbeloningen. Max ${maxActief} actieve missies tegelijk. Cargo-missies: koop zelf de lading en lever af bij bestemming.</p>`;
+
+        // Actieve missies
+        if (actief.length > 0) {
+            html += '<div class="missie-sectie-titel">Actieve missies</div>';
+            actief.forEach(m => {
+                const resterend = m.deadline - beurt;
+                const urgentie = resterend <= 5 ? 'kleur-rood' : resterend <= 10 ? 'kleur-oranje' : 'kleur-dimmed';
+                if (m.type === 'cargo') {
+                    const inHold = state.lading[m.goedId] || 0;
+                    const heeftGenoeg = inHold >= m.hoeveelheid;
+                    const voortgang = heeftGenoeg
+                        ? `<span class="kleur-groen">✓ Lading aan boord</span>`
+                        : `<span class="kleur-rood">${inHold}/${m.hoeveelheid} ton aan boord</span>`;
+                    html += `<div class="missie-kaart missie-actief">
+                        <div class="missie-type-icoon">📦</div>
+                        <div class="missie-info">
+                            <div class="missie-titel">${m.goedIcoon} Lever ${m.hoeveelheid}t ${m.goedNaam} af op <strong>${m.bestemmingNaam}</strong></div>
+                            <div class="missie-meta">${voortgang} &nbsp;·&nbsp; <span class="${urgentie}">Deadline: beurt ${m.deadline} (nog ${resterend})</span></div>
+                        </div>
+                        <div class="missie-beloning">+${state.formatteerKrediet(m.beloning)}<br><span class="kleur-dimmed" style="font-size:0.78em">bonus</span></div>
+                    </div>`;
+                } else {
+                    html += `<div class="missie-kaart missie-actief">
+                        <div class="missie-type-icoon">👤</div>
+                        <div class="missie-info">
+                            <div class="missie-titel">VIP-transport naar <strong>${m.bestemmingNaam}</strong></div>
+                            <div class="missie-meta"><span class="kleur-accent">VIP aan boord</span> &nbsp;·&nbsp; <span class="${urgentie}">Deadline: beurt ${m.deadline} (nog ${resterend})</span></div>
+                        </div>
+                        <div class="missie-beloning">+${state.formatteerKrediet(m.beloning)}</div>
+                    </div>`;
+                }
+            });
+        }
+
+        // Beschikbare missies
+        if (beschikbaar.length > 0) {
+            html += '<div class="missie-sectie-titel" style="margin-top:16px">Beschikbare missies</div>';
+            const kanMeer = actief.length < maxActief;
+            beschikbaar.forEach(m => {
+                const resterend = m.deadline - beurt;
+                if (m.type === 'cargo') {
+                    html += `<div class="missie-kaart">
+                        <div class="missie-type-icoon">📦</div>
+                        <div class="missie-info">
+                            <div class="missie-titel">${m.goedIcoon} Lever ${m.hoeveelheid}t ${m.goedNaam} af op <strong>${m.bestemmingNaam}</strong></div>
+                            <div class="missie-meta kleur-dimmed">Deadline: beurt ${m.deadline} (nog ${resterend} beurten)</div>
+                        </div>
+                        <div class="missie-beloning">+${state.formatteerKrediet(m.beloning)}<br><span class="kleur-dimmed" style="font-size:0.78em">bonus</span></div>
+                        <button class="knop primair klein missie-knop" onclick="App.accepteerMissie(${m.id})" ${kanMeer ? '' : 'disabled'}>Accepteer</button>
+                    </div>`;
+                } else {
+                    const capOk = (state.schip?.passagiersCapaciteit || 0) > 0 && state.passagiers < (state.schip?.passagiersCapaciteit || 0);
+                    html += `<div class="missie-kaart">
+                        <div class="missie-type-icoon">👤</div>
+                        <div class="missie-info">
+                            <div class="missie-titel">VIP-transport naar <strong>${m.bestemmingNaam}</strong></div>
+                            <div class="missie-meta kleur-dimmed">Behoeft vrije passagiersplaats &nbsp;·&nbsp; Deadline: beurt ${m.deadline} (nog ${resterend} beurten)</div>
+                        </div>
+                        <div class="missie-beloning">+${state.formatteerKrediet(m.beloning)}</div>
+                        <button class="knop primair klein missie-knop" onclick="App.accepteerMissie(${m.id})" ${kanMeer && capOk ? '' : 'disabled'}>Accepteer</button>
+                    </div>`;
+                }
+            });
+        }
+
+        if (actief.length === 0 && beschikbaar.length === 0) {
+            html += '<div class="kleur-dimmed" style="text-align:center;padding:24px 0">Geen missies beschikbaar. Land op een planeet voor nieuwe missies.</div>';
+        }
+
+        container.innerHTML = html;
+    },
+
 };

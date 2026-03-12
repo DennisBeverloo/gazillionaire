@@ -329,6 +329,12 @@ const App = {
         UI.renderSpel();
     },
 
+    accepteerMissie(missieId) {
+        const res = state.accepteerMissie(missieId);
+        if (!res.succes) this._fout(res.reden);
+        else { Audio.koop(); UI.renderSpel(); }
+    },
+
     // =========================================================================
     // UPGRADES & SCHIP
     // =========================================================================
