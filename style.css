@@ -793,7 +793,13 @@ html, body {
     color: var(--accent);
     padding: 9px 14px;
     border-bottom: 1px solid var(--rand);
-    background: rgba(0,212,255,0.04);
+    background: repeating-linear-gradient(
+        -45deg,
+        color-mix(in srgb, var(--planet-accent) 3%, transparent)  0px,
+        color-mix(in srgb, var(--planet-accent) 3%, transparent)  9px,
+        color-mix(in srgb, var(--planet-accent) 8%, transparent)  9px,
+        color-mix(in srgb, var(--planet-accent) 8%, transparent) 18px
+    );
     flex-shrink: 0;
 }
 .haven-blok-inhoud {
