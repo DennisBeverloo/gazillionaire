@@ -38,7 +38,7 @@ const DB = (() => {
         async initSessie() {
             _sessieId = null;
             const db = client();
-            if (!db) return;
+            if (!db) { console.warn('[DB] Supabase client niet beschikbaar'); return; }
 
             const { data, error } = await db
                 .from('game_sessions')
@@ -46,13 +46,14 @@ const DB = (() => {
                 .select('id')
                 .single();
 
-            if (error) { console.warn('Sessie starten mislukt:', error.message); return; }
+            if (error) { console.warn('[DB] initSessie mislukt:', error.message, error.code); return; }
             _sessieId = data.id;
+            console.log('[DB] Sessie gestart:', _sessieId);
         },
 
         // Aanroepen na elke landing
         async updateSessie() {
-            if (!_sessieId) return;
+            if (!_sessieId) { console.warn('[DB] updateSessie: geen sessieId, initSessie niet aangeroepen?'); return; }
             const db = client();
             if (!db) return;
 
@@ -62,7 +63,8 @@ const DB = (() => {
                 .update(_payload(fase))
                 .eq('id', _sessieId);
 
-            if (error) console.warn('Sessie updaten mislukt:', error.message);
+            if (error) console.warn('[DB] updateSessie mislukt:', error.message, error.code);
+            else console.log('[DB] Sessie bijgewerkt — beurt', state.beurt, '/', fase);
         },
 
         // Ophalen voor ranglijst-tab (alleen voltooide spellen)
