@@ -16,14 +16,20 @@ Doe dit **automatisch** na elke sessie met codewijzigingen, zonder dat de gebrui
 export PATH="$PATH:/c/Program Files/GitHub CLI"
 ```
 
-**Begin van elke sessie:** controleer open issues:
+**Begin van elke sessie:** controleer direct open issues en pak ze op — dit is altijd de eerste actie:
 ```
+export PATH="$PATH:/c/Program Files/GitHub CLI"
 gh issue list --repo DennisBeverloo/gazillionaire
 ```
 - Pak open issues op, fix ze, commit & push
 - Sluit het issue met een comment: `gh issue close <nr> --comment "beschrijving fix"`
 - Stel vragen via: `gh issue comment <nr> --body "vraag"`
 - Issues met label `wontfix` of `question` niet zomaar sluiten
+- Na het verwerken van issues: stel een cron in die elke 5 minuten opnieuw checkt (zie hieronder)
+
+**Cron (elke 5 minuten, zolang sessie actief is):**
+Stel na de startup-check automatisch een cron in met interval `*/5 * * * *` en de prompt:
+`Controleer GitHub Issues op DennisBeverloo/gazillionaire. Als er open issues zijn zonder label 'wontfix' of 'question': pak ze op, fix ze, commit, push en sluit het issue met een comment.`
 
 ## Cache buster — verplicht bij elke CSS of JS wijziging
 Bij elke commit waarbij CSS of JavaScript is gewijzigd, moet de cache buster worden opgehoogd. Doe dit op **twee plaatsen**:
