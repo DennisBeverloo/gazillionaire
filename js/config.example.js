@@ -5,5 +5,4 @@
 const CONFIG = {
     SUPABASE_URL: 'https://jouw-project.supabase.co',
     SUPABASE_KEY: 'jouw-anon-key',
-    ADMIN_PW:     'jouw-admin-wachtwoord',
 };

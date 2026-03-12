@@ -28,10 +28,9 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-          ADMIN_PW:     ${{ secrets.ADMIN_PW }}
         run: |
-          printf 'const CONFIG = {\n    SUPABASE_URL: "%s",\n    SUPABASE_KEY: "%s",\n    ADMIN_PW:     "%s"\n};\n' \
-            "$SUPABASE_URL" "$SUPABASE_KEY" "$ADMIN_PW" > js/config.js
+          printf 'const CONFIG = {\n    SUPABASE_URL: "%s",\n    SUPABASE_KEY: "%s"\n};\n' \
+            "$SUPABASE_URL" "$SUPABASE_KEY" > js/config.js
 
       - uses: actions/configure-pages@v4
 

@@ -141,17 +141,18 @@
     <div class="auth-box">
         <h2>⚙ Admin</h2>
         <p style="color:var(--dimmed);margin-bottom:20px;font-size:0.9em">Gazillionaire beheer</p>
+        <input type="email" id="email-input" placeholder="E-mailadres" autocomplete="email" style="margin-bottom:10px">
         <input type="password" id="wachtwoord-input" placeholder="Wachtwoord" autocomplete="current-password">
-        <div class="auth-error" id="auth-fout" style="display:none">Onjuist wachtwoord.</div>
+        <div class="auth-error" id="auth-fout" style="display:none">Inloggen mislukt. Controleer je gegevens.</div>
         <br>
-        <button class="knop knop-primair" onclick="controleerAuth()">Inloggen →</button>
+        <button class="knop knop-primair" id="login-knop" onclick="controleerAuth()">Inloggen →</button>
     </div>
 </div>
 
 <!-- Dashboard -->
 <div id="dashboard" style="display:none">
     <h1>✦ GAZILLIONAIRE Admin</h1>
-    <p class="sub">Overzicht van alle gespeelde sessies · <span id="refresh-info"></span> <button class="knop knop-dimmed" style="font-size:0.78em;padding:4px 10px" onclick="laadSessies()">↻ Vernieuwen</button></p>
+    <p class="sub">Overzicht van alle gespeelde sessies · <span id="refresh-info"></span> <button class="knop knop-dimmed" style="font-size:0.78em;padding:4px 10px" onclick="laadSessies()">↻ Vernieuwen</button> <button class="knop knop-dimmed" style="font-size:0.78em;padding:4px 10px;margin-left:6px" onclick="uitloggen()">Uitloggen</button></p>
 
     <div class="stats-bar" id="stats-bar">
         <div class="stat-kaart"><div class="stat-label">Totaal sessies</div><div class="stat-waarde" id="stat-totaal">—</div></div>
@@ -209,27 +210,57 @@
 <script>
     const SUPABASE_URL = (typeof CONFIG !== 'undefined') ? CONFIG.SUPABASE_URL : '';
     const SUPABASE_KEY = (typeof CONFIG !== 'undefined') ? CONFIG.SUPABASE_KEY : '';
-    const ADMIN_PW    = (typeof CONFIG !== 'undefined') ? CONFIG.ADMIN_PW    : '';
 
     let db = null;
     let alleSessies = [];
     let sortKolom = 'eindkapitaal';
     let sortAsc = false;
 
+    // Initialiseer Supabase client en controleer bestaande sessie
+    db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    db.auth.getSession().then(({ data: { session } }) => {
+        if (session) toonDashboard();
+    });
+
     document.getElementById('wachtwoord-input').addEventListener('keydown', e => {
         if (e.key === 'Enter') controleerAuth();
     });
+    document.getElementById('email-input').addEventListener('keydown', e => {
+        if (e.key === 'Enter') document.getElementById('wachtwoord-input').focus();
+    });
 
-    function controleerAuth() {
-        const pw = document.getElementById('wachtwoord-input').value;
-        if (pw === ADMIN_PW) {
-            document.getElementById('auth-overlay').style.display = 'none';
-            document.getElementById('dashboard').style.display = 'block';
-            db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-            laadSessies();
-        } else {
+    async function controleerAuth() {
+        const email = document.getElementById('email-input').value.trim();
+        const pw    = document.getElementById('wachtwoord-input').value;
+        const knop  = document.getElementById('login-knop');
+
+        knop.textContent = 'Bezig...';
+        knop.disabled = true;
+
+        const { error } = await db.auth.signInWithPassword({ email, password: pw });
+
+        knop.textContent = 'Inloggen →';
+        knop.disabled = false;
+
+        if (error) {
             document.getElementById('auth-fout').style.display = 'block';
+        } else {
+            toonDashboard();
         }
+    }
+
+    function toonDashboard() {
+        document.getElementById('auth-overlay').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
+        laadSessies();
+    }
+
+    async function uitloggen() {
+        await db.auth.signOut();
+        document.getElementById('dashboard').style.display = 'none';
+        document.getElementById('auth-overlay').style.display = 'flex';
+        document.getElementById('wachtwoord-input').value = '';
+        document.getElementById('email-input').value = '';
     }
 
     async function laadSessies() {
