@@ -835,7 +835,9 @@ const UI = {
         const planeet   = PLANETEN.find(p => p.id === state.locatie);
         let html = `<div class="planeet-dienst-header">🪐 ${planeet.naam} — Planeetdiensten</div>`;
 
-        if (state.locatie === 'ferrum') {
+        if (state.locatie === 'nexoria') {
+            html += this._renderNexoria();
+        } else if (state.locatie === 'ferrum') {
             html += this._renderFerrum();
         } else if (state.locatie === 'agria') {
             html += this._renderAgria();
@@ -853,6 +855,24 @@ const UI = {
 
         // Initialiseer preview direct na render
         if (state.locatie === 'ferrum') this._updateFerrumPreview();
+    },
+
+    // =========================================================================
+    // NEXORIA — GALACTISCHE BEURS
+    // =========================================================================
+
+    _renderNexoria() {
+        const portWaarde = state.getPortefeuilleWaarde();
+        let html = `<div class="planeet-dienst-blok">
+            <div class="sectie-header">📈 Galactische Beurs</div>
+            <div class="beurs-handel-info">
+                Portefeuillewaarde: <strong class="kleur-goud">${state.formatteerKrediet(portWaarde)}</strong>
+                &nbsp;|&nbsp; Beschikbaar: <strong>${state.formatteerKrediet(state.speler.krediet)}</strong>
+                &nbsp;|&nbsp; <span class="kleur-dimmed" style="font-size:0.82em">Koersen bijgewerkt per reis</span>
+            </div>`;
+        html += this._renderAandelenKaarten(true);
+        html += '</div>';
+        return html;
     },
 
     _renderFerrum() {
@@ -1192,7 +1212,7 @@ const UI = {
     },
 
     // =========================================================================
-    // BEURS TAB
+    // BEURS TAB  (readonly portfolio-overzicht op alle planeten)
     // =========================================================================
 
     renderBeursTab() {
@@ -1200,12 +1220,30 @@ const UI = {
         const portWaarde = state.getPortefeuilleWaarde();
 
         let html = `<div class="info-balk">
-            Portefeuillewaarde: <strong class="kleur-goud">${state.formatteerKrediet(portWaarde)}</strong>
+            <span>📊 Portfolio</span>
+            &nbsp;|&nbsp; Waarde: <strong class="kleur-goud">${state.formatteerKrediet(portWaarde)}</strong>
             &nbsp;|&nbsp; Beschikbaar: <strong>${state.formatteerKrediet(state.speler.krediet)}</strong>
             &nbsp;|&nbsp; <span class="kleur-dimmed" style="font-size:0.82em">Koersen bijgewerkt per reis</span>
         </div>`;
 
-        html += '<div class="aandeel-kaarten">';
+        if (state.locatie === 'nexoria') {
+            html += `<div class="info-balk beurs-nexoria-hint">
+                📈 Op Nexoria kun je aandelen kopen en verkopen via het 🪐 <strong>Planeet</strong>-tabblad.
+            </div>`;
+        } else {
+            html += `<div class="info-balk beurs-readonly-hint">
+                🔒 Aandelen verhandelen kan alleen op <strong>Nexoria</strong> (Galactische Beurs).
+            </div>`;
+        }
+
+        html += this._renderAandelenKaarten(false);
+        container.innerHTML = html;
+    },
+
+    // Gedeelde helper: rendert alle aandeelkaarten
+    // metHandel=true → inclusief koop/verkoop-knoppen (alleen op Nexoria)
+    _renderAandelenKaarten(metHandel) {
+        let html = '<div class="aandeel-kaarten">';
         AANDELEN.forEach(a => {
             const koers       = state.aandeelKoersen[a.id];
             const vorig       = state.vorigeKoersen[a.id];
@@ -1232,6 +1270,19 @@ const UI = {
                 portfolioHtml = `<div class="aandeel-portfolio-info"><span class="kleur-dimmed" style="font-size:0.78em">Niet in portfolio</span></div>`;
             }
 
+            let handelHtml = '';
+            if (metHandel) {
+                handelHtml = `
+                <div class="aandeel-knoppen-koop">
+                    ${[1,10,100].map(n => `<button class="knop succes klein" onclick="App.koopAandeelN('${a.id}',${n})" ${maxK<n?'disabled':''}>+${n}</button>`).join('')}
+                    <button class="knop succes klein" onclick="App.koopAandeelMax('${a.id}')" ${maxK<=0?'disabled':''}>Max</button>
+                </div>
+                <div class="aandeel-knoppen-verkoop">
+                    ${[1,10,100].map(n => `<button class="knop gevaar klein" onclick="App.verkoopAandeelN('${a.id}',${n})" ${bezit<n?'disabled':''}>-${n}</button>`).join('')}
+                    <button class="knop gevaar klein" onclick="App.verkoopAandeelAlles('${a.id}')" ${bezit<=0?'disabled':''}>Alles</button>
+                </div>`;
+            }
+
             html += `<div class="aandeel-kaart">
                 <div class="aandeel-kaart-top">
                     <span>${a.icoon}</span>
@@ -1244,18 +1295,11 @@ const UI = {
                 <div class="aandeel-delta ${dKlas}">${dTeken}${delta} credits (${dTeken}${dPct}%)</div>
                 ${this._renderSparkline(a.id, 150, 50, bezit > 0 ? aankoopKoers : null)}
                 ${portfolioHtml}
-                <div class="aandeel-knoppen-koop">
-                    ${[1,10,100].map(n => `<button class="knop succes klein" onclick="App.koopAandeelN('${a.id}',${n})" ${maxK<n?'disabled':''}>+${n}</button>`).join('')}
-                    <button class="knop succes klein" onclick="App.koopAandeelMax('${a.id}')" ${maxK<=0?'disabled':''}>Max</button>
-                </div>
-                <div class="aandeel-knoppen-verkoop">
-                    ${[1,10,100].map(n => `<button class="knop gevaar klein" onclick="App.verkoopAandeelN('${a.id}',${n})" ${bezit<n?'disabled':''}>-${n}</button>`).join('')}
-                    <button class="knop gevaar klein" onclick="App.verkoopAandeelAlles('${a.id}')" ${bezit<=0?'disabled':''}>Alles</button>
-                </div>
+                ${handelHtml}
             </div>`;
         });
         html += '</div>';
-        container.innerHTML = html;
+        return html;
     },
 
     // Genereer SVG sparkline voor een aandeel

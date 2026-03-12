@@ -1805,6 +1805,29 @@ body[data-planeet="mortex"]  { --planet-accent: #8b0000; }
 .planeet-tag[data-tip] { cursor: help; }
 .planeet-tag[data-tip]:hover { opacity: 0.85; }
 
+/* ===== BEURS TAB hints ===== */
+.beurs-nexoria-hint {
+    background: rgba(0,212,255,0.07);
+    border-color: rgba(0,212,255,0.3);
+    color: var(--tekst-dim);
+    font-size: 0.86em;
+}
+.beurs-readonly-hint {
+    background: rgba(255,140,66,0.07);
+    border-color: rgba(255,140,66,0.3);
+    color: var(--tekst-dim);
+    font-size: 0.86em;
+}
+.beurs-handel-info {
+    font-size: 0.88em;
+    color: var(--tekst-dim);
+    margin: 6px 0 14px;
+    padding: 8px 12px;
+    background: var(--bg-paneel-licht);
+    border-radius: 6px;
+    border: 1px solid var(--rand);
+}
+
 /* ===== ZWARTE MARKT (Mortex) ===== */
 .zwarte-markt-header { color: var(--rood) !important; }
 .zwarte-markt-banner {
