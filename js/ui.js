@@ -206,14 +206,16 @@ const UI = {
         switch (id) {
             case 'schip-naam-display': {
                 const template = typeof SCHEPEN !== 'undefined' ? SCHEPEN.find(s => s.id === state.schip?.id) : null;
-                const sterren = '★'.repeat(state.schip.snelheid) + '☆'.repeat(Math.max(0, 5 - state.schip.snelheid));
+                const snelSterren = '★'.repeat(Math.min(state.schip.snelheid, 8)) + (state.schip.snelheid > 8 ? `+${state.schip.snelheid - 8}` : '☆'.repeat(Math.max(0, 5 - state.schip.snelheid)));
+                const schildSterren = '★'.repeat(Math.min(state.schip.schild, 8)) + (state.schip.schild > 8 ? `+${state.schip.schild - 8}` : '☆'.repeat(Math.max(0, 5 - state.schip.schild)));
                 const hp = state.schipHP ?? 0;
                 const maxHP = state.schip?.maxHP ?? 0;
                 const hpPct = maxHP > 0 ? Math.round(hp / maxHP * 100) : 100;
                 const hpKleur = hpPct >= 80 ? 'var(--groen)' : hpPct >= 50 ? 'var(--oranje)' : 'var(--rood)';
                 return `<div class="tt-label">${state.schip.naam}</div>
                     ${template ? `<div class="tt-beschr">${template.beschrijving}</div>` : ''}
-                    <div class="tt-rij"><span>Snelheid</span><span class="tt-ster">${sterren}</span></div>
+                    <div class="tt-rij"><span>Snelheid</span><span class="tt-ster">${snelSterren}</span></div>
+                    <div class="tt-rij"><span>Schild</span><span class="tt-ster">${schildSterren}</span></div>
                     <div class="tt-rij"><span>HP</span><span style="color:${hpKleur}">${hp}/${maxHP} (${hpPct}%)</span></div>
                     ${hpPct < 50 ? '<div class="tt-schade">⚠ Lage HP — repareer zo snel mogelijk!</div>' : ''}`;
             }
@@ -744,6 +746,7 @@ const UI = {
             { cat: 'ruim',          icoon: '📦', naam: 'Vrachtruim',       beschrijving: '+10 ton laadruimte per niveau' },
             { cat: 'brandstofTank', icoon: '⛽', naam: 'Brandstoftank',    beschrijving: '+10 l tankinhoud per niveau' },
             { cat: 'passagiers',    icoon: '🧳', naam: 'Passagiersruimte', beschrijving: '+2 passagiersplaatsen per niveau' },
+            { cat: 'schild',        icoon: '🛡️', naam: 'Schild',           beschrijving: '+1 schildsterkte per niveau (betere ontsnappingskans en bescherming)' },
         ];
         let upgHtml = '<div class="upgrade-raster">';
         stapUpgrades.forEach(u => {
@@ -760,8 +763,7 @@ const UI = {
         });
         upgHtml += '</div>';
         const eenmaligeCats = [
-            { id: 'schild', naam: '🛡️ Verdediging' },
-            { id: 'extra',  naam: '📡 Extra' },
+            { id: 'extra', naam: '📡 Extra' },
         ];
         eenmaligeCats.forEach(cat => {
             const catUpgrades = UPGRADES.filter(u => u.categorie === cat.id);

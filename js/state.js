@@ -63,7 +63,7 @@ class GameState {
         this.verzekering = null;            // null of { actief: true }
 
         // Oneindige upgrade niveaus
-        this.upgradeNiveaus = { motor: 0, ruim: 0, brandstofTank: 0, passagiers: 0 };
+        this.upgradeNiveaus = { motor: 0, ruim: 0, brandstofTank: 0, passagiers: 0, schild: 0 };
 
         // Concurrenten
         this.concurrenten = [];             // [{id, locatie, krediet, waardeGeschiedenis}]
@@ -966,8 +966,8 @@ class GameState {
 
     _upgradeStapPrijs(cat) {
         const niveau = this.upgradeNiveaus?.[cat] ?? 0;
-        const basis  = { motor: 2500, ruim: 1200, brandstofTank: 800, passagiers: 2500 }[cat] ?? 1000;
-        const factor = { motor: 2.0,  ruim: 1.8,  brandstofTank: 1.7, passagiers: 2.2 }[cat] ?? 2.0;
+        const basis  = { motor: 2500, ruim: 1200, brandstofTank: 800, passagiers: 2500, schild: 1800 }[cat] ?? 1000;
+        const factor = { motor: 2.0,  ruim: 1.8,  brandstofTank: 1.7, passagiers: 2.2, schild: 1.9  }[cat] ?? 2.0;
         return Math.round(basis * Math.pow(factor, niveau));
     }
 
@@ -984,7 +984,8 @@ class GameState {
         if (cat === 'ruim')         this.schip.laadruimte           += 10;
         if (cat === 'brandstofTank') this.schip.brandstofTank       += 10;
         if (cat === 'passagiers')   this.schip.passagiersCapaciteit += 2;
-        const namen = { motor: 'Motor', ruim: 'Vrachtruim', brandstofTank: 'Brandstoftank', passagiers: 'Passagiersruimte' };
+        if (cat === 'schild')       this.schip.schild               += 1;
+        const namen = { motor: 'Motor', ruim: 'Vrachtruim', brandstofTank: 'Brandstoftank', passagiers: 'Passagiersruimte', schild: 'Schild' };
         this.voegBerichtToe(`${namen[cat]} opgewaardeerd naar niveau ${n} voor ${this.formatteerKrediet(prijs)}.`, 'succes');
         this.controleerAchievements();
         return { succes: true };
@@ -1064,6 +1065,7 @@ class GameState {
             this.schip.laadruimte           += this.upgradeNiveaus.ruim * 10;
             this.schip.brandstofTank        += this.upgradeNiveaus.brandstofTank * 10;
             this.schip.passagiersCapaciteit += this.upgradeNiveaus.passagiers * 2;
+            this.schip.schild               += (this.upgradeNiveaus.schild ?? 0);
         }
 
         this.speler.krediet = this.speler.krediet - nettoPrijs;
@@ -1319,7 +1321,8 @@ class GameState {
             this.achievements = new Set(data.achievements || []);
             this.reisData = null;
             this.geselecteerdePlaneet = null;
-            if (!this.upgradeNiveaus) this.upgradeNiveaus = { motor: 0, ruim: 0, brandstofTank: 0, passagiers: 0 };
+            if (!this.upgradeNiveaus) this.upgradeNiveaus = { motor: 0, ruim: 0, brandstofTank: 0, passagiers: 0, schild: 0 };
+            if (this.upgradeNiveaus.schild === undefined) this.upgradeNiveaus.schild = 0;
             // Migratie: old saves had passagiers as array
             if (Array.isArray(this.passagiers)) this.passagiers = this.passagiers.length;
             if (!this.passagiersTicketprijs) this.passagiersTicketprijs = 0;

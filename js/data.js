@@ -154,28 +154,6 @@ const SCHEPEN = [
 
 const UPGRADES = [
     {
-        id: 'schild_mk2',
-        naam: 'Energieschild Mk.II',
-        categorie: 'schild',
-        beschrijving: 'Betere bescherming bij gevaarlijke events. +1 schildwaarde.',
-        icoon: '🛡️',
-        prijs: 2200,
-        vereist: null,
-        effect: { schild: 1 },
-        niveau: 1,
-    },
-    {
-        id: 'schild_mk3',
-        naam: 'Militair Schild',
-        categorie: 'schild',
-        beschrijving: 'Soldatenkwaliteit defensie. +2 schildwaarde extra.',
-        icoon: '🔰',
-        prijs: 6500,
-        vereist: 'schild_mk2',
-        effect: { schild: 2 },
-        niveau: 2,
-    },
-    {
         id: 'radar',
         naam: 'Handelsradar',
         categorie: 'extra',
