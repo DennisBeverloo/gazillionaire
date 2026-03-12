@@ -106,7 +106,7 @@ Aqueron (25,75)               Techton (82,72)
 |---|---|---|---|---|---|---|---|
 | **Rondsloffer** 🛸 | 3.000 cr | ★☆☆☆☆ | 30 ton | 4 | 80 L | ★☆☆☆☆ | 40 |
 | **Vrije Handelaar** 🚀 | 6.000 cr | ★★☆☆☆ | 50 ton | 8 | 110 L | ★★☆☆☆ | 60 |
-| **Vleugelschipper** ✈️ | 9.500 cr | ★★★★☆ | 35 ton | 12 | 70 L | ★☆☆☆☆ | 50 |
+| **Vleugelschipper** ✈️ | 7.500 cr | ★★★★☆ | 35 ton | 12 | 70 L | ★☆☆☆☆ | 50 |
 
 **Aankoop van een nieuw schip** (bij scheepswerf op Nexoria of Techton):
 - Huidig schip wordt verkocht voor 60% van de originele aankoopprijs
@@ -267,6 +267,9 @@ js/main.js        — App object, event handlers, init
 |---|---|
 | HP-slijtage per rit verwijderd | Voelde niet logisch — schip beschadigt alleen bij events |
 | Vrije Handelaar 9.000 → 6.000 cr | Was te duur voor het middenklasseschip; te weinig startkapitaal over |
+| Vleugelschipper 9.500 → 7.500 cr | Balansfix: 500 cr startkapitaal was onbespeelbaar; nu 2.500 cr |
+| Achievement upgrade-drempels verlaagd | Niveau 10/25/50 → 3/6/10 (motor/ruim/tank), 3/5/8 (passagiers); oude drempels waren onhaalbaar in een normaal spel |
+| Verzekeringsprijs verlaagd | Formule 300+cap×8+pax×60 → 80+cap×2+pax×10; nu 170–340 cr in plaats van 780–1300 cr |
 | `cr` → `credits` in UI | Duidelijker voor nieuwe spelers |
 | 150 beurten vast | Geeft urgentie en zorgt voor zinvolle beslissingen; eindig is spannender |
 | Supabase anon key is publiek | By design — beveiliging via RLS policies, niet via het verborgen houden van de key |

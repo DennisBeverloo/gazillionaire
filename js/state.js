@@ -992,7 +992,7 @@ class GameState {
     _berekenVerzekeringsPrijs() {
         const cap = this.schip?.laadruimte ?? 30;
         const pax = this.schip?.passagiersCapaciteit ?? 0;
-        return Math.round(300 + cap * 8 + pax * 60);
+        return Math.round(80 + cap * 2 + pax * 10);
     }
 
     koopVerzekering() {
