@@ -872,6 +872,7 @@ class GameState {
     // =========================================================================
 
     koopGoed(goedId, aantal) {
+        if (!Number.isInteger(aantal) || aantal < 1) return { succes: false, reden: 'Ongeldig aantal.' };
         const goed = GOEDEREN.find(g => g.id === goedId);
         const prijs = this.getPrijs(this.locatie, goedId);
         const totaal = prijs * aantal;
@@ -898,6 +899,7 @@ class GameState {
     }
 
     verkoopGoed(goedId, aantal) {
+        if (!Number.isInteger(aantal) || aantal < 1) return { succes: false, reden: 'Ongeldig aantal.' };
         const goed = GOEDEREN.find(g => g.id === goedId);
         const prijs = this.getPrijs(this.locatie, goedId);
         const totaal = prijs * aantal;

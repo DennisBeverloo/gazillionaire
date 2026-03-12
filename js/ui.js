@@ -1043,9 +1043,11 @@ const UI = {
                     const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`;
                     const datum = new Date(s.created_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' });
                     const eindeLabel = s.einde_reden === 'bankroet' ? ' 💸' : '';
+                    const naam = (s.speler_naam ?? '').replace(/[<>"'&]/g, c => ({'<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','&':'&amp;'}[c]));
+                    const schipNaam = (s.schip_naam ?? '').replace(/[<>"'&]/g, c => ({'<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','&':'&amp;'}[c]));
                     tbl += `<div class="ranglijst-rij">
                         <span class="ranglijst-pos">${medal}</span>
-                        <span class="ranglijst-naam">${s.speler_naam}${eindeLabel} <span class="ranglijst-type">${s.schip_naam ?? ''}</span></span>
+                        <span class="ranglijst-naam">${naam}${eindeLabel} <span class="ranglijst-type">${schipNaam}</span></span>
                         <span class="ranglijst-waarde">${state.formatteerKrediet(s.eindkapitaal)}</span>
                         <span class="kleur-dimmed" style="font-size:0.78em;white-space:nowrap">${datum}</span>
                     </div>`;

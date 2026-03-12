@@ -60,7 +60,8 @@ const App = {
     startIntro() {
         // Wis oude save: speler start bewust een nieuw spel
         state.wisSave();
-        state.speler.naam = document.getElementById('speler-naam').value.trim() || 'Kapitein';
+        state.speler.naam = (document.getElementById('speler-naam').value.trim() || 'Kapitein')
+            .replace(/[<>"'&]/g, '').slice(0, 24);
         UI.renderSchipSelectie();
     },
 
