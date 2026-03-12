@@ -371,6 +371,14 @@ const App = {
         if (!res.succes) this._fout(res.reden); else { Audio.upgrade(); UI.renderSpel(); }
     },
 
+    plaatsVeilingBod() {
+        const input = document.getElementById('agria-bod');
+        const bod   = input ? parseInt(input.value, 10) : 0;
+        const res   = state.plaatsVeilingBod(bod);
+        if (!res.succes) this._fout(res.reden);
+        else UI.renderSpel();
+    },
+
     verwerkFerroiet() {
         const input   = document.getElementById('ferrum-batches');
         const batches = input ? (parseInt(input.value, 10) || 1) : 1;

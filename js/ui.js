@@ -844,6 +844,8 @@ const UI = {
 
         if (state.locatie === 'ferrum') {
             html += this._renderFerrum();
+        } else if (state.locatie === 'agria') {
+            html += this._renderAgria();
         } else {
             html += `<div class="planeet-geen-dienst">Geen speciale diensten beschikbaar op ${planeet.naam}.</div>`;
         }
@@ -936,6 +938,105 @@ const UI = {
             </div>`;
 
         if (knop) knop.disabled = !kanVerwerken;
+    },
+
+    // =========================================================================
+    // AGRIA VEILING
+    // =========================================================================
+
+    _renderAgria() {
+        const veiling = state.agriaVeiling;
+        let html = `<div class="planeet-dienst-blok">
+            <div class="sectie-header">🔨 Agria Oogstveiling</div>`;
+
+        if (!veiling) {
+            html += `<p class="kleur-dimmed" style="font-size:0.87em;padding:14px 0">
+                Vandaag is er geen veiling op Agria. Kom de volgende keer terug.
+            </p>`;
+        } else if (veiling.fase === 'open') {
+            const benodigdGewicht = veiling.hoeveelheid * veiling.goedGewicht;
+            const vrijeRuimte     = state.schip.laadruimte - state.getLadingGewicht();
+            const ruimteWaarschuwing = vrijeRuimte < benodigdGewicht;
+
+            html += `<p class="kleur-dimmed" style="font-size:0.83em;margin:4px 0 12px">
+                Gesloten bod — iedereen biedt éénmalig tegelijk. Hoogste bieder wint het lot.
+            </p>
+            <div class="planeet-dienst-rij">
+                <span class="label">📦 Lot</span>
+                <span class="waarde">${veiling.hoeveelheid}× ${veiling.goedIcoon} ${veiling.goedNaam}
+                    <span class="kleur-dimmed">(${benodigdGewicht} ton)</span></span>
+            </div>
+            <div class="planeet-dienst-rij">
+                <span class="label">🏷 Minimumprijs</span>
+                <span class="waarde kleur-goud">${state.formatteerKrediet(veiling.minimumprijs)}</span>
+            </div>
+            <div class="planeet-dienst-rij">
+                <span class="label">💰 Jouw credits</span>
+                <span class="waarde">${state.formatteerKrediet(state.speler.krediet)}</span>
+            </div>
+            <div class="planeet-dienst-rij">
+                <span class="label">👥 Mededingers</span>
+                <span class="waarde">${veiling.npcDeelnemers.map(n => `${n.icoon} ${n.naam}`).join(', ')}</span>
+            </div>`;
+
+            if (ruimteWaarschuwing) {
+                html += `<div class="info-balk" style="background:rgba(255,140,66,0.1);border-color:rgba(255,140,66,0.3);color:var(--oranje);margin:10px 0;font-size:0.83em">
+                    ⚠ Ruimtewaarschuwing: je hebt ${vrijeRuimte} ton vrij maar dit lot weegt ${benodigdGewicht} ton.
+                    Bij winst worden de goederen <strong>niet</strong> geladen maar de credits wél afgeschreven.
+                </div>`;
+            }
+
+            html += `<div class="planeet-dienst-batch" style="margin-top:14px">
+                <label for="agria-bod">Jouw bod:</label>
+                <input type="number" id="agria-bod" class="aantal-invoer" style="width:140px"
+                    min="${veiling.minimumprijs}" value="${veiling.minimumprijs}" step="50">
+                <button class="knop primair" onclick="App.plaatsVeilingBod()">🔨 Bod plaatsen</button>
+            </div>`;
+        } else {
+            html += this._renderAgriaResultaat(veiling);
+        }
+
+        html += '</div>';
+        return html;
+    },
+
+    _renderAgriaResultaat(veiling) {
+        const r = veiling.resultaat;
+        let html = '';
+
+        if (r.gewonnen) {
+            html += `<div class="veiling-resultaat-banner veiling-gewonnen">🏆 Jij wint de veiling!</div>`;
+            if (r.ruimteTeVol) {
+                html += `<p class="kleur-rood" style="font-size:0.85em;margin:8px 0 14px">
+                    Je ruim was te vol — de goederen zijn achtergelaten.
+                    ${state.formatteerKrediet(r.spelerBod)} afgeschreven.
+                </p>`;
+            } else {
+                html += `<p class="kleur-groen" style="font-size:0.85em;margin:8px 0 14px">
+                    ${veiling.hoeveelheid}× ${veiling.goedIcoon} ${veiling.goedNaam} geladen in je ruim.
+                </p>`;
+            }
+        } else {
+            html += `<div class="veiling-resultaat-banner veiling-verloren">❌ Veiling verloren</div>`;
+            html += `<p class="kleur-dimmed" style="font-size:0.85em;margin:8px 0 14px">
+                Jouw bod was niet hoog genoeg. Probeer het bij een volgende veiling.
+            </p>`;
+        }
+
+        html += `<table class="veiling-boden-tabel"><thead>
+            <tr><th>Bieder</th><th style="text-align:right">Bod</th></tr>
+        </thead><tbody>`;
+
+        r.alleBoden.forEach((b, i) => {
+            const isWinnaar = i === 0;
+            html += `<tr class="${isWinnaar ? 'veiling-winnaar-rij' : ''}">
+                <td>${b.isSpeler ? '👤 Jij' : b.naam} ${isWinnaar ? '🏆' : ''}</td>
+                <td style="font-family:var(--font-data);text-align:right">${state.formatteerKrediet(b.bod)}</td>
+            </tr>`;
+        });
+
+        html += '</tbody></table>';
+        return html;
     },
 
     // =========================================================================

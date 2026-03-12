@@ -37,7 +37,7 @@ class GameState {
         this.gekochteUpgrades = [];
         this.geselecteerdePlaneet = null; // for map click
         this.tipsGezien = {};
-        this.statistieken = { handelstransacties: 0, gereisd: 0, eventsMeegemaakt: 0, passagiersAfgeleverd: 0, verkopen: 0, cargoTonVervoerd: 0, ferroietVerwerkt: 0 };
+        this.statistieken = { handelstransacties: 0, gereisd: 0, eventsMeegemaakt: 0, passagiersAfgeleverd: 0, verkopen: 0, cargoTonVervoerd: 0, ferroietVerwerkt: 0, veilingenGewonnen: 0 };
         this.planeetBezoeken = {};
 
         // Nieuwe velden
@@ -59,6 +59,9 @@ class GameState {
 
         // Marketing
         this.marketingActief = null;        // { planeet: planeetId, kosten } of null
+
+        // Agria veiling
+        this.agriaVeiling = null;
 
         // Verzekering
         this.verzekering = null;            // null of { actief: true }
@@ -380,6 +383,9 @@ class GameState {
         // Verzekering vervalt bij aankomst
         this.verzekering = null;
 
+        // Planeet-specifieke diensten initialiseren
+        if (this.locatie === 'agria') this.initAgriaVeiling();
+
         this.controleerAchievements();
         this.controleerSpelEinde();
         return { passagiersInfo };
@@ -556,6 +562,94 @@ class GameState {
         this.voegBerichtToe(`⚙️ ${batches} batch(es) verwerkt: ${ferroietNodig}× Ferroiet → ${output}× Kristalliet (kosten: ${this.formatteerKrediet(kosten)})`, 'succes');
         this.controleerAchievements();
         return { succes: true, output, kosten };
+    }
+
+    initAgriaVeiling() {
+        this.agriaVeiling = null;
+        if (Math.random() > 0.60) return; // 60% kans
+
+        const goedId = Math.random() < 0.5 ? 'nebulakorrels' : 'aquapure';
+        const goed   = GOEDEREN.find(g => g.id === goedId);
+
+        // Hoeveelheid in eenheden; kies opties die ~15-35 ton geven
+        const unitOpties = goedId === 'nebulakorrels'
+            ? [8, 10, 12, 14, 16]   // × 2 ton = 16/20/24/28/32 ton
+            : [5, 7, 9, 11];         // × 3 ton = 15/21/27/33 ton
+        const hoeveelheid = unitOpties[Math.floor(Math.random() * unitOpties.length)];
+
+        const marktprijs   = this.getPrijs('agria', goedId);
+        const minimumprijs = Math.round(marktprijs * hoeveelheid * 0.65);
+
+        // 1–3 NPC-deelnemers
+        const aantalNPCs = 1 + Math.floor(Math.random() * 3);
+        const npcDeelnemers = [...CONCURRENTEN]
+            .sort(() => Math.random() - 0.5)
+            .slice(0, aantalNPCs)
+            .map(npc => ({
+                id:       npc.id,
+                naam:     npc.naam,
+                icoon:    npc.icoon,
+                maxPrijs: Math.round(minimumprijs * (1.15 + Math.random() * 0.35)),
+            }));
+
+        this.agriaVeiling = {
+            goedId,
+            goedNaam:   goed.naam,
+            goedIcoon:  goed.icoon,
+            goedGewicht: goed.gewicht,
+            hoeveelheid,
+            minimumprijs,
+            npcDeelnemers,
+            fase: 'open',
+            resultaat: null,
+        };
+
+        this.voegBerichtToe(`🔨 Er is een oogstveiling op Agria! Open de Planeet-tab voor details.`, 'goud');
+    }
+
+    plaatsVeilingBod(bod) {
+        if (!this.agriaVeiling || this.agriaVeiling.fase !== 'open')
+            return { succes: false, reden: 'Geen actieve veiling.' };
+
+        const veiling = this.agriaVeiling;
+        bod = Math.round(bod);
+
+        if (isNaN(bod) || bod < veiling.minimumprijs)
+            return { succes: false, reden: `Bod te laag — minimum is ${this.formatteerKrediet(veiling.minimumprijs)}.` };
+        if (bod > this.speler.krediet)
+            return { succes: false, reden: 'Onvoldoende credits voor dit bod.' };
+
+        // NPC bieden elk hun geheime maximumprijs
+        const alleBoden = [
+            { naam: 'Jij', bod, isSpeler: true },
+            ...veiling.npcDeelnemers.map(npc => ({ naam: `${npc.icoon} ${npc.naam}`, bod: npc.maxPrijs, isSpeler: false })),
+        ].sort((a, b) => b.bod - a.bod || (a.isSpeler ? -1 : 1)); // tiebreak: speler wint
+
+        const spelerWint = alleBoden[0].isSpeler;
+        veiling.fase = 'resultaat';
+        veiling.resultaat = { gewonnen: spelerWint, spelerBod: bod, alleBoden, goederenGeladen: false, ruimteTeVol: false };
+
+        if (spelerWint) {
+            this.speler.krediet -= bod;
+            const benodigdGewicht = veiling.hoeveelheid * veiling.goedGewicht;
+            const vrijeRuimte     = this.schip.laadruimte - this.getLadingGewicht();
+
+            if (vrijeRuimte >= benodigdGewicht) {
+                this.lading[veiling.goedId] = (this.lading[veiling.goedId] || 0) + veiling.hoeveelheid;
+                veiling.resultaat.goederenGeladen = true;
+                this.statistieken.veilingenGewonnen++;
+                this.voegBerichtToe(`🔨 Veiling gewonnen! ${veiling.hoeveelheid}× ${veiling.goedNaam} geladen voor ${this.formatteerKrediet(bod)}.`, 'succes');
+                this.controleerAchievements();
+            } else {
+                veiling.resultaat.ruimteTeVol = true;
+                this.voegBerichtToe(`🔨 Veiling gewonnen maar ruim te vol! Goederen achtergelaten, ${this.formatteerKrediet(bod)} afgeschreven.`, 'waarschuwing');
+            }
+        } else {
+            const winnaar = alleBoden[0];
+            this.voegBerichtToe(`🔨 Veiling verloren. ${winnaar.naam} bood ${this.formatteerKrediet(winnaar.bod)}.`, 'info');
+        }
+
+        return { succes: true };
     }
 
     // =========================================================================

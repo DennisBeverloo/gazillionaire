@@ -717,6 +717,15 @@ const ACHIEVEMENTS = [
         check: s => s.statistieken.passagiersAfgeleverd >= 1,
     },
     {
+        id: 'veilingmeester',
+        naam: 'Veilingmeester',
+        icoon: '🔨',
+        categorie: 'events',
+        beschrijving: 'Win een oogstveiling op Agria.',
+        beloning: 1000,
+        check: s => (s.statistieken.veilingenGewonnen ?? 0) >= 1,
+    },
+    {
         id: 'alchemist',
         naam: 'Alchemist',
         icoon: '🧪',

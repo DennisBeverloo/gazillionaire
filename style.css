@@ -1410,6 +1410,50 @@ html, body {
     padding: 32px 0;
 }
 
+/* VEILING */
+.veiling-resultaat-banner {
+    text-align: center;
+    font-family: var(--font-titel);
+    font-size: 0.95em;
+    letter-spacing: 0.08em;
+    padding: 10px 14px;
+    border-radius: 6px;
+    margin: 10px 0 6px;
+}
+.veiling-gewonnen {
+    background: rgba(57,255,20,0.1);
+    color: var(--groen);
+    border: 1px solid rgba(57,255,20,0.3);
+}
+.veiling-verloren {
+    background: rgba(255,56,85,0.1);
+    color: var(--rood);
+    border: 1px solid rgba(255,56,85,0.3);
+}
+.veiling-boden-tabel {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85em;
+    margin-top: 10px;
+}
+.veiling-boden-tabel th {
+    padding: 6px 10px;
+    text-align: left;
+    color: var(--tekst-dim);
+    border-bottom: 1px solid var(--rand);
+    font-weight: normal;
+    font-family: var(--font-data);
+    font-size: 0.9em;
+}
+.veiling-boden-tabel td {
+    padding: 6px 10px;
+    border-bottom: 1px solid rgba(21,40,64,0.5);
+}
+.veiling-winnaar-rij td {
+    color: var(--goud);
+    font-weight: 600;
+}
+
 /* KREDIET NEGATIEF */
 .krediet-negatief { color: var(--rood) !important; }
 
