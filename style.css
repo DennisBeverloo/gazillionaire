@@ -708,6 +708,14 @@ html, body {
 .haven-blok-verzekering .haven-blok-inhoud {
     padding-bottom: 70px;
 }
+.haven-blok-reparatie {
+    background:
+        linear-gradient(to bottom, #07111f 50%, rgba(7,17,31,0) 100%),
+        url('assets/repair-shop.png') no-repeat bottom / 100% auto;
+}
+.haven-blok-reparatie .haven-blok-inhoud {
+    padding-bottom: 70px;
+}
 .haven-blok-header {
     font-family: var(--font-titel);
     font-size: 0.7em;
