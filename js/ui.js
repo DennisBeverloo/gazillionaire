@@ -697,7 +697,7 @@ const UI = {
         const brandstofPct = Math.round(state.brandstof / tank * 100);
         const bKleur = state.brandstof < 20 ? 'var(--rood)' : state.brandstof < 40 ? 'var(--oranje)' : 'var(--groen)';
         const bTekstKlasse = state.brandstof < 20 ? 'kleur-rood' : state.brandstof < 40 ? 'kleur-oranje' : 'kleur-groen';
-        html += `<div class="haven-blok"><div class="haven-blok-header">⛽ Brandstof</div><div class="haven-blok-inhoud">
+        html += `<div class="haven-blok haven-blok-brandstof"><div class="haven-blok-header">⛽ Brandstof</div><div class="haven-blok-inhoud">
             <div class="brandstof-info-rij"><span>Voorraad: <strong class="${bTekstKlasse}">${state.brandstof}/${tank} l</strong></span><span>Prijs: <strong class="kleur-goud">${bPrijs} cr/l</strong></span></div>
             <div class="lading-balk-container" style="margin:6px 0"><div id="brandstof-balk" class="lading-balk${this._animeerBrandstof ? ' animeer' : ''}" style="width:${this._animeerBrandstof ? (this._brandstofPctVoor ?? 0) : brandstofPct}%;background:${bKleur}" data-target="${brandstofPct}"></div></div>
             <div class="brandstof-acties">
