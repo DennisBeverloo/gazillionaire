@@ -170,6 +170,8 @@ const UI = {
 
     updateTopBalk() {
         document.body.dataset.planeet = state.locatie;
+        const planeetObj = PLANETEN.find(p => p.id === state.locatie);
+        document.body.style.setProperty('--planeet-knop-kleur', planeetObj?.kleur ?? 'var(--accent)');
 
         const el = id => document.getElementById(id);
         el('kapitein-display').textContent = `👤 ${state.speler?.naam ?? '---'}`;
