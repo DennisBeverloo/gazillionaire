@@ -9,6 +9,22 @@ git push
 ```
 Doe dit **automatisch** na elke sessie met codewijzigingen, zonder dat de gebruiker daarom hoeft te vragen.
 
+## GitHub Issues — bugworkflow
+
+`gh` CLI staat op `C:\Program Files\GitHub CLI\gh.exe`. Altijd PATH instellen voor gebruik:
+```
+export PATH="$PATH:/c/Program Files/GitHub CLI"
+```
+
+**Begin van elke sessie:** controleer open issues:
+```
+gh issue list --repo DennisBeverloo/gazillionaire
+```
+- Pak open issues op, fix ze, commit & push
+- Sluit het issue met een comment: `gh issue close <nr> --comment "beschrijving fix"`
+- Stel vragen via: `gh issue comment <nr> --body "vraag"`
+- Issues met label `wontfix` of `question` niet zomaar sluiten
+
 ## Cache buster — verplicht bij elke CSS of JS wijziging
 Bij elke commit waarbij CSS of JavaScript is gewijzigd, moet de cache buster worden opgehoogd. Doe dit op **twee plaatsen**:
 
