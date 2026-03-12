@@ -371,6 +371,14 @@ const App = {
         if (!res.succes) this._fout(res.reden); else { Audio.upgrade(); UI.renderSpel(); }
     },
 
+    verwerkFerroiet() {
+        const input   = document.getElementById('ferrum-batches');
+        const batches = input ? (parseInt(input.value, 10) || 1) : 1;
+        const res     = state.verwerkFerroiet(batches);
+        if (!res.succes) this._fout(res.reden);
+        else { Audio.upgrade(); UI.renderSpel(); }
+    },
+
     koopVerzekering() {
         const res = state.koopVerzekering();
         if (!res.succes) this._fout(res.reden); else UI.renderSpel();

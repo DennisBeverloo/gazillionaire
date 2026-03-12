@@ -37,7 +37,7 @@ class GameState {
         this.gekochteUpgrades = [];
         this.geselecteerdePlaneet = null; // for map click
         this.tipsGezien = {};
-        this.statistieken = { handelstransacties: 0, gereisd: 0, eventsMeegemaakt: 0, passagiersAfgeleverd: 0, verkopen: 0, cargoTonVervoerd: 0 };
+        this.statistieken = { handelstransacties: 0, gereisd: 0, eventsMeegemaakt: 0, passagiersAfgeleverd: 0, verkopen: 0, cargoTonVervoerd: 0, ferroietVerwerkt: 0 };
         this.planeetBezoeken = {};
 
         // Nieuwe velden
@@ -527,6 +527,35 @@ class GameState {
     vulTankVol() {
         const ruimte = this.schip.brandstofTank - this.brandstof;
         return this.koopBrandstof(ruimte);
+    }
+
+    // =========================================================================
+    // PLANEET-SPECIFIEKE DIENSTEN
+    // =========================================================================
+
+    verwerkFerroiet(batches) {
+        if (!Number.isInteger(batches) || batches < 1)
+            return { succes: false, reden: 'Ongeldig aantal batches.' };
+        if (this.locatie !== 'ferrum')
+            return { succes: false, reden: 'Alleen beschikbaar op Ferrum.' };
+
+        const ferroietNodig = batches * 3;
+        const kosten        = batches * 120;
+        const output        = batches; // 1 ton Kristalliet per batch
+
+        if ((this.lading['ferroiet'] || 0) < ferroietNodig)
+            return { succes: false, reden: `Onvoldoende Ferroiet. Nodig: ${ferroietNodig} ton.` };
+        if (this.speler.krediet < kosten)
+            return { succes: false, reden: `Onvoldoende credits voor verwerkingskosten (${this.formatteerKrediet(kosten)}).` };
+
+        this.lading['ferroiet']    -= ferroietNodig;
+        this.lading['kristalliet']  = (this.lading['kristalliet'] || 0) + output;
+        this.speler.krediet        -= kosten;
+        this.statistieken.ferroietVerwerkt = (this.statistieken.ferroietVerwerkt || 0) + ferroietNodig;
+
+        this.voegBerichtToe(`⚙️ ${batches} batch(es) verwerkt: ${ferroietNodig}× Ferroiet → ${output}× Kristalliet (kosten: ${this.formatteerKrediet(kosten)})`, 'succes');
+        this.controleerAchievements();
+        return { succes: true, output, kosten };
     }
 
     // =========================================================================

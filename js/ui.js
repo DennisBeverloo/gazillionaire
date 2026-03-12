@@ -67,6 +67,7 @@ const UI = {
             case 'logboek':      this.renderLogboekTab();      break;
             case 'ranglijst':    this.renderRanglijstTab();    break;
             case 'achievements': this.renderAchievementsTab(); break;
+            case 'planeet':      this.renderPlaneetTab();      break;
         }
 
         // *** KRITIEKE FIX: toggle tab-panelen ÉN tab-knoppen ***
@@ -830,6 +831,111 @@ const UI = {
                 if (balk) balk.style.width = balk.dataset.target + '%';
             });
         }
+    },
+
+    // =========================================================================
+    // PLANEET TAB — planeet-specifieke diensten
+    // =========================================================================
+
+    renderPlaneetTab() {
+        const container = document.getElementById('planeet-tab');
+        const planeet   = PLANETEN.find(p => p.id === state.locatie);
+        let html = `<div class="planeet-dienst-header">🪐 ${planeet.naam} — Planeetdiensten</div>`;
+
+        if (state.locatie === 'ferrum') {
+            html += this._renderFerrum();
+        } else {
+            html += `<div class="planeet-geen-dienst">Geen speciale diensten beschikbaar op ${planeet.naam}.</div>`;
+        }
+
+        container.innerHTML = html;
+
+        // Initialiseer preview direct na render
+        if (state.locatie === 'ferrum') this._updateFerrumPreview();
+    },
+
+    _renderFerrum() {
+        const ferroiet    = state.lading['ferroiet'] || 0;
+        const maxBatches  = Math.floor(ferroiet / 3);
+        const kristPrijs  = state.getPrijs('ferrum', 'kristalliet');
+
+        let html = `<div class="planeet-dienst-blok">
+            <div class="sectie-header">⚙️ Ertsverwerkingsfaciliteit</div>
+            <p class="kleur-dimmed" style="font-size:0.83em;margin:4px 0 12px">
+                Verwerk ruwe Ferroiet tot waardevolle Kristalliet. 3 ton Ferroiet → 1 ton Kristalliet.
+            </p>
+            <div class="planeet-dienst-rij">
+                <span class="label">🔩 Ferroiet in ruim</span>
+                <span class="waarde">${ferroiet} ton</span>
+            </div>
+            <div class="planeet-dienst-rij">
+                <span class="label">Beschikbare batches</span>
+                <span class="waarde ${maxBatches === 0 ? 'kleur-rood' : 'kleur-groen'}">${maxBatches}</span>
+            </div>
+            <div class="planeet-dienst-rij">
+                <span class="label">💠 Kristalliet marktprijs (hier)</span>
+                <span class="waarde kleur-goud">${state.formatteerKrediet(kristPrijs)}/ton</span>
+            </div>`;
+
+        if (maxBatches > 0) {
+            html += `<div class="planeet-dienst-batch">
+                <label for="ferrum-batches">Aantal batches:</label>
+                <input type="number" id="ferrum-batches" class="aantal-invoer" min="1" max="${maxBatches}" value="1"
+                    oninput="UI._updateFerrumPreview()">
+                <button class="knop dimmed klein" onclick="UI._updateFerrumBatches(-1)">−</button>
+                <button class="knop dimmed klein" onclick="UI._updateFerrumBatches(1)">+</button>
+            </div>
+            <div id="ferrum-preview" class="planeet-dienst-blok" style="margin-bottom:10px;padding:10px 14px">
+            </div>
+            <button class="knop primair" id="ferrum-verwerk-knop" onclick="App.verwerkFerroiet()">⚙️ Verwerk</button>`;
+        } else {
+            html += `<p class="kleur-rood" style="margin-top:12px;font-size:0.85em">
+                ⚠ Minimaal 3 ton Ferroiet nodig voor verwerking.
+            </p>`;
+        }
+
+        html += '</div>';
+        return html;
+    },
+
+    _updateFerrumBatches(delta) {
+        const input = document.getElementById('ferrum-batches');
+        if (!input) return;
+        const max = parseInt(input.max, 10);
+        const nieuw = Math.max(1, Math.min(max, (parseInt(input.value, 10) || 1) + delta));
+        input.value = nieuw;
+        this._updateFerrumPreview();
+    },
+
+    _updateFerrumPreview() {
+        const input   = document.getElementById('ferrum-batches');
+        const preview = document.getElementById('ferrum-preview');
+        const knop    = document.getElementById('ferrum-verwerk-knop');
+        if (!input || !preview) return;
+
+        const batches     = Math.max(1, parseInt(input.value, 10) || 1);
+        const ferroiet    = state.lading['ferroiet'] || 0;
+        const maxBatches  = Math.floor(ferroiet / 3);
+        const effectief   = Math.min(batches, maxBatches);
+        const kosten      = effectief * 120;
+        const output      = effectief;
+        const kanVerwerken = effectief > 0 && state.speler.krediet >= kosten;
+
+        preview.innerHTML = `
+            <div class="planeet-dienst-rij">
+                <span class="label">🔩 Ferroiet verbruikt</span>
+                <span class="waarde kleur-rood">−${effectief * 3} ton</span>
+            </div>
+            <div class="planeet-dienst-rij">
+                <span class="label">💠 Kristalliet output</span>
+                <span class="waarde kleur-groen">+${output} ton</span>
+            </div>
+            <div class="planeet-dienst-rij">
+                <span class="label">Verwerkingskosten</span>
+                <span class="waarde ${kanVerwerken ? '' : 'kleur-rood'}">${state.formatteerKrediet(kosten)}</span>
+            </div>`;
+
+        if (knop) knop.disabled = !kanVerwerken;
     },
 
     // =========================================================================

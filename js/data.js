@@ -716,6 +716,15 @@ const ACHIEVEMENTS = [
         beloning: 600,
         check: s => s.statistieken.passagiersAfgeleverd >= 1,
     },
+    {
+        id: 'alchemist',
+        naam: 'Alchemist',
+        icoon: '🧪',
+        categorie: 'schip',
+        beschrijving: 'Verwerk in totaal 30 ton Ferroiet in de ertsverwerkingsfaciliteit op Ferrum.',
+        beloning: 1500,
+        check: s => (s.statistieken.ferroietVerwerkt ?? 0) >= 30,
+    },
 ];
 
 // =============================================================================
