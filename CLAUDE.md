@@ -27,8 +27,8 @@ gh issue list --repo DennisBeverloo/gazillionaire
 - Issues met label `wontfix` of `question` niet zomaar sluiten
 - Na het verwerken van issues: stel een cron in die elke 5 minuten opnieuw checkt (zie hieronder)
 
-**Cron (elke 5 minuten, zolang sessie actief is):**
-Stel na de startup-check automatisch een cron in met interval `*/5 * * * *` en de prompt:
+**Cron (elke 15 minuten, zolang sessie actief is):**
+Stel na de startup-check automatisch een cron in met interval `*/15 * * * *` en de prompt:
 `Controleer GitHub Issues op DennisBeverloo/gazillionaire. Als er open issues zijn zonder label 'wontfix' of 'question': pak ze op, fix ze, commit, push en sluit het issue met een comment.`
 
 ## Design: geanimeerde voortgangsbalken
