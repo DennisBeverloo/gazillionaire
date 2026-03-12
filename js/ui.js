@@ -698,21 +698,25 @@ const UI = {
         }
 
         // === BRANDSTOF ===
-        const bPrijs = state.brandstofPrijzen[state.locatie] || 12;
+        const bPrijsBasis = state.brandstofPrijzen[state.locatie] || 12;
+        const bPrijs = state._effectieveBrandstofPrijs();
+        const bIsKorting = state.locatie === 'pyroflux';
         const tank = state.schip?.brandstofTank || 80;
         const vrij = tank - state.brandstof;
-        const vulVolKosten = vrij * bPrijs;
+        const koopMaxKosten = vrij * bPrijs;
         const brandstofPct = Math.round(state.brandstof / tank * 100);
         const bKleur = state.brandstof < 20 ? 'var(--rood)' : state.brandstof < 40 ? 'var(--oranje)' : 'var(--groen)';
         const bTekstKlasse = state.brandstof < 20 ? 'kleur-rood' : state.brandstof < 40 ? 'kleur-oranje' : 'kleur-groen';
+        const prijsHtml = bIsKorting
+            ? `<s>${bPrijsBasis} cr/l</s> <strong class="kleur-goud">${bPrijs} cr/l</strong> <span class="markt-label label-specialiteit">−40% Energiedepot</span>`
+            : `<strong class="kleur-goud">${bPrijs} cr/l</strong>`;
         html += `<div class="haven-blok haven-blok-brandstof"><div class="haven-blok-header">⛽ Brandstof</div><div class="haven-blok-inhoud">
-            <div class="brandstof-info-rij"><span>Voorraad: <strong class="${bTekstKlasse}">${state.brandstof}/${tank} l</strong></span><span>Prijs: <strong class="kleur-goud">${bPrijs} cr/l</strong></span></div>
+            <div class="brandstof-info-rij"><span>Voorraad: <strong class="${bTekstKlasse}">${state.brandstof}/${tank} l</strong></span><span>Prijs: ${prijsHtml}</span></div>
             <div class="lading-balk-container" style="margin:6px 0"><div id="brandstof-balk" class="lading-balk${this._animeerBrandstof ? ' animeer' : ''}" style="width:${this._animeerBrandstof ? (this._brandstofPctVoor ?? 0) : brandstofPct}%;background:${bKleur}" data-target="${brandstofPct}"></div></div>
             <div class="brandstof-acties">
                 <input type="number" id="brandstof-aantal" class="hoeveelheid-input" min="1" max="${vrij}" value="${Math.min(10, vrij)}" style="width:65px" ${vrij <= 0 ? 'disabled' : ''}>
                 <button class="knop primair klein" onclick="App.koopBrandstof()" ${vrij <= 0 ? 'disabled' : ''}>Koop</button>
-                <button class="knop dimmed klein" onclick="App.koopMaxBrandstof()" ${vrij <= 0 ? 'disabled' : ''}>Koop max</button>
-                <button class="knop succes klein" onclick="App.vulTankVol()" ${vrij <= 0 ? 'disabled' : ''}>Vul vol (${state.formatteerKrediet(vulVolKosten)})</button>
+                <button class="knop dimmed klein" onclick="App.koopMaxBrandstof()" ${vrij <= 0 ? 'disabled' : ''}>Koop max (${state.formatteerKrediet(koopMaxKosten)})</button>
             </div>
         </div></div>`;
 

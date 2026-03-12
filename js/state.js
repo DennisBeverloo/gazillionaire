@@ -37,7 +37,8 @@ class GameState {
         this.gekochteUpgrades = [];
         this.geselecteerdePlaneet = null; // for map click
         this.tipsGezien = {};
-        this.statistieken = { handelstransacties: 0, gereisd: 0, eventsMeegemaakt: 0, passagiersAfgeleverd: 0, verkopen: 0, cargoTonVervoerd: 0, ferroietVerwerkt: 0, veilingenGewonnen: 0, schepenGekocht: 0 };
+        this.statistieken = { handelstransacties: 0, gereisd: 0, eventsMeegemaakt: 0, passagiersAfgeleverd: 0, verkopen: 0, cargoTonVervoerd: 0, ferroietVerwerkt: 0, veilingenGewonnen: 0, schepenGekocht: 0, pyrofluxTankbeurten: 0 };
+        this._pyrofluxGetankt = false;
         this.planeetBezoeken = {};
 
         // Nieuwe velden
@@ -385,6 +386,7 @@ class GameState {
 
         // Planeet-specifieke diensten initialiseren
         if (this.locatie === 'agria') this.initAgriaVeiling();
+        if (this.locatie === 'pyroflux') this._pyrofluxGetankt = false;
 
         this.controleerAchievements();
         this.controleerSpelEinde();
@@ -516,8 +518,13 @@ class GameState {
         return Math.round(base * extraFactor);
     }
 
+    _effectieveBrandstofPrijs() {
+        const basis = this.brandstofPrijzen[this.locatie] || 12;
+        return this.locatie === 'pyroflux' ? Math.round(basis * 0.60) : basis;
+    }
+
     koopBrandstof(aantal) {
-        const prijs = this.brandstofPrijzen[this.locatie];
+        const prijs = this._effectieveBrandstofPrijs();
         const tankCapaciteit = this.schip.brandstofTank;
         const ruimte = tankCapaciteit - this.brandstof;
         const effectief = Math.min(aantal, ruimte);
@@ -526,13 +533,12 @@ class GameState {
         if (totaal > this.speler.krediet) return { succes: false, reden: 'Onvoldoende krediet!' };
         this.speler.krediet -= totaal;
         this.brandstof += effectief;
+        if (this.locatie === 'pyroflux' && !this._pyrofluxGetankt) {
+            this._pyrofluxGetankt = true;
+            this.statistieken.pyrofluxTankbeurten = (this.statistieken.pyrofluxTankbeurten ?? 0) + 1;
+        }
         this.voegBerichtToe(`${effectief} liter brandstof getankt voor ${this.formatteerKrediet(totaal)}.`, 'info');
         return { succes: true, getankt: effectief };
-    }
-
-    vulTankVol() {
-        const ruimte = this.schip.brandstofTank - this.brandstof;
-        return this.koopBrandstof(ruimte);
     }
 
     // =========================================================================
@@ -1479,6 +1485,8 @@ class GameState {
             if (!this.schipHP || this.schipHP === 0) this.schipHP = this.schip?.maxHP ?? 40;
             if (!this.planeetBezoeken) this.planeetBezoeken = {};
             if (this.statistieken.cargoTonVervoerd === undefined) this.statistieken.cargoTonVervoerd = 0;
+            if (this.statistieken.pyrofluxTankbeurten === undefined) this.statistieken.pyrofluxTankbeurten = 0;
+            if (this._pyrofluxGetankt === undefined) this._pyrofluxGetankt = false;
             return true;
         } catch(e) {
             return false;

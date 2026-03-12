@@ -743,6 +743,15 @@ const ACHIEVEMENTS = [
         beloning: 1500,
         check: s => (s.statistieken.ferroietVerwerkt ?? 0) >= 30,
     },
+    {
+        id: 'energieboer',
+        naam: 'Energieboer',
+        icoon: '⚡',
+        categorie: 'reizen',
+        beschrijving: 'Tank 10× op het Energiedepot van Pyroflux.',
+        beloning: 600,
+        check: s => (s.statistieken.pyrofluxTankbeurten ?? 0) >= 10,
+    },
 ];
 
 // =============================================================================
