@@ -2,6 +2,8 @@
 // GAZILLIONAIRE: STER DER HANDEL - UI Rendering
 // =============================================================================
 
+const FUEL_IMG = '<img src="assets/fuel.png" class="icoon-brandstof" alt="brandstof">';
+
 const UI = {
 
     // =========================================================================
@@ -111,7 +113,7 @@ const UI = {
         if (planeet.id === 'luxoria') tags.push('🎰 Casino');
         if (planeet.id === 'agria')   tags.push('🏺 Veiling');
         if (planeet.id === 'mortex')  tags.push('💀 Zwarte Markt');
-        if (planeet.id === 'pyroflux') tags.push('⛽ Speciale brandstof');
+        if (planeet.id === 'pyroflux') tags.push(`${FUEL_IMG} Speciale brandstof`);
         return tags;
     },
 
@@ -152,7 +154,7 @@ const UI = {
             </div>
             <div class="brandstof-vereist ${heeftGenoeg ? '' : 'brandstof-tekort'}" style="margin-top:6px">
                 <span class="bestemming-sub-label">Brandstofkosten</span>
-                <div>⛽ ${brandstofNodig} l
+                <div>${FUEL_IMG} ${brandstofNodig} l
                 ${heeftGenoeg
                     ? `<span class="kleur-groen">✓</span>`
                     : `<span class="kleur-rood">✗ tekort: ${brandstofNodig - state.brandstof} l</span>`}
@@ -197,7 +199,7 @@ const UI = {
 
         const brandstof = state.brandstof ?? 0;
         const maxBrandstof = state.schip?.brandstofTank ?? 0;
-        el('brandstof-display').textContent = `⛽ ${brandstof}/${maxBrandstof} l`;
+        el('brandstof-display').innerHTML = `${FUEL_IMG} ${brandstof}/${maxBrandstof} l`;
 
         const kredietEl = el('krediet-display');
         kredietEl.textContent = `💰 ${state.formatteerKrediet(state.speler.krediet)}`;
@@ -473,7 +475,7 @@ const UI = {
             </div>
             ${(s.passagiersCapaciteit || 0) > 0 ? `<div class="stat-rij"><span class="stat-naam">Passagiers</span><span class="stat-waarde">${state.passagiers || 0}/${s.passagiersCapaciteit}</span></div>` : ''}
             <div class="stat-rij">
-                <span class="stat-naam">⛽ Brandstof</span>
+                <span class="stat-naam">${FUEL_IMG} Brandstof</span>
                 <span class="stat-waarde ${state.brandstof < 20 ? 'kleur-rood' : state.brandstof < 40 ? 'kleur-oranje' : ''}">${state.brandstof}/${s.brandstofTank} l</span>
             </div>
             <div class="lading-balk-container">
@@ -765,7 +767,7 @@ const UI = {
         const prijsHtml = bIsKorting
             ? `<s>${bPrijsBasis} cr/l</s> <strong class="kleur-goud">${bPrijs} cr/l</strong> <span class="markt-label label-specialiteit">−40% Energiedepot</span>`
             : `<strong class="kleur-goud">${bPrijs} cr/l</strong>`;
-        html += `<div class="haven-blok haven-blok-brandstof"><div class="haven-blok-header">⛽ Brandstof</div><div class="haven-blok-inhoud">
+        html += `<div class="haven-blok haven-blok-brandstof"><div class="haven-blok-header">${FUEL_IMG} Brandstof</div><div class="haven-blok-inhoud">
             <div class="brandstof-info-rij"><span>Voorraad: <strong class="${bTekstKlasse}">${state.brandstof}/${tank} l</strong></span><span>Prijs: ${prijsHtml}</span></div>
             <div class="lading-balk-container" style="margin:6px 0"><div id="brandstof-balk" class="lading-balk${this._animeerBrandstof ? ' animeer' : ''}" style="width:${this._animeerBrandstof ? (this._brandstofPctVoor ?? 0) : brandstofPct}%;background:${bKleur}" data-target="${brandstofPct}"></div></div>
             <div class="brandstof-acties">

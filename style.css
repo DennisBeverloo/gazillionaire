@@ -2004,6 +2004,14 @@ body[data-planeet="mortex"]  { --planet-accent: #8b0000; }
     animation-delay: 0.3s;
 }
 
+/* ===== BRANDSTOF ICOON ===== */
+.icoon-brandstof {
+    height: 1em;
+    width: auto;
+    vertical-align: middle;
+    margin-right: 1px;
+}
+
 /* ===== MARKTMODIFIER INDICATOR ===== */
 .markt-mod {
     font-size: 0.72em;
