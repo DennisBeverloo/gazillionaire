@@ -7,6 +7,7 @@ const SUPABASE_KEY = 'sb_publishable_0VCRyg7bJPhX3c-rgge6Ew_xT8zgfDM';
 
 const DB = (() => {
     let _client = null;
+    let _sessieId = null;
 
     function client() {
         if (!_client && window.supabase?.createClient) {
@@ -15,28 +16,56 @@ const DB = (() => {
         return _client;
     }
 
+    function _payload(fase) {
+        return {
+            speler_naam:      state.speler.naam,
+            eindkapitaal:     state.berekenNettowaarde(),
+            beurten_gespeeld: state.beurt,
+            schip_naam:       state.schip?.naam ?? null,
+            schip_type:       state.schip?.id ?? null,
+            planeten_bezocht: state.bezochteplaneten?.size ?? 0,
+            transacties:      state.statistieken.handelstransacties,
+            reizen:           state.statistieken.gereisd,
+            achievements:     state.achievements?.size ?? 0,
+            einde_reden:      state.eindeReden ?? null,
+            fase:             fase,
+            versie:           '3.0',
+        };
+    }
+
     return {
-        async slaScoreOp() {
+        // Aanroepen bij start van een nieuw spel (na schipkeuze of doorgaan)
+        async initSessie() {
+            _sessieId = null;
             const db = client();
-            if (!db) { console.warn('Supabase niet beschikbaar'); return; }
+            if (!db) return;
 
-            const { error } = await db.from('game_sessions').insert({
-                speler_naam:      state.speler.naam,
-                eindkapitaal:     state.berekenNettowaarde(),
-                beurten_gespeeld: state.beurt,
-                schip_naam:       state.schip?.naam ?? null,
-                schip_type:       state.schip?.id ?? null,
-                planeten_bezocht: state.bezochteplaneten?.size ?? 0,
-                transacties:      state.statistieken.handelstransacties,
-                reizen:           state.statistieken.gereisd,
-                achievements:     state.achievements?.size ?? 0,
-                einde_reden:      state.eindeReden ?? 'beurten',
-                versie:           '3.0',
-            });
+            const { data, error } = await db
+                .from('game_sessions')
+                .insert(_payload('spel'))
+                .select('id')
+                .single();
 
-            if (error) console.warn('Score opslaan mislukt:', error.message);
+            if (error) { console.warn('Sessie starten mislukt:', error.message); return; }
+            _sessieId = data.id;
         },
 
+        // Aanroepen na elke landing
+        async updateSessie() {
+            if (!_sessieId) return;
+            const db = client();
+            if (!db) return;
+
+            const fase = state.fase === 'einde' ? 'einde' : 'spel';
+            const { error } = await db
+                .from('game_sessions')
+                .update(_payload(fase))
+                .eq('id', _sessieId);
+
+            if (error) console.warn('Sessie updaten mislukt:', error.message);
+        },
+
+        // Ophalen voor ranglijst-tab (alleen voltooide spellen)
         async haalLeaderboardOp(limit = 25) {
             const db = client();
             if (!db) return [];
@@ -44,6 +73,7 @@ const DB = (() => {
             const { data, error } = await db
                 .from('game_sessions')
                 .select('speler_naam, eindkapitaal, schip_naam, beurten_gespeeld, einde_reden, created_at')
+                .eq('fase', 'einde')
                 .order('eindkapitaal', { ascending: false })
                 .limit(limit);
 

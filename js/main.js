@@ -51,7 +51,6 @@ const App = {
         document.getElementById('opnieuw-knop').addEventListener('click', () => {
             state.wisSave();
             state.reset();
-            UI._eindeScoreOpgeslagen = false;
             UI.toonScherm('intro-scherm');
             document.getElementById('speler-naam').value = '';
             document.getElementById('save-sectie').style.display = 'none';
@@ -67,6 +66,7 @@ const App = {
 
     doorgaan() {
         if (!state.laadOp()) return;
+        if (typeof DB !== 'undefined') DB.initSessie();
         UI.toonScherm('spel-scherm');
         UI.renderSpel();
     },
@@ -123,6 +123,7 @@ const App = {
 
     selecteerSchip(schipId) {
         state.init(state.speler.naam, schipId);
+        if (typeof DB !== 'undefined') DB.initSessie();
         UI.toonScherm('spel-scherm');
         UI.renderSpel();
     },
@@ -182,6 +183,7 @@ const App = {
                     UI.toonTransactieToast({ icoon: '🧳', titel: `${pi.aantal} passagier${pi.aantal > 1 ? 's' : ''} afgeleverd`, totaal: pi.totaal });
                 }
                 if (state.fase === 'einde') { state.wisSave(); } else { state.slaOp(); }
+                if (typeof DB !== 'undefined') DB.updateSessie();
                 const planNaam = PLANETEN.find(p => p.id === state.locatie)?.naam ?? '';
                 this._setReisStatus(`✓ Aangekomen op ${planNaam}!`, 'kleur-groen');
                 setTimeout(() => {
@@ -234,6 +236,7 @@ const App = {
                 UI.toonTransactieToast({ icoon: '🧳', titel: `${pi.aantal} passagier${pi.aantal > 1 ? 's' : ''} afgeleverd`, totaal: pi.totaal });
             }
             if (state.fase === 'einde') { state.wisSave(); } else { state.slaOp(); }
+            if (typeof DB !== 'undefined') DB.updateSessie();
             const planNaam = PLANETEN.find(p => p.id === state.locatie)?.naam ?? '';
             this._startFase2(() => {
                 this._setReisStatus(`✓ Aangekomen op ${planNaam}!`, 'kleur-groen');

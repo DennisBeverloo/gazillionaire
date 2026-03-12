@@ -1357,10 +1357,6 @@ const UI = {
 
     toonEindeScherm() {
         this.toonScherm('einde-scherm');
-        if (!this._eindeScoreOpgeslagen) {
-            this._eindeScoreOpgeslagen = true;
-            if (typeof DB !== 'undefined') DB.slaScoreOp();
-        }
         const netto = state.berekenNettowaarde();
         const reden = state.eindeReden;
 

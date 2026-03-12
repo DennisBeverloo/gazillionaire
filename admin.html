@@ -158,10 +158,16 @@
         <div class="stat-kaart"><div class="stat-label">Hoogste score</div><div class="stat-waarde" id="stat-hoogste">—</div></div>
         <div class="stat-kaart"><div class="stat-label">Gemiddelde nettowaarde</div><div class="stat-waarde" id="stat-gemiddeld">—</div></div>
         <div class="stat-kaart"><div class="stat-label">Bankroeten</div><div class="stat-waarde kleur-rood" id="stat-bankroet">—</div></div>
+        <div class="stat-kaart"><div class="stat-label">Nu actief</div><div class="stat-waarde kleur-groen" id="stat-actief">—</div></div>
     </div>
 
     <div class="toolbar">
         <input type="text" id="zoek-input" placeholder="Zoek speler..." oninput="filterSessies()">
+        <select id="fase-filter" onchange="filterSessies()" style="padding:8px 12px;background:var(--panel);border:1px solid var(--rand);border-radius:6px;color:var(--tekst);font-family:'Exo 2',sans-serif;font-size:0.88em">
+            <option value="">Alle statussen</option>
+            <option value="spel">Actief</option>
+            <option value="einde">Voltooid</option>
+        </select>
         <select id="reden-filter" onchange="filterSessies()" style="padding:8px 12px;background:var(--panel);border:1px solid var(--rand);border-radius:6px;color:var(--tekst);font-family:'Exo 2',sans-serif;font-size:0.88em">
             <option value="">Alle eindes</option>
             <option value="beurten">Beurten voltooid</option>
@@ -183,6 +189,7 @@
                 <th onclick="sorteerOp('planeten_bezocht')">Planeten<span class="sorteer-pijl" id="pijl-planeten_bezocht"></span></th>
                 <th onclick="sorteerOp('transacties')">Transacties<span class="sorteer-pijl" id="pijl-transacties"></span></th>
                 <th onclick="sorteerOp('achievements')">Achievements<span class="sorteer-pijl" id="pijl-achievements"></span></th>
+                <th onclick="sorteerOp('fase')">Status<span class="sorteer-pijl" id="pijl-fase"></span></th>
                 <th onclick="sorteerOp('einde_reden')">Einde<span class="sorteer-pijl" id="pijl-einde_reden"></span></th>
                 <th onclick="sorteerOp('versie')">Versie<span class="sorteer-pijl" id="pijl-versie"></span></th>
                 <th onclick="sorteerOp('created_at')">Datum<span class="sorteer-pijl" id="pijl-datum"></span></th>
@@ -246,24 +253,29 @@
     function berekenStats() {
         const n = alleSessies.length;
         const uniek = new Set(alleSessies.map(s => s.speler_naam.toLowerCase())).size;
-        const hoogste = n ? Math.max(...alleSessies.map(s => s.eindkapitaal)) : 0;
-        const gemiddeld = n ? Math.round(alleSessies.reduce((a, s) => a + s.eindkapitaal, 0) / n) : 0;
+        const voltooide = alleSessies.filter(s => s.fase === 'einde');
+        const hoogste = voltooide.length ? Math.max(...voltooide.map(s => s.eindkapitaal)) : 0;
+        const gemiddeld = voltooide.length ? Math.round(voltooide.reduce((a, s) => a + s.eindkapitaal, 0) / voltooide.length) : 0;
         const bankroet = alleSessies.filter(s => s.einde_reden === 'bankroet').length;
+        const actief = alleSessies.filter(s => s.fase === 'spel').length;
 
         document.getElementById('stat-totaal').textContent = n;
         document.getElementById('stat-uniek').textContent = uniek;
         document.getElementById('stat-hoogste').textContent = fmtKr(hoogste);
         document.getElementById('stat-gemiddeld').textContent = fmtKr(gemiddeld);
         document.getElementById('stat-bankroet').textContent = bankroet;
+        document.getElementById('stat-actief').textContent = actief;
     }
 
     function filterSessies() {
         const zoek = document.getElementById('zoek-input').value.toLowerCase();
         const reden = document.getElementById('reden-filter').value;
+        const fase = document.getElementById('fase-filter').value;
 
         let gefilterd = alleSessies.filter(s => {
             if (zoek && !s.speler_naam.toLowerCase().includes(zoek)) return false;
             if (reden && s.einde_reden !== reden) return false;
+            if (fase && s.fase !== fase) return false;
             return true;
         });
 
@@ -304,7 +316,7 @@
         document.getElementById('sessies-tabel').style.display = 'table';
 
         if (!sessies.length) {
-            tbody.innerHTML = '<tr><td colspan="11" class="kleur-dimmed" style="padding:24px;text-align:center">Geen sessies gevonden.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="12" class="kleur-dimmed" style="padding:24px;text-align:center">Geen sessies gevonden.</td></tr>';
             return;
         }
 
@@ -313,6 +325,8 @@
             const kapitaalKleur = s.eindkapitaal >= 1000000 ? 'kleur-goud' :
                                    s.eindkapitaal >= 500000  ? 'kleur-groen' :
                                    s.eindkapitaal < 0         ? 'kleur-rood' : '';
+            const faseLabel = s.fase === 'einde' ? '<span class="kleur-dimmed">✓ voltooid</span>' :
+                              '<span class="kleur-groen">● actief</span>';
             const datum = new Date(s.created_at).toLocaleString('nl-NL', {
                 day: 'numeric', month: 'short', year: 'numeric',
                 hour: '2-digit', minute: '2-digit'
@@ -326,6 +340,7 @@
                 <td>${s.planeten_bezocht ?? '—'}</td>
                 <td>${s.transacties ?? '—'}</td>
                 <td>${s.achievements ?? '—'}</td>
+                <td>${faseLabel}</td>
                 <td class="${eindeKleur}">${s.einde_reden ?? '—'}</td>
                 <td class="kleur-dimmed">${s.versie ?? '—'}</td>
                 <td class="kleur-dimmed">${datum}</td>
