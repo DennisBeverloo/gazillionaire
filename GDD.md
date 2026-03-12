@@ -36,7 +36,7 @@
 | Parameter | Waarde |
 |---|---|
 | Maximale beurten | 150 |
-| Startkrediet | 10.000 credits |
+| Startkrediet | 25.000 credits |
 | Maximale schuld | 8.000 credits |
 | Rente | 5% per 20 beurten |
 | Reistijd | `ceil(afstand / 18 / snelheid)` beurten |
@@ -47,7 +47,7 @@
 - **Bankroet:** Krediet negatief en kan schuld niet terugbetalen
 - Nettowaarde = credits + aandelenwaarde + ladingwaarde − schulden
 
-**Schipkeuze:** De speler koopt bij aanvang een schip. De resterende credits (10.000 − scheepsprijs) zijn het startkapitaal voor handel.
+**Schipkeuze:** De speler kiest bij aanvang een scheepstype (vracht/passagiers/snel) en koopt een Mark I. De resterende credits (25.000 − scheepsprijs) zijn het startkapitaal voor handel.
 
 ---
 
@@ -102,15 +102,56 @@ Aqueron (25,75)               Techton (82,72)
 
 ## 6. Schepen
 
-| Naam | Prijs | Snelheid | Laadruimte | Passagiers | Brandstof | Schild | HP |
-|---|---|---|---|---|---|---|---|
-| **Rondsloffer** 🛸 | 3.000 cr | ★☆☆☆☆ | 30 ton | 4 | 80 L | ★☆☆☆☆ | 40 |
-| **Vrije Handelaar** 🚀 | 6.000 cr | ★★☆☆☆ | 50 ton | 8 | 110 L | ★★☆☆☆ | 60 |
-| **Vleugelschipper** ✈️ | 7.500 cr | ★★★★☆ | 35 ton | 12 | 70 L | ★☆☆☆☆ | 50 |
+### Mark-systeem
 
-**Aankoop van een nieuw schip** (bij scheepswerf op Nexoria of Techton):
-- Huidig schip wordt verkocht voor 60% van de originele aankoopprijs
-- Alle upgrades van het oude schip vervallen
+Schepen zijn ingedeeld in **3 types** met elk **4 Marks** (upgradeniveaus). Bij Mark III kies je een permanente **specialisatie** (a of b); bij Mark IV ga je door op die specialisatie. Upgraden kan alleen op Techton, stap voor stap (Mark I → II → III → IV), en alleen binnen hetzelfde type.
+
+**Upgrade-regels:**
+- Huidig schip ingeleverd voor 60% van de oorspronkelijke aankoopprijs
+- Alleen upgraden naar het volgende Mark (niet overslaan)
+- Scheepstype is permanent — niet wisselen van vracht naar pax e.d.
+- Mark IV is het maximum; scheepswerf toont dit in de UI
+
+---
+
+### Vrachtschip 🚛
+
+| Mark | Naam | Prijs | Snelheid | Laadruimte | Brandstof | Schild | HP | Specials |
+|---|---|---|---|---|---|---|---|---|
+| I | Vrachtschip Mark I | 16.000 | 1 | 60 ton | 100 L | 2 | 50 | — |
+| II | Vrachtschip Mark II | 65.000 | 1 | 100 ton | 120 L | 3 | 70 | — |
+| III-a | Tanker Mark III 🛢️ | 210.000 | 1 | 220 ton | 150 L | 3 | 90 | — |
+| III-b | Secure Hauler Mark III 🔒 | 210.000 | 2 | 130 ton | 150 L | 5 | 90 | 🛡️ Piratenimmuun, 🔒 Mortex-lading nooit geconfisqueerd |
+| IV-a | Tanker Mark IV 🛢️ | 680.000 | 2 | 350 ton | 180 L | 4 | 120 | — |
+| IV-b | Secure Hauler Mark IV 🔒 | 680.000 | 2 | 170 ton | 180 L | 5 | 120 | 🛡️ Piratenimmuun, 🔒 Mortex-lading nooit geconfisqueerd |
+
+---
+
+### Passagiersschip 🛳️
+
+| Mark | Naam | Prijs | Snelheid | Passagiers | Brandstof | Schild | HP | Specials |
+|---|---|---|---|---|---|---|---|---|
+| I | Passagiersschip Mark I | 18.000 | 2 | 10 | 90 L | 2 | 50 | — |
+| II | Passagiersschip Mark II | 70.000 | 2 | 20 | 110 L | 2 | 65 | — |
+| III-a | Luxury Liner Mark III 🥂 | 220.000 | 3 | 10 | 130 L | 3 | 85 | 🥂 Tickets ×3 |
+| III-b | Space Bus Mark III 🚌 | 220.000 | 2 | 40 | 130 L | 2 | 85 | 🚌 Tickets ×0,5 (volume) |
+| IV-a | Luxury Liner Mark IV 🥂 | 700.000 | 3 | 12 | 150 L | 4 | 110 | 🥂 Tickets ×3 |
+| IV-b | Space Bus Mark IV 🚌 | 700.000 | 2 | 60 | 150 L | 2 | 110 | 🚌 Tickets ×0,5 (volume) |
+
+---
+
+### Snel Schip ✈️
+
+| Mark | Naam | Prijs | Snelheid | Laadruimte | Brandstof | Schild | HP | Specials |
+|---|---|---|---|---|---|---|---|---|
+| I | Snel Schip Mark I | 19.000 | 3 | 20 ton | 70 L | 1 | 45 | — |
+| II | Snel Schip Mark II | 75.000 | 5 | 30 ton | 85 L | 1 | 60 | — |
+| III-a | Spearhead Mark III ⚡ | 235.000 | 8 | 40 ton | 100 L | 2 | 75 | ⚡ −8% aankoopprijzen |
+| III-b | Shadow Mark III 🌑 | 235.000 | 7 | 45 ton | 95 L | 1 | 75 | 🛡️ Piratenimmuun, 🕵️ Douanekans 5% |
+| IV-a | Spearhead Mark IV ⚡ | 740.000 | 10 | 50 ton | 115 L | 3 | 100 | ⚡ −8% aankoopprijzen |
+| IV-b | Shadow Mark IV 🌑 | 740.000 | 9 | 60 ton | 110 L | 1 | 100 | 🛡️ Piratenimmuun, 🕵️ Douanekans 5% |
+
+---
 
 **HP-systeem:**
 - HP daalt alleen bij event-schade (defect, asteroïden, etc.)
@@ -121,19 +162,9 @@ Aqueron (25,75)               Techton (82,72)
 
 ## 7. Upgrades
 
-### Eenmalig
-*(De Handelsradar is verwijderd in v4.0.0 — zie §15)*
+*(Oneindige upgrade-niveaus (motor/ruim/tank/passagiers/schild) zijn verwijderd in v5.0.0 — schipstats komen nu uitsluitend van het Mark-systeem. Zie §6.)*
 
-### Oneindig (stapelbaar per niveau)
-| Categorie | Effect per niveau |
-|---|---|
-| **Motor** | +snelheid (kortere reistijd) |
-| **Vrachtruim** | +laadruimte (meer ton cargo) |
-| **Brandstoftank** | +tankinhoud |
-| **Passagiersruimte** | +passagierscapaciteit |
-| **Schild** | +bescherming bij events |
-
-Upgradekosten stijgen exponentieel per niveau.
+Reparatie (bij haven) en verzekering zijn nog steeds beschikbaar als diensten. De Afgeschermd Vrachtruim-upgrade op Mortex bestaat nog steeds voor schepen die dit niet ingebouwd hebben (zie §8b).
 
 ---
 
@@ -188,6 +219,12 @@ Alle goederen zijn 35% goedkoper dan normaal (basiskorting op `_getPlanetGoedDoe
 Brandstof is hier de goedkoopste van alle planeten dankzij vulkanische energiereserves. Elke aankoop telt mee voor het achievement.
 
 **Achievement:** Energieboer (10× getankt op Pyroflux, +600 cr)
+
+---
+
+### Techton — 🛸 Geavanceerde Scheepswerf
+
+Schip upgraden naar het volgende Mark (zie §6). Alleen op Techton beschikbaar — niet meer op Nexoria.
 
 ---
 
@@ -262,8 +299,10 @@ Achievements worden ontgrendeld bij het bereiken van mijlpalen en leveren een kr
 | Categorie | Voorbeelden |
 |---|---|
 | **Deals** | Eerste Deal, Actieve Handelaar (10 tx), Handelsmagnaat (50 tx), Winstmaker (1k/deal), Superdeal (5k/deal) |
-| **Nettowaarde** | Rijkaard (10k), Groot Handelaar (100k), Galactische Millionair (1M), Schuldenvrij |
-| **Schip** | Motorfanaat/Veteraan/Lichtsnelheid (lvl 10/25/50), idem voor vrachtruim, tank, passagiers |
+| **Nettowaarde** | Rijkaard (10k), Groot Handelaar (100k), Galactische Millionair (1M), Schuldenvrij, Gazillionair (25M, +100k) |
+| **Schip — Vracht** | Zware Vrachter (Mark II), Vloeibare Goudader (Tanker III), Onaantastbaar (Secure III), Galactisch Tankschip (Tanker IV), Fort Knox (Secure IV) |
+| **Schip — Passagiers** | Ruimtevervoer (Mark II), Ruimte-elite (Luxury III), Ruimtetaxi (Bus III), Galactische Luxe (Luxury IV), Galactische Bus (Bus IV) |
+| **Schip — Snel** | Ruimteraket (Mark II), Altijd Als Eerste (Spearhead III), Schaduwhandelaar (Shadow III), Snelste van de Sector (Spearhead IV), Ongrijpbaar (Shadow IV) |
 | **Beurs** | Beursgoeroe (4 aandelen), Beurswinst (1k/deal), Beursmagnaat (10k/deal), Galactisch Belegger (250k totaal) |
 | **Reizen & Events** | Wereldreiziger (alle 8 planeten), Ruimtereiziger (10 reizen), Piratenontkomer, Op de Rand (aankomst <10L), Taxiservice |
 | **Casino** | Huisvoordeel (3 wins op rij, +1.200 cr), Jackpot (win ≥10.000 cr in één gokbeurt, +2.500 cr) |
@@ -339,6 +378,11 @@ js/main.js        — App object, event handlers, init
 | Logboek/Ranglijst/Prestaties naar topbalk (v4.0.0) | Vermindering tabbladen-rommel; deze schermen zijn secundair t.o.v. Handel/Haven/Planeet |
 | Planeet-tab als tegellayout (v4.0.0) | Consistentie met Ruimtehaven; elke dienst krijgt zijn eigen afgebakende tile |
 | Galactische markt: klikbare planeetkolommen (v4.0.0) | Snellere bestemming selecteren rechtstreeks vanuit de prijsoverzichtstabel |
+| Oneindige upgrades verwijderd (v5.0.0) | Schipstats komen nu puur van het Mark-systeem — eenvoudiger, beter leesbaar, minder sluipende balansbreuk door gestapelde upgrades |
+| Startkrediet 10.000 → 25.000 (v5.0.0) | Mark I-schepen kosten 16.000–19.000; met 10k was er nauwelijks startkapitaal over voor handel |
+| Mark III = specialisatiekeuze (v5.0.0) | Dwingt een strategische beslissing op het moment dat je echt investeert; versterkt identiteit van elke route-stijl |
+| Scheepswerf exclusief op Techton (v5.0.0) | Nexoria en Techton hadden te overlappende rollen; Techton is nu de enige werf, Nexoria behoudt bank + beurs |
+| Scheepstype permanent (v5.0.0) | Voorkomt dat spelers vroeg switchen om het beste van alle types te combineren; versterkt commitment aan strategie |
 
 ---
 
@@ -357,4 +401,4 @@ js/main.js        — App object, event handlers, init
 
 ---
 
-*Laatste update: v4.0.0*
+*Laatste update: v5.0.0*
