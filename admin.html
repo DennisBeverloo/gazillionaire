@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gazillionaire Admin</title>
+    <title>Gazillionaire Admin v3.0.4</title>
+    <meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
@@ -153,12 +154,14 @@
     <p class="sub">Overzicht van alle gespeelde sessies · <span id="refresh-info"></span> <button class="knop knop-dimmed" style="font-size:0.78em;padding:4px 10px" onclick="laadSessies()">↻ Vernieuwen</button></p>
 
     <div class="stats-bar" id="stats-bar">
-        <div class="stat-kaart"><div class="stat-label">Totaal gespeeld</div><div class="stat-waarde" id="stat-totaal">—</div></div>
+        <div class="stat-kaart"><div class="stat-label">Totaal sessies</div><div class="stat-waarde" id="stat-totaal">—</div></div>
         <div class="stat-kaart"><div class="stat-label">Unieke spelers</div><div class="stat-waarde" id="stat-uniek">—</div></div>
-        <div class="stat-kaart"><div class="stat-label">Hoogste score</div><div class="stat-waarde" id="stat-hoogste">—</div></div>
-        <div class="stat-kaart"><div class="stat-label">Gemiddelde nettowaarde</div><div class="stat-waarde" id="stat-gemiddeld">—</div></div>
-        <div class="stat-kaart"><div class="stat-label">Bankroeten</div><div class="stat-waarde kleur-rood" id="stat-bankroet">—</div></div>
         <div class="stat-kaart"><div class="stat-label">Nu actief</div><div class="stat-waarde kleur-groen" id="stat-actief">—</div></div>
+        <div class="stat-kaart"><div class="stat-label">Hoogste score</div><div class="stat-waarde kleur-goud" id="stat-hoogste">—</div></div>
+        <div class="stat-kaart"><div class="stat-label">Gemiddelde eindwaarde</div><div class="stat-waarde" id="stat-gemiddeld">—</div></div>
+        <div class="stat-kaart"><div class="stat-label">Bankroeten</div><div class="stat-waarde kleur-rood" id="stat-bankroet">—</div></div>
+        <div class="stat-kaart"><div class="stat-label">Totaal cargo vervoerd</div><div class="stat-waarde" id="stat-cargo">—</div></div>
+        <div class="stat-kaart"><div class="stat-label">Totaal passagiers</div><div class="stat-waarde" id="stat-pax">—</div></div>
     </div>
 
     <div class="toolbar">
@@ -260,13 +263,17 @@
         const gemiddeld = voltooide.length ? Math.round(voltooide.reduce((a, s) => a + s.eindkapitaal, 0) / voltooide.length) : 0;
         const bankroet = alleSessies.filter(s => s.einde_reden === 'bankroet').length;
         const actief = alleSessies.filter(s => s.fase === 'spel').length;
+        const cargo = alleSessies.reduce((a, s) => a + (s.cargo_ton ?? 0), 0);
+        const pax = alleSessies.reduce((a, s) => a + (s.passagiers_vervoerd ?? 0), 0);
 
         document.getElementById('stat-totaal').textContent = n;
         document.getElementById('stat-uniek').textContent = uniek;
+        document.getElementById('stat-actief').textContent = actief;
         document.getElementById('stat-hoogste').textContent = fmtKr(hoogste);
         document.getElementById('stat-gemiddeld').textContent = fmtKr(gemiddeld);
         document.getElementById('stat-bankroet').textContent = bankroet;
-        document.getElementById('stat-actief').textContent = actief;
+        document.getElementById('stat-cargo').textContent = cargo.toLocaleString('nl-NL') + ' ton';
+        document.getElementById('stat-pax').textContent = pax.toLocaleString('nl-NL');
     }
 
     function filterSessies() {
@@ -333,12 +340,12 @@
                 day: 'numeric', month: 'short', year: 'numeric',
                 hour: '2-digit', minute: '2-digit'
             });
-            const planeetTekst = s.planeten_bezocht && typeof s.planeten_bezocht === 'object'
-                ? Object.entries(s.planeten_bezocht).map(([p, n]) => `${p}×${n}`).join(', ')
+            const planeetTekst = s.planeten_bezocht && typeof s.planeten_bezocht === 'object' && !Array.isArray(s.planeten_bezocht)
+                ? (Object.entries(s.planeten_bezocht).map(([p, n]) => `${p}×${n}`).join(', ') || '—')
                 : '—';
             const achTekst = Array.isArray(s.achievements) && s.achievements.length
                 ? s.achievements.join(', ')
-                : (s.achievements ?? '—');
+                : '—';
             return `<tr>
                 <td class="kleur-dimmed">${i + 1}</td>
                 <td><strong>${esc(s.speler_naam)}</strong></td>
