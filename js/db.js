@@ -18,18 +18,19 @@ const DB = (() => {
 
     function _payload(fase) {
         return {
-            speler_naam:      state.speler.naam,
-            eindkapitaal:     state.berekenNettowaarde(),
-            beurten_gespeeld: state.beurt,
-            schip_naam:       state.schip?.naam ?? null,
-            schip_type:       state.schip?.id ?? null,
-            planeten_bezocht: state.bezochteplaneten?.size ?? 0,
-            transacties:      state.statistieken.handelstransacties,
-            reizen:           state.statistieken.gereisd,
-            achievements:     state.achievements?.size ?? 0,
-            einde_reden:      state.eindeReden ?? null,
-            fase:             fase,
-            versie:           '3.0',
+            speler_naam:         state.speler.naam,
+            eindkapitaal:        state.berekenNettowaarde(),
+            beurten_gespeeld:    state.beurt,
+            schip_naam:          state.schip?.naam ?? null,
+            schip_type:          state.schip?.id ?? null,
+            planeten_bezocht:    state.planeetBezoeken ?? {},
+            cargo_transacties:   state.statistieken.handelstransacties,
+            cargo_ton:           state.statistieken.cargoTonVervoerd ?? 0,
+            passagiers_vervoerd: state.statistieken.passagiersAfgeleverd ?? 0,
+            achievements:        [...(state.achievements ?? [])],
+            einde_reden:         state.eindeReden ?? null,
+            fase:                fase,
+            versie:              '3.0',
         };
     }
 

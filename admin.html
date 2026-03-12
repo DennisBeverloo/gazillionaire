@@ -186,9 +186,11 @@
                 <th onclick="sorteerOp('eindkapitaal')">Eindwaarde<span class="sorteer-pijl" id="pijl-eindkapitaal">▼</span></th>
                 <th onclick="sorteerOp('beurten_gespeeld')">Beurten<span class="sorteer-pijl" id="pijl-beurten_gespeeld"></span></th>
                 <th onclick="sorteerOp('schip_naam')">Schip<span class="sorteer-pijl" id="pijl-schip_naam"></span></th>
-                <th onclick="sorteerOp('planeten_bezocht')">Planeten<span class="sorteer-pijl" id="pijl-planeten_bezocht"></span></th>
-                <th onclick="sorteerOp('transacties')">Transacties<span class="sorteer-pijl" id="pijl-transacties"></span></th>
-                <th onclick="sorteerOp('achievements')">Achievements<span class="sorteer-pijl" id="pijl-achievements"></span></th>
+                <th onclick="sorteerOp('cargo_transacties')">Cargo tx<span class="sorteer-pijl" id="pijl-cargo_transacties"></span></th>
+                <th onclick="sorteerOp('cargo_ton')">Cargo ton<span class="sorteer-pijl" id="pijl-cargo_ton"></span></th>
+                <th onclick="sorteerOp('passagiers_vervoerd')">Passagiers<span class="sorteer-pijl" id="pijl-passagiers_vervoerd"></span></th>
+                <th>Planeten</th>
+                <th>Achievements</th>
                 <th onclick="sorteerOp('fase')">Status<span class="sorteer-pijl" id="pijl-fase"></span></th>
                 <th onclick="sorteerOp('einde_reden')">Einde<span class="sorteer-pijl" id="pijl-einde_reden"></span></th>
                 <th onclick="sorteerOp('versie')">Versie<span class="sorteer-pijl" id="pijl-versie"></span></th>
@@ -316,7 +318,7 @@
         document.getElementById('sessies-tabel').style.display = 'table';
 
         if (!sessies.length) {
-            tbody.innerHTML = '<tr><td colspan="12" class="kleur-dimmed" style="padding:24px;text-align:center">Geen sessies gevonden.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="14" class="kleur-dimmed" style="padding:24px;text-align:center">Geen sessies gevonden.</td></tr>';
             return;
         }
 
@@ -331,15 +333,23 @@
                 day: 'numeric', month: 'short', year: 'numeric',
                 hour: '2-digit', minute: '2-digit'
             });
+            const planeetTekst = s.planeten_bezocht && typeof s.planeten_bezocht === 'object'
+                ? Object.entries(s.planeten_bezocht).map(([p, n]) => `${p}×${n}`).join(', ')
+                : '—';
+            const achTekst = Array.isArray(s.achievements) && s.achievements.length
+                ? s.achievements.join(', ')
+                : (s.achievements ?? '—');
             return `<tr>
                 <td class="kleur-dimmed">${i + 1}</td>
                 <td><strong>${esc(s.speler_naam)}</strong></td>
                 <td class="${kapitaalKleur}">${fmtKr(s.eindkapitaal)}</td>
                 <td>${s.beurten_gespeeld ?? '—'}</td>
                 <td class="kleur-dimmed">${s.schip_naam ?? '—'}</td>
-                <td>${s.planeten_bezocht ?? '—'}</td>
-                <td>${s.transacties ?? '—'}</td>
-                <td>${s.achievements ?? '—'}</td>
+                <td>${s.cargo_transacties ?? '—'}</td>
+                <td>${s.cargo_ton ?? '—'} ton</td>
+                <td>${s.passagiers_vervoerd ?? '—'}</td>
+                <td class="kleur-dimmed" style="font-size:0.78em;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${planeetTekst}">${planeetTekst}</td>
+                <td class="kleur-dimmed" style="font-size:0.78em;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${achTekst}">${achTekst}</td>
                 <td>${faseLabel}</td>
                 <td class="${eindeKleur}">${s.einde_reden ?? '—'}</td>
                 <td class="kleur-dimmed">${s.versie ?? '—'}</td>

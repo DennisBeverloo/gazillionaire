@@ -37,7 +37,8 @@ class GameState {
         this.gekochteUpgrades = [];
         this.geselecteerdePlaneet = null; // for map click
         this.tipsGezien = {};
-        this.statistieken = { handelstransacties: 0, gereisd: 0, eventsMeegemaakt: 0, passagiersAfgeleverd: 0, verkopen: 0 };
+        this.statistieken = { handelstransacties: 0, gereisd: 0, eventsMeegemaakt: 0, passagiersAfgeleverd: 0, verkopen: 0, cargoTonVervoerd: 0 };
+        this.planeetBezoeken = {};
 
         // Nieuwe velden
         this.aankoopPrijzen = {};       // gemiddelde aankoopprijs per goed
@@ -330,6 +331,7 @@ class GameState {
         this.fase = 'spel';
         this.reisData = null;
         this.bezochteplaneten.add(this.locatie);
+        this.planeetBezoeken[this.locatie] = (this.planeetBezoeken[this.locatie] ?? 0) + 1;
 
         // Lever passagiers af
         let passagiersInfo = null;
@@ -882,6 +884,7 @@ class GameState {
         this.speler.krediet -= totaal;
         this.lading[goedId] = (this.lading[goedId] || 0) + aantal;
         this.statistieken.handelstransacties++;
+        this.statistieken.cargoTonVervoerd = (this.statistieken.cargoTonVervoerd ?? 0) + gewicht;
 
         // Werk gewogen gemiddelde aankoopprijs bij
         const huidigAant = this.aankoopAantallen[goedId] || 0;
@@ -1285,6 +1288,7 @@ class GameState {
                 aankoopAantallen: this.aankoopAantallen,
                 aandeelGeschiedenis: this.aandeelGeschiedenis,
                 bezochteplaneten: [...this.bezochteplaneten],
+                planeetBezoeken: this.planeetBezoeken,
                 achievements: [...this.achievements],
                 _laatsteWinst: this._laatsteWinst,
                 _oitLeningGehad: this._oitLeningGehad,
@@ -1330,6 +1334,8 @@ class GameState {
             // Migratie: old saves had schipBeschadigd boolean, new system uses schipHP
             delete this.schipBeschadigd;
             if (!this.schipHP || this.schipHP === 0) this.schipHP = this.schip?.maxHP ?? 40;
+            if (!this.planeetBezoeken) this.planeetBezoeken = {};
+            if (this.statistieken.cargoTonVervoerd === undefined) this.statistieken.cargoTonVervoerd = 0;
             return true;
         } catch(e) {
             return false;
