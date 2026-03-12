@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gazillionaire Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #04060d;
+            --panel: #0b0f1a;
+            --rand: #1a2240;
+            --accent: #00d4ff;
+            --goud: #ffd700;
+            --groen: #39ff14;
+            --rood: #ff3855;
+            --oranje: #ff8c42;
+            --tekst: #c8d8e8;
+            --dimmed: rgba(200,216,232,0.45);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Exo 2', sans-serif;
+            background: var(--bg);
+            color: var(--tekst);
+            min-height: 100vh;
+            padding: 32px 24px;
+        }
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--accent);
+            font-size: 1.6rem;
+            margin-bottom: 4px;
+        }
+        .sub { color: var(--dimmed); font-size: 0.85em; margin-bottom: 32px; }
+
+        /* Auth overlay */
+        #auth-overlay {
+            position: fixed; inset: 0;
+            background: rgba(4,6,13,0.97);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 100;
+        }
+        .auth-box {
+            background: var(--panel);
+            border: 1px solid var(--rand);
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            max-width: 360px;
+            width: 100%;
+        }
+        .auth-box h2 { font-family: 'Orbitron', sans-serif; color: var(--accent); margin-bottom: 20px; }
+        .auth-box input {
+            width: 100%; padding: 10px 14px;
+            background: #0f1520; border: 1px solid var(--rand);
+            border-radius: 6px; color: var(--tekst);
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 1em; margin-bottom: 14px;
+        }
+        .auth-box input:focus { outline: none; border-color: var(--accent); }
+        .auth-error { color: var(--rood); font-size: 0.85em; margin-top: 6px; }
+
+        /* Buttons */
+        .knop {
+            padding: 9px 20px; border: none; border-radius: 6px;
+            font-family: 'Exo 2', sans-serif; font-size: 0.9em; font-weight: 600;
+            cursor: pointer; transition: opacity 0.15s;
+        }
+        .knop:hover { opacity: 0.85; }
+        .knop-primair { background: var(--accent); color: #000; }
+        .knop-dimmed { background: var(--rand); color: var(--tekst); }
+        .knop-gevaar { background: var(--rood); color: #fff; }
+
+        /* Stats bar */
+        .stats-bar {
+            display: flex; gap: 16px; flex-wrap: wrap;
+            margin-bottom: 28px;
+        }
+        .stat-kaart {
+            background: var(--panel);
+            border: 1px solid var(--rand);
+            border-radius: 8px;
+            padding: 16px 22px;
+            min-width: 150px;
+        }
+        .stat-label { font-size: 0.78em; color: var(--dimmed); margin-bottom: 4px; }
+        .stat-waarde { font-family: 'Orbitron', sans-serif; font-size: 1.3em; color: var(--accent); }
+
+        /* Tabel */
+        .sessies-tabel {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88em;
+            font-family: 'Share Tech Mono', monospace;
+        }
+        .sessies-tabel th {
+            text-align: left;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--rand);
+            color: var(--dimmed);
+            font-family: 'Exo 2', sans-serif;
+            font-weight: 600;
+            white-space: nowrap;
+            cursor: pointer;
+            user-select: none;
+        }
+        .sessies-tabel th:hover { color: var(--accent); }
+        .sessies-tabel td {
+            padding: 9px 12px;
+            border-bottom: 1px solid rgba(26,34,64,0.5);
+        }
+        .sessies-tabel tr:hover td { background: rgba(0,212,255,0.04); }
+        .kleur-goud { color: var(--goud); }
+        .kleur-groen { color: var(--groen); }
+        .kleur-rood { color: var(--rood); }
+        .kleur-dimmed { color: var(--dimmed); }
+
+        .toolbar {
+            display: flex; gap: 10px; align-items: center;
+            margin-bottom: 16px; flex-wrap: wrap;
+        }
+        .toolbar input {
+            padding: 8px 12px;
+            background: var(--panel); border: 1px solid var(--rand);
+            border-radius: 6px; color: var(--tekst);
+            font-family: 'Exo 2', sans-serif; font-size: 0.88em;
+        }
+        .toolbar input:focus { outline: none; border-color: var(--accent); }
+        .sorteer-pijl { font-size: 0.75em; margin-left: 4px; }
+
+        #laden { color: var(--dimmed); padding: 32px 0; text-align: center; }
+    </style>
+</head>
+<body>
+
+<!-- Auth overlay -->
+<div id="auth-overlay">
+    <div class="auth-box">
+        <h2>⚙ Admin</h2>
+        <p style="color:var(--dimmed);margin-bottom:20px;font-size:0.9em">Gazillionaire beheer</p>
+        <input type="password" id="wachtwoord-input" placeholder="Wachtwoord" autocomplete="current-password">
+        <div class="auth-error" id="auth-fout" style="display:none">Onjuist wachtwoord.</div>
+        <br>
+        <button class="knop knop-primair" onclick="controleerAuth()">Inloggen →</button>
+    </div>
+</div>
+
+<!-- Dashboard -->
+<div id="dashboard" style="display:none">
+    <h1>✦ GAZILLIONAIRE Admin</h1>
+    <p class="sub">Overzicht van alle gespeelde sessies · <span id="refresh-info"></span> <button class="knop knop-dimmed" style="font-size:0.78em;padding:4px 10px" onclick="laadSessies()">↻ Vernieuwen</button></p>
+
+    <div class="stats-bar" id="stats-bar">
+        <div class="stat-kaart"><div class="stat-label">Totaal gespeeld</div><div class="stat-waarde" id="stat-totaal">—</div></div>
+        <div class="stat-kaart"><div class="stat-label">Unieke spelers</div><div class="stat-waarde" id="stat-uniek">—</div></div>
+        <div class="stat-kaart"><div class="stat-label">Hoogste score</div><div class="stat-waarde" id="stat-hoogste">—</div></div>
+        <div class="stat-kaart"><div class="stat-label">Gemiddelde nettowaarde</div><div class="stat-waarde" id="stat-gemiddeld">—</div></div>
+        <div class="stat-kaart"><div class="stat-label">Bankroeten</div><div class="stat-waarde kleur-rood" id="stat-bankroet">—</div></div>
+    </div>
+
+    <div class="toolbar">
+        <input type="text" id="zoek-input" placeholder="Zoek speler..." oninput="filterSessies()">
+        <select id="reden-filter" onchange="filterSessies()" style="padding:8px 12px;background:var(--panel);border:1px solid var(--rand);border-radius:6px;color:var(--tekst);font-family:'Exo 2',sans-serif;font-size:0.88em">
+            <option value="">Alle eindes</option>
+            <option value="beurten">Beurten voltooid</option>
+            <option value="bankroet">Bankroet</option>
+            <option value="tijd">Tijd op</option>
+        </select>
+        <span class="kleur-dimmed" id="resultaat-count" style="font-size:0.85em"></span>
+    </div>
+
+    <div id="laden">Sessies laden...</div>
+    <table class="sessies-tabel" id="sessies-tabel" style="display:none">
+        <thead>
+            <tr>
+                <th onclick="sorteerOp('created_at')">#<span class="sorteer-pijl" id="pijl-created_at"></span></th>
+                <th onclick="sorteerOp('speler_naam')">Speler<span class="sorteer-pijl" id="pijl-speler_naam"></span></th>
+                <th onclick="sorteerOp('eindkapitaal')">Eindwaarde<span class="sorteer-pijl" id="pijl-eindkapitaal">▼</span></th>
+                <th onclick="sorteerOp('beurten_gespeeld')">Beurten<span class="sorteer-pijl" id="pijl-beurten_gespeeld"></span></th>
+                <th onclick="sorteerOp('schip_naam')">Schip<span class="sorteer-pijl" id="pijl-schip_naam"></span></th>
+                <th onclick="sorteerOp('planeten_bezocht')">Planeten<span class="sorteer-pijl" id="pijl-planeten_bezocht"></span></th>
+                <th onclick="sorteerOp('transacties')">Transacties<span class="sorteer-pijl" id="pijl-transacties"></span></th>
+                <th onclick="sorteerOp('achievements')">Achievements<span class="sorteer-pijl" id="pijl-achievements"></span></th>
+                <th onclick="sorteerOp('einde_reden')">Einde<span class="sorteer-pijl" id="pijl-einde_reden"></span></th>
+                <th onclick="sorteerOp('versie')">Versie<span class="sorteer-pijl" id="pijl-versie"></span></th>
+                <th onclick="sorteerOp('created_at')">Datum<span class="sorteer-pijl" id="pijl-datum"></span></th>
+            </tr>
+        </thead>
+        <tbody id="sessies-tbody"></tbody>
+    </table>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+    const SUPABASE_URL = 'https://iznjmlapxpalrousycxy.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_0VCRyg7bJPhX3c-rgge6Ew_xT8zgfDM';
+    // Admin password (simple client-side check — voor persoonlijk gebruik)
+    const ADMIN_PW = 'gazillionaire-admin-2025';
+
+    let db = null;
+    let alleSessies = [];
+    let sortKolom = 'eindkapitaal';
+    let sortAsc = false;
+
+    document.getElementById('wachtwoord-input').addEventListener('keydown', e => {
+        if (e.key === 'Enter') controleerAuth();
+    });
+
+    function controleerAuth() {
+        const pw = document.getElementById('wachtwoord-input').value;
+        if (pw === ADMIN_PW) {
+            document.getElementById('auth-overlay').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'block';
+            db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            laadSessies();
+        } else {
+            document.getElementById('auth-fout').style.display = 'block';
+        }
+    }
+
+    async function laadSessies() {
+        document.getElementById('laden').style.display = 'block';
+        document.getElementById('sessies-tabel').style.display = 'none';
+
+        const { data, error } = await db
+            .from('game_sessions')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(500);
+
+        if (error) {
+            document.getElementById('laden').textContent = 'Fout bij laden: ' + error.message;
+            return;
+        }
+
+        alleSessies = data ?? [];
+        document.getElementById('refresh-info').textContent =
+            `Geladen: ${new Date().toLocaleTimeString('nl-NL')} ·`;
+
+        berekenStats();
+        filterSessies();
+    }
+
+    function berekenStats() {
+        const n = alleSessies.length;
+        const uniek = new Set(alleSessies.map(s => s.speler_naam.toLowerCase())).size;
+        const hoogste = n ? Math.max(...alleSessies.map(s => s.eindkapitaal)) : 0;
+        const gemiddeld = n ? Math.round(alleSessies.reduce((a, s) => a + s.eindkapitaal, 0) / n) : 0;
+        const bankroet = alleSessies.filter(s => s.einde_reden === 'bankroet').length;
+
+        document.getElementById('stat-totaal').textContent = n;
+        document.getElementById('stat-uniek').textContent = uniek;
+        document.getElementById('stat-hoogste').textContent = fmtKr(hoogste);
+        document.getElementById('stat-gemiddeld').textContent = fmtKr(gemiddeld);
+        document.getElementById('stat-bankroet').textContent = bankroet;
+    }
+
+    function filterSessies() {
+        const zoek = document.getElementById('zoek-input').value.toLowerCase();
+        const reden = document.getElementById('reden-filter').value;
+
+        let gefilterd = alleSessies.filter(s => {
+            if (zoek && !s.speler_naam.toLowerCase().includes(zoek)) return false;
+            if (reden && s.einde_reden !== reden) return false;
+            return true;
+        });
+
+        gefilterd = sorteer(gefilterd);
+        document.getElementById('resultaat-count').textContent = `${gefilterd.length} sessies`;
+        renderTabel(gefilterd);
+    }
+
+    function sorteer(lijst) {
+        return [...lijst].sort((a, b) => {
+            let va = a[sortKolom], vb = b[sortKolom];
+            if (typeof va === 'string') va = va.toLowerCase();
+            if (typeof vb === 'string') vb = vb.toLowerCase();
+            if (va < vb) return sortAsc ? -1 : 1;
+            if (va > vb) return sortAsc ? 1 : -1;
+            return 0;
+        });
+    }
+
+    function sorteerOp(kolom) {
+        if (sortKolom === kolom) {
+            sortAsc = !sortAsc;
+        } else {
+            sortKolom = kolom;
+            sortAsc = false;
+        }
+        // Update pijlen
+        document.querySelectorAll('.sorteer-pijl').forEach(el => el.textContent = '');
+        const pijlId = kolom === 'created_at' ? 'pijl-datum' : `pijl-${kolom}`;
+        const pijlEl = document.getElementById(pijlId) || document.getElementById(`pijl-${kolom}`);
+        if (pijlEl) pijlEl.textContent = sortAsc ? '▲' : '▼';
+        filterSessies();
+    }
+
+    function renderTabel(sessies) {
+        const tbody = document.getElementById('sessies-tbody');
+        document.getElementById('laden').style.display = 'none';
+        document.getElementById('sessies-tabel').style.display = 'table';
+
+        if (!sessies.length) {
+            tbody.innerHTML = '<tr><td colspan="11" class="kleur-dimmed" style="padding:24px;text-align:center">Geen sessies gevonden.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = sessies.map((s, i) => {
+            const eindeKleur = s.einde_reden === 'bankroet' ? 'kleur-rood' : 'kleur-dimmed';
+            const kapitaalKleur = s.eindkapitaal >= 1000000 ? 'kleur-goud' :
+                                   s.eindkapitaal >= 500000  ? 'kleur-groen' :
+                                   s.eindkapitaal < 0         ? 'kleur-rood' : '';
+            const datum = new Date(s.created_at).toLocaleString('nl-NL', {
+                day: 'numeric', month: 'short', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            });
+            return `<tr>
+                <td class="kleur-dimmed">${i + 1}</td>
+                <td><strong>${esc(s.speler_naam)}</strong></td>
+                <td class="${kapitaalKleur}">${fmtKr(s.eindkapitaal)}</td>
+                <td>${s.beurten_gespeeld ?? '—'}</td>
+                <td class="kleur-dimmed">${s.schip_naam ?? '—'}</td>
+                <td>${s.planeten_bezocht ?? '—'}</td>
+                <td>${s.transacties ?? '—'}</td>
+                <td>${s.achievements ?? '—'}</td>
+                <td class="${eindeKleur}">${s.einde_reden ?? '—'}</td>
+                <td class="kleur-dimmed">${s.versie ?? '—'}</td>
+                <td class="kleur-dimmed">${datum}</td>
+            </tr>`;
+        }).join('');
+    }
+
+    function fmtKr(n) {
+        if (n === null || n === undefined) return '—';
+        if (Math.abs(n) >= 1000000) return (n / 1000000).toFixed(2) + 'M';
+        if (Math.abs(n) >= 1000) return (n / 1000).toFixed(1) + 'k';
+        return n + ' cr';
+    }
+
+    function esc(s) {
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+</script>
+</body>
+</html>

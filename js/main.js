@@ -51,6 +51,7 @@ const App = {
         document.getElementById('opnieuw-knop').addEventListener('click', () => {
             state.wisSave();
             state.reset();
+            UI._eindeScoreOpgeslagen = false;
             UI.toonScherm('intro-scherm');
             document.getElementById('speler-naam').value = '';
             document.getElementById('save-sectie').style.display = 'none';

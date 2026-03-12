@@ -1025,7 +1025,35 @@ const UI = {
         html += '<div class="sectie-header" style="margin-top:20px">📈 Vermogensontwikkeling</div>';
         html += this._renderWaardegrafiek();
 
+        html += `<div class="sectie-header" style="margin-top:24px">🌌 Globale Ranglijst — Alle Spelers</div>`;
+        html += `<div id="globale-ranglijst"><div class="kleur-dimmed" style="padding:14px 0;font-size:0.85em">Ranglijst laden...</div></div>`;
+
         container.innerHTML = html;
+
+        if (typeof DB !== 'undefined') {
+            DB.haalLeaderboardOp(25).then(scores => {
+                const el = document.getElementById('globale-ranglijst');
+                if (!el) return;
+                if (!scores.length) {
+                    el.innerHTML = '<div class="kleur-dimmed" style="padding:14px 0;font-size:0.85em">Nog geen voltooide spellen opgeslagen.</div>';
+                    return;
+                }
+                let tbl = '<div class="ranglijst-lijst">';
+                scores.forEach((s, i) => {
+                    const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`;
+                    const datum = new Date(s.created_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' });
+                    const eindeLabel = s.einde_reden === 'bankroet' ? ' 💸' : '';
+                    tbl += `<div class="ranglijst-rij">
+                        <span class="ranglijst-pos">${medal}</span>
+                        <span class="ranglijst-naam">${s.speler_naam}${eindeLabel} <span class="ranglijst-type">${s.schip_naam ?? ''}</span></span>
+                        <span class="ranglijst-waarde">${state.formatteerKrediet(s.eindkapitaal)}</span>
+                        <span class="kleur-dimmed" style="font-size:0.78em;white-space:nowrap">${datum}</span>
+                    </div>`;
+                });
+                tbl += '</div>';
+                el.innerHTML = tbl;
+            });
+        }
     },
 
     _renderWaardegrafiek() {
@@ -1329,6 +1357,10 @@ const UI = {
 
     toonEindeScherm() {
         this.toonScherm('einde-scherm');
+        if (!this._eindeScoreOpgeslagen) {
+            this._eindeScoreOpgeslagen = true;
+            if (typeof DB !== 'undefined') DB.slaScoreOp();
+        }
         const netto = state.berekenNettowaarde();
         const reden = state.eindeReden;
 
