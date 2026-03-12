@@ -569,14 +569,14 @@ const UI = {
                     <div class="actie-rij">
                         <input class="aantal-invoer" type="number" min="1" max="${Math.max(1,maxKoop)}" value="1" id="koop-${goed.id}">
                         <button class="knop succes klein" onclick="App.koopGoed('${goed.id}')" ${maxKoop<=0?'disabled':''}>Koop</button>
-                        <button class="knop dimmed klein" onclick="App.koopMax('${goed.id}')" ${maxKoop<=0?'disabled':''}>Max(${maxKoop})</button>
+                        <button class="knop succes klein" onclick="App.koopMax('${goed.id}')" ${maxKoop<=0?'disabled':''}>Max(${maxKoop})</button>
                     </div>
                 </td>
                 <td>
                     <div class="actie-rij">
                         <input class="aantal-invoer" type="number" min="1" max="${Math.max(1,inLading)}" value="1" id="verkoop-${goed.id}">
                         <button class="knop gevaar klein" onclick="App.verkoopGoed('${goed.id}')" ${inLading<=0?'disabled':''}>Verkoop</button>
-                        <button class="knop dimmed klein" onclick="App.verkoopAlles('${goed.id}')" ${inLading<=0?'disabled':''}>Alles</button>
+                        <button class="knop gevaar klein" onclick="App.verkoopAlles('${goed.id}')" ${inLading<=0?'disabled':''}>Alles</button>
                     </div>
                     ${verkInfoHtml}
                 </td>

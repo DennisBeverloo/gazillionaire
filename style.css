@@ -290,7 +290,7 @@ html, body {
     z-index: 20;
     backdrop-filter: blur(8px);
 }
-#krediet-display { margin-left: auto; }
+#beurt-display { margin-left: auto; }
 #krediet-display, #beurt-display {
     font-family: var(--font-data);
     font-size: 0.85em;
@@ -481,6 +481,7 @@ html, body {
 #planeet-info-container {
     flex-shrink: 0;
     border-bottom: 1px solid var(--rand);
+    overflow: hidden;
 }
 .planeet-info-kaart {
     position: relative;
