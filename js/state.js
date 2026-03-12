@@ -774,13 +774,14 @@ class GameState {
                         if (gevuldeGoederen.length > 0) {
                             const goedId = gevuldeGoederen[Math.floor(Math.random() * gevuldeGoederen.length)];
                             const verloren = Math.ceil(this.lading[goedId] * 0.4);
-                            const goedNaam = GOEDEREN.find(g=>g.id===goedId).naam;
+                            const goedObj = GOEDEREN.find(g=>g.id===goedId);
+                            const goedNaam = `${goedObj.icoon} ${goedObj.naam}`;
                             if (this.verzekering?.actief) {
                                 resultaat.bericht = `Gepakt! Piraten grijpen naar ${verloren}× ${goedNaam} — je verzekering dekt het verlies! 🛡️`;
                             } else {
                                 this.lading[goedId] = Math.max(0, this.lading[goedId] - verloren);
                                 resultaat.ladingDelta[goedId] = -verloren;
-                                resultaat.bericht = `Gepakt! Je verliest ${verloren} eenheden ${goedNaam}.`;
+                                resultaat.bericht = `Gepakt! Je verliest ${verloren}× ${goedNaam}.`;
                             }
                         } else {
                             const bedrag = Math.min(200, this.speler.krediet);
@@ -800,11 +801,11 @@ class GameState {
             case 'stralingstorm': {
                 const extraBrandstof = Math.round(12 + Math.random() * 18);
                 if (this.verzekering?.actief) {
-                    resultaat.bericht = `De storm dwingt een grote omweg af (−${extraBrandstof} l brandstof) — je verzekering vergoedt het! 🛡️`;
+                    resultaat.bericht = `De storm dwingt een grote omweg af (⛽ −${extraBrandstof} l) — je verzekering vergoedt het! 🛡️`;
                 } else {
                     const werkelijk = Math.min(extraBrandstof, this.brandstof);
                     this.brandstof = Math.max(0, this.brandstof - extraBrandstof);
-                    resultaat.bericht = `De storm dwingt je een grote omweg te nemen. Extra brandstofverbruik: ${werkelijk} eenheden. Brandstof resterend: ${this.brandstof}.`;
+                    resultaat.bericht = `De storm dwingt je een grote omweg te nemen. ⛽ Extra brandstofverbruik: −${werkelijk} l. Resterend: ${this.brandstof} l.`;
                 }
                 break;
             }
@@ -819,7 +820,7 @@ class GameState {
                         const aantal = Math.min(Math.floor(ruimteVrij / gevonden.gewicht), 5 + Math.floor(Math.random() * 8));
                         this.lading[gevonden.id] = (this.lading[gevonden.id] || 0) + aantal;
                         resultaat.ladingDelta[gevonden.id] = aantal;
-                        resultaat.bericht = `Je vindt ${aantal}× ${gevonden.naam} in het wrak. Gratis lading!`;
+                        resultaat.bericht = `Je vindt ${aantal}× ${gevonden.icoon} ${gevonden.naam} in het wrak. Gratis lading!`;
                     } else {
                         resultaat.bericht = 'Je vindt het wrak, maar je ruim is te vol voor de lading.';
                     }
@@ -870,7 +871,7 @@ class GameState {
                                 this.lading[goed.id] = (this.lading[goed.id] || 0) + maxAantal;
                                 resultaat.kredietDelta = -totaal;
                                 resultaat.ladingDelta[goed.id] = maxAantal;
-                                resultaat.bericht = `Deal! Je koopt ${maxAantal}× ${goed.naam} voor slechts ${this.formatteerKrediet(kortingsPrijs)}/stuk.`;
+                                resultaat.bericht = `Deal! Je koopt ${maxAantal}× ${goed.icoon} ${goed.naam} voor slechts ${this.formatteerKrediet(kortingsPrijs)}/stuk.`;
                             } else {
                                 resultaat.bericht = 'Je hebt geen krediet voor de deal.';
                             }
@@ -892,7 +893,7 @@ class GameState {
                     resultaat.bericht = `Ionennevel verstoort de navigatie (−${extraNevel} l brandstof) — je verzekering vergoedt het! 🛡️`;
                 } else {
                     this.brandstof = Math.max(0, this.brandstof - extraNevel);
-                    resultaat.bericht = `De ionennevel dwingt je van koers. Extra brandstofverbruik: ${extraNevel} eenheden. Brandstof resterend: ${this.brandstof}.`;
+                    resultaat.bericht = `De ionennevel dwingt je van koers. ⛽ Extra brandstofverbruik: −${extraNevel} l. Resterend: ${this.brandstof} l.`;
                 }
                 break;
             }
@@ -960,9 +961,9 @@ class GameState {
                         const beloning = Math.round(50 + Math.random() * 80);
                         this.speler.krediet += beloning;
                         resultaat.kredietDelta = beloning;
-                        resultaat.bericht = `Je geeft ${geef} liter brandstof. De piloot is dankbaar en geeft je ${this.formatteerKrediet(beloning)} als dank.`;
+                        resultaat.bericht = `Je geeft ⛽ ${geef} l brandstof. De piloot is dankbaar en geeft je ${this.formatteerKrediet(beloning)} als dank.`;
                     } else {
-                        resultaat.bericht = `Je hebt zelf niet genoeg brandstof om ${geef} eenheden weg te geven.`;
+                        resultaat.bericht = `Je hebt zelf niet genoeg brandstof om ⛽ ${geef} l weg te geven.`;
                     }
                 } else {
                     resultaat.bericht = 'Je vliegt door. De noodoproep vervaagt in de statische ruis.';
@@ -993,13 +994,13 @@ class GameState {
                     const goed = GOEDEREN.find(g => g.id === goedId);
                     const verloren = Math.ceil(this.lading[goedId] / 2);
                     if (this.verzekering?.actief) {
-                        resultaat.bericht = `Koelsysteemstoring! ${verloren}× ${goed.naam} dreigt te bederven — je verzekering dekt het verlies! 🛡️`;
+                        resultaat.bericht = `Koelsysteemstoring! ${verloren}× ${goed.icoon} ${goed.naam} dreigt te bederven — je verzekering dekt het verlies! 🛡️`;
                     } else {
                         this.lading[goedId] -= verloren;
                         this.aankoopAantallen[goedId] = Math.max(0, (this.aankoopAantallen[goedId] || 0) - verloren);
                         if (this.lading[goedId] === 0) { delete this.aankoopPrijzen[goedId]; delete this.aankoopAantallen[goedId]; }
                         resultaat.ladingDelta[goedId] = -verloren;
-                        resultaat.bericht = `Koelsysteemstoring! ${verloren}× ${goed.naam} zijn bedorven en verloren gegaan.`;
+                        resultaat.bericht = `Koelsysteemstoring! ${verloren}× ${goed.icoon} ${goed.naam} zijn bedorven en verloren gegaan.`;
                     }
                 } else {
                     resultaat.bericht = 'Koelsysteemstoring, maar je had geen kwetsbare lading. Mazzel!';

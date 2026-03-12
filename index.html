@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gazillionaire</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>">
-    <link rel="stylesheet" href="style.css?v=5.0.2">
+    <link rel="stylesheet" href="style.css?v=5.0.3">
 </head>
 <body>
 
@@ -45,7 +45,7 @@
         </div>
         <button class="knop primair groot" id="start-knop">Begin de reis &rarr;</button>
     </div>
-    <span class="versie-label">v5.0.2</span>
+    <span class="versie-label">v5.0.3</span>
 </div>
 
 <!-- ============================================================
@@ -73,17 +73,17 @@
         <span id="schip-naam-display">🚀 ---</span>
         <span class="scheidslijn">|</span>
         <span id="cargo-display">📦 0/0 ton</span>
-        <span class="scheidslijn">|</span>
+        <span id="passagiers-sep" class="scheidslijn">|</span>
         <span id="passagiers-display">🧳 0/0</span>
         <span class="scheidslijn">|</span>
         <span id="brandstof-display">⛽ 0/0 l</span>
         <span class="scheidslijn">|</span>
         <span id="krediet-display">💰 0 credits</span>
         <span id="beurt-display" style="margin-left:auto">Beurt 0/150</span>
-        <button class="top-nav-knop" onclick="App.switchTab('logboek')" title="Reislogboek — alle gebeurtenissen en berichten">📋</button>
-        <button class="top-nav-knop" onclick="App.switchTab('ranglijst')" title="Ranglijst — de rijkste handelaars">🏅</button>
-        <button class="top-nav-knop" onclick="App.switchTab('achievements')" title="Prestaties — behaalde achievements">🏆</button>
-        <button class="top-instellingen-knop" onclick="UI.toonInstellingen()" title="Instellingen">⚙</button>
+        <button id="nav-logboek" class="top-nav-knop" onclick="App.switchTab('logboek')">📋</button>
+        <button id="nav-ranglijst" class="top-nav-knop" onclick="App.switchTab('ranglijst')">🏅</button>
+        <button id="nav-achievements" class="top-nav-knop" onclick="App.switchTab('achievements')">🏆</button>
+        <button id="nav-instellingen" class="top-instellingen-knop" onclick="UI.toonInstellingen()">⚙</button>
     </div>
 
     <!-- Hoofd inhoud: links tabs + berichten, rechts kaart + schipstatus -->
@@ -241,10 +241,10 @@
 <script src="js/audio.js"></script>
 <script src="js/config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="js/data.js?v=5.0.2"></script>
-<script src="js/state.js?v=5.0.2"></script>
-<script src="js/ui.js?v=5.0.2"></script>
-<script src="js/db.js?v=5.0.2"></script>
-<script src="js/main.js?v=5.0.2"></script>
+<script src="js/data.js?v=5.0.3"></script>
+<script src="js/state.js?v=5.0.3"></script>
+<script src="js/ui.js?v=5.0.3"></script>
+<script src="js/db.js?v=5.0.3"></script>
+<script src="js/main.js?v=5.0.3"></script>
 </body>
 </html>

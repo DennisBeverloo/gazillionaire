@@ -31,6 +31,15 @@ gh issue list --repo DennisBeverloo/gazillionaire
 Stel na de startup-check automatisch een cron in met interval `*/15 * * * *` en de prompt:
 `Controleer GitHub Issues op DennisBeverloo/gazillionaire. Als er open issues zijn zonder label 'wontfix' of 'question': pak ze op, fix ze, commit, push en sluit het issue met een comment.`
 
+## Design: resources altijd met emoji
+
+Wanneer resources in berichten, popups, tooltips of de UI worden getoond, altijd de bijbehorende emoji ervoor plaatsen:
+- **Goederen:** `${goed.icoon} ${goed.naam}` (bijv. `🔩 Ferroiet`, `💎 Lunasteen`)
+- **Brandstof-hoeveelheden:** `⛽ ${aantal} l` (bijv. `⛽ 20 l`)
+- **Credits:** via `formatteerKrediet()` — voeg geen extra 💰 toe, die functie handelt dit af
+
+Geldt voor: event-berichten in `state.js`, logboek-berichten, event-popups, tooltips en alle andere UI-teksten.
+
 ## Design: geanimeerde voortgangsbalken
 
 Alle voortgangsbalken (brandstof, HP, lading, etc.) animeren bij een waardeverandering via dit patroon:

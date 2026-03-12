@@ -171,7 +171,16 @@ const UI = {
 
         const pax = state.passagiers ?? 0;
         const maxPax = state.schip?.passagiersCapaciteit ?? 0;
-        el('passagiers-display').textContent = `🧳 ${pax}/${maxPax}`;
+        const paxDisplay = el('passagiers-display');
+        const paxSep = el('passagiers-sep');
+        if (maxPax > 0) {
+            paxDisplay.textContent = `🧳 ${pax}/${maxPax}`;
+            paxDisplay.style.display = '';
+            if (paxSep) paxSep.style.display = '';
+        } else {
+            paxDisplay.style.display = 'none';
+            if (paxSep) paxSep.style.display = 'none';
+        }
 
         const brandstof = state.brandstof ?? 0;
         const maxBrandstof = state.schip?.brandstofTank ?? 0;
@@ -195,7 +204,8 @@ const UI = {
         const tooltip = document.getElementById('top-tooltip');
 
         // Top balk hover items
-        const ids = ['schip-naam-display', 'cargo-display', 'passagiers-display', 'brandstof-display', 'krediet-display'];
+        const ids = ['schip-naam-display', 'cargo-display', 'passagiers-display', 'brandstof-display', 'krediet-display',
+                     'nav-logboek', 'nav-ranglijst', 'nav-achievements', 'nav-instellingen'];
         ids.forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
@@ -274,6 +284,14 @@ const UI = {
                     <div class="tt-rij"><span>Rente</span><span style="color:var(--oranje)">${(RENTE_PERCENTAGE * 100).toFixed(0)}% per ${RENTE_INTERVAL} beurten</span></div>
                     ` : ''}`;
             }
+            case 'nav-logboek':
+                return `<div class="tt-label">📋 Reislogboek</div><div class="tt-beschr">Alle gebeurtenissen en berichten van deze reis.</div>`;
+            case 'nav-ranglijst':
+                return `<div class="tt-label">🏅 Ranglijst</div><div class="tt-beschr">De rijkste handelaars in de sector — jij versus de NPC-concurrenten.</div>`;
+            case 'nav-achievements':
+                return `<div class="tt-label">🏆 Prestaties</div><div class="tt-beschr">Behaalde en vergrendelde achievements. Bonuscredits bij voltooiing.</div>`;
+            case 'nav-instellingen':
+                return `<div class="tt-label">⚙ Instellingen</div><div class="tt-beschr">Geluid, weergave-opties en speldata beheren.</div>`;
         }
         return null;
     },
@@ -1609,10 +1627,21 @@ const UI = {
             let keuzes = event.keuzes;
             if (event.id === 'piraten') {
                 const bedrag = Math.min(Math.round(Math.max(0, state.speler.krediet) * 0.25 + 100), 800);
+                const snelheid = state.schip?.snelheid ?? 1;
+                const schild = state.schip?.schild ?? 1;
+                const vluchtKans = Math.min(0.95, 0.25 + snelheid * 0.08 + schild * 0.05);
+                const vluchtPct = Math.round(vluchtKans * 100);
+                const heeftVerzekering = state.verzekering?.actief;
+                document.getElementById('event-beschrijving').innerHTML =
+                    `Een piratengroep onderschept je schip en blokkeert je route. Ze eisen tol voor veilige doorgang.<br><br>` +
+                    `<span style="font-size:0.88em;color:var(--tekst-dim)">` +
+                    `⚡ Snelheid: <strong>${snelheid}</strong> &nbsp;|&nbsp; 🛡️ Schild: <strong>${schild}</strong><br>` +
+                    `Vlucht slagingskans: <strong style="color:${vluchtPct >= 60 ? 'var(--groen)' : vluchtPct >= 40 ? 'var(--oranje)' : 'var(--rood)'}">${vluchtPct}%</strong>` +
+                    (heeftVerzekering ? ` &nbsp;|&nbsp; <strong style="color:var(--groen)">🛡️ Verzekering actief</strong> — losgeld en ladingverlies worden vergoed` : '') +
+                    `</span>`;
                 keuzes = event.keuzes.map(k => {
-                    if (k.id === 'betaal') {
-                        return { ...k, tekst: `Betaal het losgeld (${state.formatteerKrediet(bedrag)})` };
-                    }
+                    if (k.id === 'betaal') return { ...k, tekst: `Betaal losgeld (${state.formatteerKrediet(bedrag)})` };
+                    if (k.id === 'vlucht') return { ...k, tekst: `Probeer te ontsnappen (${vluchtPct}% kans)` };
                     return k;
                 });
             }
