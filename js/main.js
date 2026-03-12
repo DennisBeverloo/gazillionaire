@@ -415,8 +415,9 @@ const App = {
     },
 
     repareerSchip() {
+        const hpPctVoor = state.schip?.maxHP > 0 ? Math.round((state.schipHP ?? 0) / state.schip.maxHP * 100) : 0;
         const res = state.repareerSchip();
-        if (!res.succes) this._fout(res.reden); else UI.renderSpel();
+        if (!res.succes) this._fout(res.reden); else { UI._animeerHP = true; UI._hpPctVoor = hpPctVoor; UI.renderSpel(); }
     },
 
     // =========================================================================

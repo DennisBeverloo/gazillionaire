@@ -662,9 +662,11 @@ const UI = {
             const repKosten = state.berekenReparatieKosten();
             const isTechton = state.locatie === 'techton';
             const kanBetalen = state.speler.krediet >= repKosten;
+            const hpAnimeer = this._animeerHP;
+            const hpStartPct = hpAnimeer ? (this._hpPctVoor ?? 0) : hpPct;
             let repHtml = `<div style="display:flex;align-items:center;gap:14px;margin-bottom:8px">
                 <span style="font-size:1.1em;color:${hpKleur};font-weight:bold">❤ ${hp}/${maxHP}</span>
-                <div class="lading-balk-container" style="flex:1;margin:0"><div class="lading-balk" style="width:${hpPct}%;background:${hpKleur}"></div></div>
+                <div class="lading-balk-container" style="flex:1;margin:0"><div id="hp-balk" class="lading-balk${hpAnimeer ? ' animeer' : ''}" style="width:${hpStartPct}%;background:${hpKleur}" data-target="${hpPct}"></div></div>
                 <span class="kleur-dimmed" style="font-size:0.82em">${hpPct}%</span>
             </div>`;
             if (repKosten === 0) {
@@ -766,6 +768,15 @@ const UI = {
             this._animeerBrandstof = false;
             requestAnimationFrame(() => {
                 const balk = document.getElementById('brandstof-balk');
+                if (balk) balk.style.width = balk.dataset.target + '%';
+            });
+        }
+
+        // Animeer HP-balk na render (alleen als vlag gezet)
+        if (this._animeerHP) {
+            this._animeerHP = false;
+            requestAnimationFrame(() => {
+                const balk = document.getElementById('hp-balk');
                 if (balk) balk.style.width = balk.dataset.target + '%';
             });
         }
