@@ -37,7 +37,7 @@ class GameState {
         this.gekochteUpgrades = [];
         this.geselecteerdePlaneet = null; // for map click
         this.tipsGezien = {};
-        this.statistieken = { handelstransacties: 0, gereisd: 0, eventsMeegemaakt: 0, passagiersAfgeleverd: 0, verkopen: 0, cargoTonVervoerd: 0, ferroietVerwerkt: 0, veilingenGewonnen: 0 };
+        this.statistieken = { handelstransacties: 0, gereisd: 0, eventsMeegemaakt: 0, passagiersAfgeleverd: 0, verkopen: 0, cargoTonVervoerd: 0, ferroietVerwerkt: 0, veilingenGewonnen: 0, schepenGekocht: 0 };
         this.planeetBezoeken = {};
 
         // Nieuwe velden
@@ -1114,6 +1114,9 @@ class GameState {
     koopUpgradeStap(cat) {
         if (!this.upgradeNiveaus || !this.upgradeNiveaus.hasOwnProperty(cat))
             return { succes: false, reden: 'Onbekende categorie.' };
+        const huidigNiveau = this.upgradeNiveaus[cat] ?? 0;
+        if (this.locatie !== 'techton' && huidigNiveau >= 10)
+            return { succes: false, reden: '⚙️ Niveau 11+ vereist de Geavanceerde Scheepswerf op Techton.' };
         const prijs = this._upgradeStapPrijs(cat);
         if (this.speler.krediet < prijs)
             return { succes: false, reden: 'Onvoldoende krediet!' };
@@ -1171,6 +1174,7 @@ class GameState {
         const nieuwSchip = SCHEPEN.find(s => s.id === schipId);
         if (!nieuwSchip) return { succes: false, reden: 'Schip niet gevonden.' };
         if (this.schip.id === schipId) return { succes: false, reden: 'Je hebt dit schip al.' };
+        if (this.locatie !== 'techton') return { succes: false, reden: 'Scheepsaankoop is alleen mogelijk op Techton.' };
 
         // Verkoopwaarde huidig schip: 60% van basisprijs
         const verkoopwaarde = Math.round(SCHEPEN.find(s => s.id === this.schip.id).prijs * 0.60);
@@ -1209,7 +1213,9 @@ class GameState {
         }
 
         this.speler.krediet = this.speler.krediet - nettoPrijs;
+        this.statistieken.schepenGekocht = (this.statistieken.schepenGekocht || 0) + 1;
         this.voegBerichtToe(`Je nieuwe ${nieuwSchip.naam} is klaar voor de ruimte! Nettobetaling: ${this.formatteerKrediet(nettoPrijs)}.`, 'goud');
+        this.controleerAchievements();
         return { succes: true, verkoopwaarde, nettoPrijs };
     }
 

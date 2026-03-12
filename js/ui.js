@@ -276,8 +276,8 @@ const UI = {
 
         const imgSrc = `assets/planet-${planeet.id}.png`;
         const tags = [];
-        if (planeet.heeftBank)  tags.push('<span class="planeet-tag" data-tip="Hier kun je geld lenen of een bestaande lening (gedeeltelijk) aflossen.">💳 Bank</span>');
-        if (planeet.heeftWerf)  tags.push('<span class="planeet-tag" data-tip="Hier kun je je schip repareren en upgrades installeren.">🛸 Scheepswerf</span>');
+        if (planeet.heeftBank)          tags.push('<span class="planeet-tag" data-tip="Hier kun je geld lenen of een bestaande lening (gedeeltelijk) aflossen.">💳 Bank</span>');
+        if (planeet.id === 'techton')    tags.push('<span class="planeet-tag" data-tip="Op Techton kun je een nieuw schip kopen via de Geavanceerde Scheepswerf.">🛸 Scheepswerf</span>');
         if (planeet.specialiteit?.length) tags.push('<span class="planeet-tag kleur-groen" data-tip="Deze planeet produceert bepaalde goederen — die zijn hier goedkoper te koop.">↓ Goedkoop</span>');
         if (planeet.vraag?.length)        tags.push('<span class="planeet-tag kleur-oranje" data-tip="Bepaalde goederen zijn hier erg gewild en worden voor een hogere prijs opgekocht.">↑ Gevraagd</span>');
 
@@ -798,28 +798,6 @@ const UI = {
         });
         html += `<div class="haven-blok haven-blok-vol-breed"><div class="haven-blok-header">⚙ Scheepsupgrades</div><div class="haven-blok-inhoud">${upgHtml}</div></div>`;
 
-        // === SCHEEPSWERF (volle breedte, alleen op planeten met werf) ===
-        if (planeet.heeftWerf) {
-            const verkoopwaarde = Math.round(SCHEPEN.find(s => s.id === state.schip.id).prijs * 0.60);
-            let werfHtml = `<div style="font-size:0.88em;margin-bottom:10px">Inruilwaarde <strong>${state.schip.naam}</strong>: <strong class="kleur-goud">${state.formatteerKrediet(verkoopwaarde)}</strong></div>`;
-            werfHtml += '<div class="upgrade-raster">';
-            SCHEPEN.filter(s => s.id !== state.schip.id).forEach(schip => {
-                const netto = schip.prijs - verkoopwaarde;
-                const kan   = state.speler.krediet >= netto;
-                werfHtml += `<div class="upgrade-kaart">
-                    <div style="font-size:1.4em;margin-bottom:5px">${schip.icoon}</div>
-                    <h4>${schip.naam}</h4>
-                    <p>${schip.beschrijving}</p>
-                    <div class="schip-stat"><span>Snelheid</span><span class="waarde ster-rating">${'★'.repeat(schip.snelheid)}${'☆'.repeat(5-schip.snelheid)}</span></div>
-                    <div class="schip-stat"><span>Laadruimte</span><span class="waarde">${schip.laadruimte} ton</span></div>
-                    <div class="upgrade-prijs" style="margin-top:8px">Netto: ${state.formatteerKrediet(Math.max(0,netto))}</div>
-                    <button class="knop primair klein" ${!kan?'disabled':''} onclick="App.koopSchip('${schip.id}')">${kan?'Koop schip':'Onvoldoende credits'}</button>
-                </div>`;
-            });
-            werfHtml += '</div>';
-            html += `<div class="haven-blok haven-blok-vol-breed"><div class="haven-blok-header">🛸 Scheepswerf</div><div class="haven-blok-inhoud">${werfHtml}</div></div>`;
-        }
-
         html += '</div>'; // sluit haven-raster
         container.innerHTML = html;
 
@@ -846,6 +824,8 @@ const UI = {
             html += this._renderFerrum();
         } else if (state.locatie === 'agria') {
             html += this._renderAgria();
+        } else if (state.locatie === 'techton') {
+            html += this._renderTechton();
         } else {
             html += `<div class="planeet-geen-dienst">Geen speciale diensten beschikbaar op ${planeet.naam}.</div>`;
         }
@@ -1036,6 +1016,49 @@ const UI = {
         });
 
         html += '</tbody></table>';
+        return html;
+    },
+
+    // =========================================================================
+    // TECHTON SCHEEPSWERF
+    // =========================================================================
+
+    _renderTechton() {
+        const verkoopwaarde = Math.round(SCHEPEN.find(s => s.id === state.schip.id).prijs * 0.60);
+        const andereSchepen = SCHEPEN.filter(s => s.id !== state.schip.id);
+
+        let html = `<div class="planeet-dienst-blok">
+            <div class="sectie-header">🛸 Geavanceerde Scheepswerf</div>
+            <p class="kleur-dimmed" style="font-size:0.83em;margin:4px 0 12px">
+                Ruil je huidige schip in voor een ander model. Upgrades vervallen bij inruil.
+                Inruilwaarde <strong>${state.schip.naam}</strong>:
+                <strong class="kleur-goud">${state.formatteerKrediet(verkoopwaarde)}</strong>
+            </p>
+            <div class="upgrade-raster">`;
+
+        andereSchepen.forEach(schip => {
+            const netto = schip.prijs - verkoopwaarde;
+            const kan   = state.speler.krediet >= netto;
+            html += `<div class="upgrade-kaart">
+                <div style="font-size:1.4em;margin-bottom:5px">${schip.icoon}</div>
+                <h4>${schip.naam}</h4>
+                <p>${schip.beschrijving}</p>
+                <div class="schip-stat"><span>Snelheid</span>
+                    <span class="waarde ster-rating">${'★'.repeat(schip.snelheid)}${'☆'.repeat(5-schip.snelheid)}</span></div>
+                <div class="schip-stat"><span>Laadruimte</span><span class="waarde">${schip.laadruimte} ton</span></div>
+                <div class="schip-stat"><span>Brandstoftank</span><span class="waarde">${schip.brandstofTank} l</span></div>
+                <div class="schip-stat"><span>Passagiers</span><span class="waarde">${schip.passagiersCapaciteit}</span></div>
+                <div class="upgrade-prijs" style="margin-top:8px">
+                    Netto: <strong>${state.formatteerKrediet(Math.max(0, netto))}</strong>
+                    ${netto < 0 ? `<span class="kleur-groen">(+${state.formatteerKrediet(-netto)} retour)</span>` : ''}
+                </div>
+                <button class="knop primair klein" ${!kan ? 'disabled' : ''} onclick="App.koopSchip('${schip.id}')">
+                    ${kan ? 'Koop schip' : 'Onvoldoende credits'}
+                </button>
+            </div>`;
+        });
+
+        html += '</div></div>';
         return html;
     },
 

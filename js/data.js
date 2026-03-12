@@ -12,7 +12,7 @@ const PLANETEN = [
         specialiteit: [],
         vraag: [],
         heeftBank: true,
-        heeftWerf: true,
+
     },
     {
         id: 'ferrum',
@@ -23,7 +23,7 @@ const PLANETEN = [
         specialiteit: ['ferroiet', 'lunasteen'],
         vraag: ['nebulakorrels', 'aquapure'],
         heeftBank: false,
-        heeftWerf: false,
+
     },
     {
         id: 'agria',
@@ -34,7 +34,7 @@ const PLANETEN = [
         specialiteit: ['nebulakorrels', 'aquapure'],
         vraag: ['technoware', 'quantumchips'],
         heeftBank: false,
-        heeftWerf: false,
+
     },
     {
         id: 'techton',
@@ -45,7 +45,7 @@ const PLANETEN = [
         specialiteit: ['technoware', 'quantumchips'],
         vraag: ['pyrogel', 'ferroiet'],
         heeftBank: true,
-        heeftWerf: true,
+
     },
     {
         id: 'aqueron',
@@ -56,7 +56,7 @@ const PLANETEN = [
         specialiteit: ['bioplasma', 'aquapure'],
         vraag: ['luxuriet', 'lunasteen'],
         heeftBank: false,
-        heeftWerf: false,
+
     },
     {
         id: 'pyroflux',
@@ -67,7 +67,7 @@ const PLANETEN = [
         specialiteit: ['pyrogel', 'kristalliet'],
         vraag: ['nebulakorrels', 'bioplasma'],
         heeftBank: false,
-        heeftWerf: false,
+
     },
     {
         id: 'luxoria',
@@ -78,7 +78,7 @@ const PLANETEN = [
         specialiteit: ['luxuriet', 'lunasteen'],
         vraag: ['ferroiet', 'pyrogel'],
         heeftBank: true,
-        heeftWerf: false,
+
     },
     {
         id: 'mortex',
@@ -89,7 +89,7 @@ const PLANETEN = [
         specialiteit: [],
         vraag: [],
         heeftBank: false,
-        heeftWerf: false,
+
         isGevaarlijk: true,
     },
 ];
@@ -715,6 +715,15 @@ const ACHIEVEMENTS = [
         beschrijving: 'Lever je eerste passagier af op zijn bestemming.',
         beloning: 600,
         check: s => s.statistieken.passagiersAfgeleverd >= 1,
+    },
+    {
+        id: 'luchthaven',
+        naam: 'Luchthaven',
+        icoon: '🛩️',
+        categorie: 'schip',
+        beschrijving: 'Koop je eerste schip op Techton.',
+        beloning: 800,
+        check: s => (s.statistieken.schepenGekocht ?? 0) >= 1,
     },
     {
         id: 'veilingmeester',
