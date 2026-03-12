@@ -512,7 +512,35 @@ html, body {
     backdrop-filter: blur(2px);
     display: flex;
     flex-direction: column;
-    justify-content: flex-end;
+    justify-content: flex-start;
+}
+
+/* "Ga naar planeet" knop in zijbalk */
+#planeet-ga-naar-knop {
+    width: 100%;
+    padding: 9px 16px;
+    text-align: left;
+    background: var(--bg-paneel-licht);
+    color: var(--accent);
+    border: none;
+    border-bottom: 1px solid var(--rand);
+    border-radius: 0;
+    font-family: var(--font-titel);
+    font-size: 0.72em;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    flex-shrink: 0;
+}
+#planeet-ga-naar-knop:hover {
+    background: rgba(0, 212, 255, 0.06);
+    color: var(--goud);
+}
+#planeet-ga-naar-knop.actief {
+    color: var(--goud);
+    background: rgba(255, 215, 0, 0.07);
+    border-bottom-color: var(--goud);
 }
 .planeet-info-naam {
     font-family: var(--font-titel);
@@ -1614,6 +1642,12 @@ body[data-planeet="mortex"]  { --planet-accent: #8b0000; }
     margin-bottom: 4px;
     font-family: var(--font-data);
     font-size: 1.05em;
+}
+.bestemming-services {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 2px;
 }
 .bestemming-meta-rij {
     display: flex;

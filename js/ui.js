@@ -88,6 +88,10 @@ const UI = {
             tab.classList.toggle('actief', tab.dataset.tab === state.activeTab);
         });
 
+        // "Ga naar planeet" knop actief markeren
+        const planeetGaKnop = document.getElementById('planeet-ga-naar-knop');
+        if (planeetGaKnop) planeetGaKnop.classList.toggle('actief', state.activeTab === 'planeet');
+
         // Handel-tab label: Zwarte Markt op Mortex
         const handelTabKnop = document.querySelector('.tab[data-tab="handel"]');
         if (handelTabKnop) handelTabKnop.innerHTML = state.locatie === 'mortex' ? '💀 Zwarte Markt' : '⚖ Handel';
@@ -99,23 +103,25 @@ const UI = {
         });
     },
 
+    _getPlaneetServiceTags(planeet) {
+        const tags = [];
+        if (planeet.heeftBank)       tags.push('💳 Bank');
+        if (planeet.id === 'nexoria') tags.push('🌌 Galactische Beurs');
+        if (planeet.id === 'techton') tags.push('🛸 Scheepswerf');
+        if (planeet.id === 'luxoria') tags.push('🎰 Casino');
+        if (planeet.id === 'agria')   tags.push('🏺 Veiling');
+        if (planeet.id === 'mortex')  tags.push('💀 Zwarte Markt');
+        if (planeet.id === 'pyroflux') tags.push('⛽ Speciale brandstof');
+        return tags;
+    },
+
     renderBestemmingPaneel() {
         const container = document.getElementById('bestemming-paneel-container');
         if (!container) return;
 
-        // Geen bestemming geselecteerd: toon dropdown
+        // Geen bestemming geselecteerd: hint om op de kaart te klikken
         if (!state.geselecteerdePlaneet) {
-            const opties = PLANETEN
-                .filter(p => p.id !== state.locatie)
-                .map(p => `<option value="${p.id}">${p.naam}${p.isGevaarlijk ? ' ⚠' : ''}</option>`)
-                .join('');
-            container.innerHTML = `<div class="bestemming-paneel">
-                <div class="bestemming-label">Bestemming</div>
-                <select class="bestemming-dropdown" onchange="App.selecteerBestemming(this.value)">
-                    <option value="">— Kies je bestemming —</option>
-                    ${opties}
-                </select>
-            </div>`;
+            container.innerHTML = '';
             return;
         }
 
@@ -125,17 +131,23 @@ const UI = {
         const brandstofNodig = state.berekenBrandstofVerbruik(state.locatie, dest.id);
         const heeftGenoeg = state.brandstof >= brandstofNodig;
         const afstand = Math.round(state.berekenAfstand(state.locatie, dest.id));
+        const services = this._getPlaneetServiceTags(dest);
+        const servicesHtml = services.length
+            ? `<div class="bestemming-services">${services.map(s => `<span class="planeet-tag">${s}</span>`).join('')}</div>`
+            : '';
+
         container.innerHTML = `<div class="bestemming-paneel">
             <div class="bestemming-label">Bestemming
-                <button class="bestemming-wijzig" onclick="App.selecteerBestemming('')">✕ Wijzig</button>
+                <button class="bestemming-wijzig" onclick="App.selecteerBestemming('')">✕ Wis</button>
             </div>
             <div class="bestemming-paneel-naam">
                 <span class="planeet-bol" style="background:${dest.kleur};width:13px;height:13px"></span>
                 <strong>${dest.naam}</strong>
                 ${dest.isGevaarlijk ? '<span class="kleur-rood" style="font-size:0.78em">⚠ Gevaarlijk</span>' : ''}
             </div>
-            <div class="kleur-dimmed" style="font-size:0.82em;margin:6px 0 8px">${dest.beschrijving}</div>
-            <div class="bestemming-meta-rij">
+            <div class="kleur-dimmed" style="font-size:0.82em;margin:4px 0 6px">${dest.beschrijving}</div>
+            ${servicesHtml}
+            <div class="bestemming-meta-rij" style="margin-top:8px">
                 <span>Afstand</span><span>${afstand} lj</span>
             </div>
             <div class="brandstof-vereist ${heeftGenoeg ? '' : 'brandstof-tekort'}" style="margin-top:6px">
@@ -314,9 +326,7 @@ const UI = {
         if (!planeet) { container.innerHTML = ''; return; }
 
         const imgSrc = `assets/planet-${planeet.id}.png`;
-        const tags = [];
-        if (planeet.heeftBank)       tags.push('<span class="planeet-tag" data-tip="Hier kun je geld lenen of een bestaande lening (gedeeltelijk) aflossen.">💳 Bank</span>');
-        if (planeet.id === 'techton') tags.push('<span class="planeet-tag" data-tip="Op Techton kun je een nieuw schip kopen via de Geavanceerde Scheepswerf.">🛸 Scheepswerf</span>');
+        const tags = this._getPlaneetServiceTags(planeet).map(s => `<span class="planeet-tag">${s}</span>`);
 
         container.innerHTML = `
             <div class="planeet-info-kaart" style="background-image:url('${imgSrc}');--planeet-kleur:${planeet.kleur}">
