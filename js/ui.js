@@ -314,10 +314,8 @@ const UI = {
 
         const imgSrc = `assets/planet-${planeet.id}.png`;
         const tags = [];
-        if (planeet.heeftBank)          tags.push('<span class="planeet-tag" data-tip="Hier kun je geld lenen of een bestaande lening (gedeeltelijk) aflossen.">💳 Bank</span>');
-        if (planeet.id === 'techton')    tags.push('<span class="planeet-tag" data-tip="Op Techton kun je een nieuw schip kopen via de Geavanceerde Scheepswerf.">🛸 Scheepswerf</span>');
-        if (planeet.specialiteit?.length) tags.push('<span class="planeet-tag kleur-groen" data-tip="Deze planeet produceert bepaalde goederen — die zijn hier goedkoper te koop.">↓ Goedkoop</span>');
-        if (planeet.vraag?.length)        tags.push('<span class="planeet-tag kleur-oranje" data-tip="Bepaalde goederen zijn hier erg gewild en worden voor een hogere prijs opgekocht.">↑ Gevraagd</span>');
+        if (planeet.heeftBank)       tags.push('<span class="planeet-tag" data-tip="Hier kun je geld lenen of een bestaande lening (gedeeltelijk) aflossen.">💳 Bank</span>');
+        if (planeet.id === 'techton') tags.push('<span class="planeet-tag" data-tip="Op Techton kun je een nieuw schip kopen via de Geavanceerde Scheepswerf.">🛸 Scheepswerf</span>');
 
         container.innerHTML = `
             <div class="planeet-info-kaart" style="background-image:url('${imgSrc}');--planeet-kleur:${planeet.kleur}">

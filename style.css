@@ -486,13 +486,13 @@ html, body {
 }
 .planeet-info-kaart {
     position: relative;
-    height: 130px;
+    min-height: 130px;
     background-size: cover;
     background-position: center;
     background-color: var(--bg-diep);
     background-image: radial-gradient(circle at 35% 35%, var(--planeet-kleur, #00d4ff)66, transparent 70%);
     display: flex;
-    align-items: flex-end;
+    align-items: stretch;
     padding: 8px;
 }
 .planeet-info-kaart::before {
@@ -506,7 +506,6 @@ html, body {
     z-index: 1;
     padding: 8px 12px;
     width: 100%;
-    height: 100%;
     box-sizing: border-box;
     background: rgba(0, 0, 0, 0.55);
     border-radius: 6px;

@@ -25,6 +25,7 @@ gh issue list --repo DennisBeverloo/gazillionaire
 - Sluit het issue met een comment: `gh issue close <nr> --comment "beschrijving fix"`
 - Stel vragen via: `gh issue comment <nr> --body "vraag"`
 - Issues met label `wontfix` of `question` niet zomaar sluiten
+- **Lees altijd alle comments** via `gh api repos/DennisBeverloo/gazillionaire/issues/<nr>/comments` — zeker bij heropende issues; de comments bevatten vaak de echte oorzaak of extra context
 - Na het verwerken van issues: stel een cron in die elke 5 minuten opnieuw checkt (zie hieronder)
 
 **Cron (elke 15 minuten, zolang sessie actief is):**
