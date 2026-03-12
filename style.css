@@ -686,11 +686,11 @@ html, body {
 .haven-blok-vol-breed { grid-column: 1 / -1; }
 .haven-blok-passagiers {
     background:
-        linear-gradient(to bottom, #07111f 15%, rgba(7,17,31,0) 72%),
+        linear-gradient(to bottom, #07111f 50%, rgba(7,17,31,0) 100%),
         url('assets/passengers-boarding.png') no-repeat bottom / 100% auto;
 }
 .haven-blok-passagiers .haven-blok-inhoud {
-    padding-bottom: 90px;
+    padding-bottom: 70px;
 }
 .haven-blok-header {
     font-family: var(--font-titel);

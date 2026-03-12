@@ -666,8 +666,7 @@ const UI = {
                 <div class="pax-info-rij"><span class="kleur-dimmed">Ticketprijs</span><strong class="kleur-groen">${state.formatteerKrediet(wachtendObj.prijs)}/pp</strong></div>
                 ${verwacht !== null ? `<div class="pax-info-rij"><span class="kleur-dimmed">Bij aankomst</span><strong class="kleur-goud">+${state.formatteerKrediet(verwacht)}</strong></div>` : ''}
             </div>
-            ${kanInstappen ? `<button class="knop succes klein" style="margin-top:10px" onclick="App.boardPassagiers()">Neem ${instappers} passagier${instappers > 1 ? 's' : ''} aan boord</button>` : ''}
-            <div class="kleur-dimmed" style="font-size:0.8em;margin-top:8px">Passagiers betalen bij aankomst op de volgende planeet.</div>`;
+            ${kanInstappen ? `<button class="knop succes klein" style="margin-top:10px" onclick="App.boardPassagiers()">Neem ${instappers} passagier${instappers > 1 ? 's' : ''} aan boord</button>` : ''}`;
         }
         html += `<div class="haven-blok haven-blok-passagiers"><div class="haven-blok-header">🧳 Passagiers</div><div class="haven-blok-inhoud">${paxHtml}</div></div>`;
 
