@@ -76,6 +76,10 @@ const UI = {
         document.querySelectorAll('.tab').forEach(tab => {
             tab.classList.toggle('actief', tab.dataset.tab === state.activeTab);
         });
+
+        // Handel-tab label: Zwarte Markt op Mortex
+        const handelTabKnop = document.querySelector('.tab[data-tab="handel"]');
+        if (handelTabKnop) handelTabKnop.innerHTML = state.locatie === 'mortex' ? '💀 Zwarte Markt' : '⚖ Handel';
     },
 
     renderBestemmingPaneel() {
@@ -475,9 +479,14 @@ const UI = {
             html += `<div class="info-balk kleur-rood">⚠ Je schip is beschadigd — ga naar Ruimtehaven om te repareren.</div>`;
         }
 
-        // === LOKALE MARKT ===
-        html += `<div class="sectie-header">Lokale Markt — ${planeet.naam}</div>
-                 <p class="kleur-dimmed" style="font-size:0.82em;margin:0 0 10px">${planeet.beschrijving}</p>`;
+        // === LOKALE MARKT / ZWARTE MARKT ===
+        if (state.locatie === 'mortex') {
+            html += `<div class="sectie-header zwarte-markt-header">💀 Zwarte Markt — ${planeet.naam}</div>
+                     <div class="info-balk zwarte-markt-banner">⚠️ Goederen gekocht op Mortex worden gemarkeerd als <strong>verdachte lading</strong>. Bij landing op andere planeten: 25% kans op douanecontrole en boete.</div>`;
+        } else {
+            html += `<div class="sectie-header">Lokale Markt — ${planeet.naam}</div>
+                     <p class="kleur-dimmed" style="font-size:0.82em;margin:0 0 10px">${planeet.beschrijving}</p>`;
+        }
 
         html += `<table class="handel-tabel"><thead><tr>
             <th>Goed</th>
@@ -522,9 +531,11 @@ const UI = {
 
             // Lading info (in cargo column)
             const aankoopPrijs = state.aankoopPrijzen[goed.id];
+            const verdacht = state.ladingVerdacht?.[goed.id] || 0;
             let ladingTd = '—';
             if (inLading > 0) {
                 ladingTd = `<strong>${inLading}</strong>`;
+                if (verdacht > 0) ladingTd += ` <span class="verdacht-icoon" title="${verdacht} ton verdachte lading">⚠️</span>`;
                 if (aankoopPrijs) {
                     ladingTd += `<div class="aankoopprijs-info">gem. ${aankoopPrijs} credits</div>`;
                 }
@@ -832,6 +843,8 @@ const UI = {
             html += this._renderTechton();
         } else if (state.locatie === 'luxoria') {
             html += this._renderLuxoria();
+        } else if (state.locatie === 'mortex') {
+            html += this._renderMortex();
         } else {
             html += `<div class="planeet-geen-dienst">Geen speciale diensten beschikbaar op ${planeet.naam}.</div>`;
         }
@@ -1141,6 +1154,40 @@ const UI = {
         }
 
         html += '</div>';
+        return html;
+    },
+
+    // =========================================================================
+    // MORTEX ILLEGALE SCHEEPSWERF
+    // =========================================================================
+
+    _renderMortex() {
+        const afgeschermd = state.mortexUpgrades?.afgeschermd;
+        const kosten = 8000;
+        const kanKopen = !afgeschermd && state.speler.krediet >= kosten;
+
+        let html = `<div class="planeet-dienst-blok">
+            <div class="sectie-header">🔧 Illegale Scheepswerf</div>
+            <p class="kleur-dimmed" style="font-size:0.83em;margin:4px 0 14px">
+                Illiciete modificaties — geen vragen gesteld. Hoge prijzen, geen garanties.
+            </p>
+            <div class="upgrade-raster">
+                <div class="upgrade-kaart">
+                    <div style="font-size:1.4em;margin-bottom:5px">🛡️</div>
+                    <h4>Afgeschermde Vrachtopslag</h4>
+                    <p>Blokkeert douanescanners. Verlaagt kans op douanecontrole van <strong>25% naar 5%</strong>.</p>
+                    <div class="upgrade-prijs" style="margin-top:8px">
+                        <strong class="kleur-goud">${state.formatteerKrediet(kosten)}</strong>
+                    </div>
+                    ${afgeschermd
+                        ? `<button class="knop dimmed klein" disabled>✓ Geïnstalleerd</button>`
+                        : `<button class="knop primair klein" ${!kanKopen ? 'disabled' : ''} onclick="App.koopAfgeschermdVrachtruim()">
+                            ${kanKopen ? 'Koop upgrade' : 'Onvoldoende credits'}
+                           </button>`
+                    }
+                </div>
+            </div>
+        </div>`;
         return html;
     },
 

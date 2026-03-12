@@ -37,11 +37,15 @@ class GameState {
         this.gekochteUpgrades = [];
         this.geselecteerdePlaneet = null; // for map click
         this.tipsGezien = {};
-        this.statistieken = { handelstransacties: 0, gereisd: 0, eventsMeegemaakt: 0, passagiersAfgeleverd: 0, verkopen: 0, cargoTonVervoerd: 0, ferroietVerwerkt: 0, veilingenGewonnen: 0, schepenGekocht: 0, pyrofluxTankbeurten: 0, casinoWinstStreak: 0, casinoBigWin: 0 };
+        this.statistieken = { handelstransacties: 0, gereisd: 0, eventsMeegemaakt: 0, passagiersAfgeleverd: 0, verkopen: 0, cargoTonVervoerd: 0, ferroietVerwerkt: 0, veilingenGewonnen: 0, schepenGekocht: 0, pyrofluxTankbeurten: 0, casinoWinstStreak: 0, casinoBigWin: 0, mortexGladGestreken: 0 };
         this._pyrofluxGetankt = false;
 
         // Casino Luxoria
         this.luxoriaCasino = { gokbeurtenDitBezoek: 0, laatste: null };
+
+        // Zwarte Markt / Mortex
+        this.ladingVerdacht = {};                   // { goedId: ton verdacht }
+        this.mortexUpgrades = { afgeschermd: false }; // illegale scheepswerf upgrades
         this.planeetBezoeken = {};
 
         // Nieuwe velden
@@ -144,6 +148,7 @@ class GameState {
     }
 
     _getPlanetGoedDoelFactor(planeet, goedId) {
+        if (planeet.id === 'mortex') return 0.65;   // zwarte markt: alles 35% goedkoper
         if (planeet.specialiteit?.includes(goedId)) return 0.55;
         if (planeet.vraag?.includes(goedId))        return 1.80;
         return 1.0;
@@ -392,6 +397,31 @@ class GameState {
         if (this.locatie === 'pyroflux') this._pyrofluxGetankt = false;
         if (this.locatie === 'luxoria') { this.luxoriaCasino.gokbeurtenDitBezoek = 0; this.luxoriaCasino.laatste = null; }
 
+        // Douane check — verdachte Mortex-lading bij eerste landing na Mortex
+        const verdachteEntries = Object.entries(this.ladingVerdacht || {}).filter(([, v]) => v > 0);
+        if (verdachteEntries.length > 0 && this.locatie !== 'mortex') {
+            const douaneKans = this.mortexUpgrades?.afgeschermd ? 0.05 : 0.25;
+            if (Math.random() < douaneKans) {
+                let boete = 0;
+                verdachteEntries.forEach(([goedId, ton]) => {
+                    const aankoopPrijs = this.aankoopPrijzen[goedId] || 50;
+                    boete += Math.round(aankoopPrijs * ton * 0.25);
+                });
+                boete = Math.min(boete, this.speler.krediet);
+                this.speler.krediet -= boete;
+                this.voegBerichtToe(`🚨 Douanecontrole! Verdachte lading ontdekt. Boete: ${this.formatteerKrediet(boete)}.`, 'gevaar');
+                this.huidigAankomstEvent = {
+                    icoon: '🚨',
+                    naam: 'Douanecontrole',
+                    beschrijving: `Inspecteurs doorzoeken je schip op ${planeet.naam}. Verdachte lading ontdekt — boete: ${this.formatteerKrediet(boete)}.`,
+                    type: 'gevaar',
+                };
+            } else {
+                this.statistieken.mortexGladGestreken = (this.statistieken.mortexGladGestreken || 0) + 1;
+            }
+            this.ladingVerdacht = {};
+        }
+
         this.controleerAchievements();
         this.controleerSpelEinde();
         return { passagiersInfo };
@@ -548,6 +578,17 @@ class GameState {
     // =========================================================================
     // PLANEET-SPECIFIEKE DIENSTEN
     // =========================================================================
+
+    koopAfgeschermdVrachtruim() {
+        if (this.locatie !== 'mortex') return { succes: false, reden: 'Alleen beschikbaar op Mortex.' };
+        if (this.mortexUpgrades?.afgeschermd) return { succes: false, reden: 'Al geïnstalleerd.' };
+        const kosten = 8000;
+        if (this.speler.krediet < kosten) return { succes: false, reden: 'Onvoldoende credits.' };
+        this.speler.krediet -= kosten;
+        this.mortexUpgrades.afgeschermd = true;
+        this.voegBerichtToe(`🛡 Afgeschermde vrachtopslag geïnstalleerd. Douanekans verlaagd naar 5%.`, 'succes');
+        return { succes: true };
+    }
 
     speelCasino(inzet) {
         const INZETTEN = [100, 1000, 2500, 5000];
@@ -1072,6 +1113,10 @@ class GameState {
         this.aankoopPrijzen[goedId] = Math.round((huidigAvg * huidigAant + prijs * aantal) / (huidigAant + aantal));
         this.aankoopAantallen[goedId] = huidigAant + aantal;
 
+        if (this.locatie === 'mortex') {
+            this.ladingVerdacht[goedId] = (this.ladingVerdacht[goedId] || 0) + aantal;
+        }
+
         this.voegBerichtToe(`Gekocht: ${aantal}× ${goed.naam} voor ${this.formatteerKrediet(totaal)}.`, 'info');
         this.controleerAchievements();
         return { succes: true };
@@ -1084,6 +1129,15 @@ class GameState {
         const totaal = prijs * aantal;
 
         if ((this.lading[goedId] || 0) < aantal) return { succes: false, reden: 'Onvoldoende lading!' };
+
+        // Verminder verdachte lading proportioneel
+        const huidigTotaal = this.lading[goedId] || 0;
+        const verdachtVoor = this.ladingVerdacht[goedId] || 0;
+        if (verdachtVoor > 0) {
+            const nieuwVerdacht = huidigTotaal <= aantal ? 0 : Math.ceil(verdachtVoor * (huidigTotaal - aantal) / huidigTotaal);
+            if (nieuwVerdacht <= 0) delete this.ladingVerdacht[goedId];
+            else this.ladingVerdacht[goedId] = nieuwVerdacht;
+        }
 
         // Bereken winst/verlies
         const aankoopPrijs = this.aankoopPrijzen[goedId] || 0;
@@ -1496,6 +1550,8 @@ class GameState {
                 verzekering: this.verzekering || null,
                 concurrenten: this.concurrenten,
                 nettoWaardeGeschiedenisSpeler: this.nettoWaardeGeschiedenisSpeler,
+                ladingVerdacht: this.ladingVerdacht,
+                mortexUpgrades: this.mortexUpgrades,
             };
             localStorage.setItem('gazillionaire_save', JSON.stringify(data));
         } catch(e) {}
@@ -1528,6 +1584,9 @@ class GameState {
             if (!this.luxoriaCasino) this.luxoriaCasino = { gokbeurtenDitBezoek: 0, laatste: null };
             if (this.statistieken.casinoWinstStreak === undefined) this.statistieken.casinoWinstStreak = 0;
             if (this.statistieken.casinoBigWin === undefined) this.statistieken.casinoBigWin = 0;
+            if (!this.ladingVerdacht) this.ladingVerdacht = {};
+            if (!this.mortexUpgrades) this.mortexUpgrades = { afgeschermd: false };
+            if (this.statistieken.mortexGladGestreken === undefined) this.statistieken.mortexGladGestreken = 0;
             return true;
         } catch(e) {
             return false;

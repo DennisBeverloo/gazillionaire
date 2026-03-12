@@ -1805,6 +1805,19 @@ body[data-planeet="mortex"]  { --planet-accent: #8b0000; }
 .planeet-tag[data-tip] { cursor: help; }
 .planeet-tag[data-tip]:hover { opacity: 0.85; }
 
+/* ===== ZWARTE MARKT (Mortex) ===== */
+.zwarte-markt-header { color: var(--rood) !important; }
+.zwarte-markt-banner {
+    background: rgba(255,56,85,0.08);
+    border: 1px solid rgba(255,56,85,0.3);
+    color: var(--tekst-dim);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 0.84em;
+    margin-bottom: 10px;
+}
+.verdacht-icoon { font-size: 0.85em; cursor: help; }
+
 /* ===== CASINO STELLARIS (Luxoria) ===== */
 .casino-beurten {
     font-size: 0.85em;

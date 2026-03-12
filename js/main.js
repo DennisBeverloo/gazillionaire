@@ -387,6 +387,12 @@ const App = {
         else { Audio.upgrade(); UI.renderSpel(); }
     },
 
+    koopAfgeschermdVrachtruim() {
+        const res = state.koopAfgeschermdVrachtruim();
+        if (!res.succes) this._fout(res.reden);
+        else { Audio.upgrade(); UI.renderSpel(); }
+    },
+
     speelCasino(inzet) {
         UI._casinoAnimeer = true;
         const res = state.speelCasino(inzet);

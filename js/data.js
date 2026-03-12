@@ -770,6 +770,15 @@ const ACHIEVEMENTS = [
         beloning: 2500,
         check: s => (s.statistieken.casinoBigWin ?? 0) >= 1,
     },
+    {
+        id: 'zwarthandelaar',
+        naam: 'Zwarthandelaar',
+        icoon: '🕵️',
+        categorie: 'handel',
+        beschrijving: 'Vervoer verdachte lading van Mortex zonder gepakt te worden.',
+        beloning: 1000,
+        check: s => (s.statistieken.mortexGladGestreken ?? 0) >= 1,
+    },
 ];
 
 // =============================================================================
