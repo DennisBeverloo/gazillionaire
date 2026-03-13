@@ -584,14 +584,9 @@ const UI = {
             // Planeetvoorraad
             const planeetVoorraad = state.planetVoorraden?.[state.locatie]?.[goed.id] ?? 0;
             let voorraadLabel = '';
-            if (planeet.specialiteit?.includes(goed.id)) {
-                voorraadLabel = ' <span class="kleur-groen" title="Lokale productie">★</span>';
-            } else if (planeet.vraag?.includes(goed.id)) {
-                voorraadLabel = ' <span class="kleur-oranje" title="Hoge vraag">↑</span>';
-            }
             const voorraadTd = planeetVoorraad > 0
-                ? `<span style="font-family:var(--font-data)">${planeetVoorraad} ton</span>${voorraadLabel}`
-                : `<span class="kleur-dimmed">0 ton</span>${voorraadLabel}`;
+                ? `<span style="font-family:var(--font-data)">${planeetVoorraad} ton</span>`
+                : `<span class="kleur-dimmed">0 ton</span>`;
 
             // Aan boord
             const aankoopPrijs = state.aankoopPrijzen[goed.id];
@@ -788,20 +783,17 @@ const UI = {
 
         // === MARKETING (altijd zichtbaar voor passagiersschepen) ===
         if (maxPax > 0) {
-            const selP = state.geselecteerdePlaneet;
+            const mKosten = state.berekenMarketingKosten();
+            const kanBetalen = state.speler.krediet >= mKosten;
             let mktHtml = '';
             if (state.marketingActief) {
-                const campNaam = PLANETEN.find(p => p.id === state.marketingActief.planeet)?.naam ?? state.marketingActief.planeet;
+                const campNaam = state.marketingActief.planeet
+                    ? PLANETEN.find(p => p.id === state.marketingActief.planeet)?.naam ?? state.marketingActief.planeet
+                    : 'volgende bestemming';
                 mktHtml = `<div class="kleur-groen" style="font-size:0.88em">✓ Campagne actief voor <strong>${campNaam}</strong> — extra passagiers en resources wachten bij aankomst.</div>`;
-            } else if (selP && selP !== state.locatie) {
-                const mKosten = state.berekenMarketingKosten(selP);
-                const selPNaam = PLANETEN.find(p => p.id === selP)?.naam ?? selP;
-                const kanBetalen = state.speler.krediet >= mKosten;
-                mktHtml = `<div style="font-size:0.85em;margin-bottom:8px">Campagne voor bestemming <strong>${selPNaam}</strong>. Bij aankomst wachten meer passagiers en resources op je.</div>
-                    <button class="knop primair klein" onclick="App.koopMarketing()" ${!kanBetalen ? 'disabled' : ''}>Start campagne (${state.formatteerKrediet(mKosten)})</button>`;
             } else {
-                mktHtml = `<div class="kleur-dimmed" style="font-size:0.85em">Kies eerst een bestemming op de kaart — de campagne geldt voor die planeet.</div>
-                    <button class="knop primair klein" disabled>Start campagne</button>`;
+                mktHtml = `<div style="font-size:0.85em;margin-bottom:8px">Start een reclamecampagne. Bij aankomst wachten meer passagiers en resources op je.</div>
+                    <button class="knop primair klein" onclick="App.koopMarketing()" ${!kanBetalen ? 'disabled' : ''}>Start campagne (${state.formatteerKrediet(mKosten)})</button>`;
             }
             html += `<div class="haven-blok"><div class="haven-blok-header">📢 Marketing</div><div class="haven-blok-inhoud">${mktHtml}</div></div>`;
         }

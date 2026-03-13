@@ -444,6 +444,10 @@ class GameState {
             return { succes: false, reden: `Onvoldoende brandstof! Nodig: ${verbruik}, Aanwezig: ${this.brandstof}` };
         }
         this.brandstof -= verbruik;
+        // Koppel marketingcampagne aan bestemming bij vertrek
+        if (this.marketingActief && !this.marketingActief.planeet) {
+            this.marketingActief.planeet = planeetId;
+        }
         // Flush marktimpact van deze planeet bij vertrek
         for (const [goedId, delta] of Object.entries(this._visitMarktSaldo)) {
             if (Math.abs(delta) > 0.001) this._pasMarktAan(this.locatie, goedId, delta);
@@ -911,19 +915,20 @@ class GameState {
     // MARKETING
     // =========================================================================
 
-    berekenMarketingKosten(planeetId) {
-        const afstand = this.berekenAfstand(this.locatie, planeetId);
-        return Math.round(200 + afstand * 8);
+    berekenMarketingKosten() {
+        const cargo = this.schip?.laadruimte ?? 0;
+        const pax = this.schip?.passagiersCapaciteit ?? 0;
+        return Math.round(150 + cargo * 1.5 + pax * 5);
     }
 
-    koopMarketing(planeetId) {
+    koopMarketing() {
         if ((this.schip?.passagiersCapaciteit || 0) <= 0) return { succes: false, reden: 'Je schip heeft geen passagiersruimte.' };
-        const kosten = this.berekenMarketingKosten(planeetId);
+        if (this.marketingActief) return { succes: false, reden: 'Er is al een campagne actief.' };
+        const kosten = this.berekenMarketingKosten();
         if (this.speler.krediet < kosten) return { succes: false, reden: 'Onvoldoende krediet!' };
-        const planeetNaam = PLANETEN.find(p => p.id === planeetId)?.naam ?? planeetId;
         this.speler.krediet -= kosten;
-        this.marketingActief = { planeet: planeetId, kosten };
-        this.voegBerichtToe(`📢 Reclamecampagne gestart voor ${planeetNaam} (${this.formatteerKrediet(kosten)}). Bij aankomst wachten meer passagiers op je.`, 'info');
+        this.marketingActief = { planeet: null, kosten };
+        this.voegBerichtToe(`📢 Reclamecampagne gestart (${this.formatteerKrediet(kosten)}). Bij aankomst wachten meer passagiers op je.`, 'info');
         return { succes: true };
     }
 

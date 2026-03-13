@@ -484,9 +484,7 @@ const App = {
     // =========================================================================
 
     koopMarketing() {
-        const planeetId = state.geselecteerdePlaneet;
-        if (!planeetId) return this._fout('Kies eerst een bestemming op de kaart.');
-        const res = state.koopMarketing(planeetId);
+        const res = state.koopMarketing();
         if (!res.succes) this._fout(res.reden); else UI.renderSpel();
     },
 

@@ -1173,7 +1173,7 @@ html, body {
 .galact-tabel th[data-galact-tip] { cursor: pointer; }
 /* Prijsrange kolom in galactische markt */
 .galact-prijsrange {
-    text-align: left;
+    text-align: center;
     padding-left: 5px;
     padding-right: 5px;
     white-space: nowrap;
