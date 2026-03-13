@@ -777,7 +777,7 @@ const UI = {
             <div class="brandstof-acties">
                 <input type="number" id="brandstof-aantal" class="hoeveelheid-input" min="1" max="${vrij}" value="${Math.min(10, vrij)}" style="width:65px" ${vrij <= 0 ? 'disabled' : ''}>
                 <button class="knop primair klein" onclick="App.koopBrandstof()" ${vrij <= 0 ? 'disabled' : ''}>Koop</button>
-                <button class="knop dimmed klein" onclick="App.koopMaxBrandstof()" ${vrij <= 0 ? 'disabled' : ''}>Koop max (${state.formatteerKrediet(koopMaxKosten)})</button>
+                <button class="knop primair klein" onclick="App.koopMaxBrandstof()" ${vrij <= 0 ? 'disabled' : ''}>Koop max (${state.formatteerKrediet(koopMaxKosten)})</button>
             </div>
         </div></div>`;
 
@@ -1184,6 +1184,31 @@ const UI = {
         }
 
         html += '</div>';
+
+        // === CREW CASINO-UITJE ===
+        {
+            const crew = state.crew;
+            if (crew && crew.grootte > 0) {
+                const sindsLaatst = state.beurt - (crew.casinoBeurt ?? -99);
+                const beschikbaar = sindsLaatst >= 15;
+                const happinessKleur = crew.happiness >= 70 ? 'var(--groen)' : crew.happiness >= 40 ? 'var(--oranje)' : 'var(--rood)';
+                html += `<div class="planeet-dienst-blok" style="margin-top:12px">
+                    <div class="sectie-header">🎉 Crew Uitje</div>
+                    <p class="kleur-dimmed" style="font-size:0.83em;margin:4px 0 10px">
+                        Laat je bemanning een avondje los in Casino Stellaris. +25 happiness — gratis!
+                    </p>
+                    <div class="stat-rij" style="margin-bottom:8px">
+                        <span class="kleur-dimmed">Crew happiness</span>
+                        <span style="color:${happinessKleur};font-weight:bold">${crew.happiness}/100</span>
+                    </div>
+                    ${beschikbaar
+                        ? `<button class="knop succes klein" onclick="App.casinoCrewUitje()">🎉 Stuur crew naar casino (+25 happiness)</button>`
+                        : `<button class="knop dimmed klein" disabled>Crew heeft nog rust nodig — nog ${15 - sindsLaatst} beurten</button>`
+                    }
+                </div>`;
+            }
+        }
+
         return html;
     },
 
@@ -1240,10 +1265,6 @@ const UI = {
                 const happinessKleur = crew.happiness >= 70 ? 'var(--groen)' : crew.happiness >= 40 ? 'var(--oranje)' : 'var(--rood)';
                 const happinessLabel = crew.happiness >= 80 ? '😄 Uitstekend' : crew.happiness >= 60 ? '😊 Goed' : crew.happiness >= 40 ? '😐 Matig' : crew.happiness >= 20 ? '😠 Ontevreden' : '😡 Muiterij dreigt!';
                 const kanBetalen = state.speler.krediet >= totaalSalaris;
-                const sindsLaatstCasino = state.beurt - (crew.casinoBeurt ?? -99);
-                const casinoBeschikbaar = sindsLaatstCasino >= 15;
-                const casinoKosten = crew.grootte * 50;
-                const kanCasino = state.speler.krediet >= casinoKosten;
 
                 html += `<div class="haven-blok"><div class="haven-blok-header">👨‍🚀 Bemanning</div><div class="haven-blok-inhoud">
                     <div class="stat-rij"><span class="stat-naam">Bemanningsleden</span><span class="stat-waarde">${crew.grootte} personen</span></div>
@@ -1257,9 +1278,7 @@ const UI = {
                         <button class="knop succes klein" onclick="App.verhoogCrewSalaris()">▲ Salaris (+${state.formatteerKrediet(10)}/pp)</button>
                         <button class="knop gevaar klein" onclick="App.verlaagCrewSalaris()" ${crew.salaris <= 30 ? 'disabled' : ''}>▼ Salaris</button>
                     </div>
-                    <div style="margin-top:8px">
-                        <button class="knop dimmed klein" onclick="App.casinoCrewUitje()" ${(!casinoBeschikbaar || !kanCasino) ? 'disabled' : ''}>🎰 Casino-uitje (${state.formatteerKrediet(casinoKosten)})${!casinoBeschikbaar ? ` — nog ${15 - sindsLaatstCasino} beurten` : ''}</button>
-                    </div>
+                    <div class="kleur-dimmed" style="font-size:0.82em;margin-top:10px">🎰 Casino-uitje beschikbaar op <strong>Luxoria</strong> — boost crew happiness gratis via het casino-paneel.</div>
                 </div></div>`;
             }
         }

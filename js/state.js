@@ -1651,18 +1651,15 @@ class GameState {
     casinoCrewUitje() {
         if (!this.crew || this.crew.grootte <= 0)
             return { succes: false, reden: 'Geen bemanning voor een uitje.' };
+        if (this.locatie !== 'luxoria')
+            return { succes: false, reden: 'Casino-uitje alleen mogelijk op Luxoria.' };
         const cooldown = 15;
         const sindsLaatst = this.beurt - (this.crew.casinoBeurt ?? -99);
         if (sindsLaatst < cooldown)
             return { succes: false, reden: `Crew heeft nog ${cooldown - sindsLaatst} beurten rust nodig voor het volgende uitje.` };
-        const kosten = this.crew.grootte * 50;
-        if (this.speler.krediet < kosten)
-            return { succes: false, reden: `Onvoldoende credits voor casino-uitje (${this.formatteerKrediet(kosten)}).` };
-        this.speler.krediet -= kosten;
         this.crew.happiness = Math.min(100, this.crew.happiness + 25);
         this.crew.casinoBeurt = this.beurt;
-        const planeetNaam = PLANETEN.find(p => p.id === this.locatie)?.naam ?? 'hier';
-        this.voegBerichtToe(`🎰 Crew geniet van een casino-uitje op ${planeetNaam}! +25 happiness. Kosten: ${this.formatteerKrediet(kosten)}`, 'succes');
+        this.voegBerichtToe(`🎉 Crew geniet van een avondje in Casino Stellaris op Luxoria! +25 happiness.`, 'succes');
         return { succes: true };
     }
 
