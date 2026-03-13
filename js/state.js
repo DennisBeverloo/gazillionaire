@@ -9,6 +9,11 @@ const RENTE_PERCENTAGE = 0.05;
 const RENTE_INTERVAL = 20;
 const CREW_BETAAL_INTERVAL = 7; // crew betaling elke week (7 beurten)
 
+// Voorraadbereiken per planeet per goed
+const VOORRAAD_BASIS = { min: 25, max: 80 };
+const VOORRAAD_SPEC  = { min: 60, max: 150 }; // specialiteit: meer voorraad
+const VOORRAAD_VRAAG = { min: 8,  max: 30  }; // hoge vraag: weinig voorraad
+
 class GameState {
     constructor() {
         this.reset();
@@ -72,6 +77,8 @@ class GameState {
         // Marktmodifiers (koop/verkoop impact)
         this.marktModifiers = {};           // { planeetId: { goedId: multiplier } }
 
+        this.planetVoorraden = {}; // { planeetId: { goedId: aantal } }
+
         // Missies
         this.missies = [];                  // actieve/geaccepteerde missies
         this.beschikbareMissies = [];       // gegenereerde maar nog niet geaccepteerd
@@ -126,10 +133,40 @@ class GameState {
         this.initPassagiers();
         this.initBrandstof();
         this._initConcurrenten();
+        this._initPlanetVoorraden();
         this.nettoWaardeGeschiedenisSpeler = [this.berekenNettowaarde()];
         this.voegBerichtToe(`Welkom, ${this.speler.naam}! Je reis begint op Nexoria. Veel handelsgeluk!`, 'info');
         this.voegBerichtToe(`Je hebt een ${schipTemplate.naam} gekocht voor ${this.formatteerKrediet(schipTemplate.prijs)}`, 'goud');
     }
+
+    _initPlanetVoorraden() {
+        this.planetVoorraden = {};
+        PLANETEN.forEach(p => {
+            this.planetVoorraden[p.id] = {};
+            GOEDEREN.forEach(g => {
+                const range = p.specialiteit?.includes(g.id) ? VOORRAAD_SPEC
+                            : p.vraag?.includes(g.id)        ? VOORRAAD_VRAAG
+                            : VOORRAAD_BASIS;
+                this.planetVoorraden[p.id][g.id] =
+                    Math.floor(Math.random() * (range.max - range.min + 1)) + range.min;
+            });
+        });
+    },
+
+    _schommelVoorraden() {
+        PLANETEN.forEach(p => {
+            if (!this.planetVoorraden[p.id]) return;
+            GOEDEREN.forEach(g => {
+                const range = p.specialiteit?.includes(g.id) ? VOORRAAD_SPEC
+                            : p.vraag?.includes(g.id)        ? VOORRAAD_VRAAG
+                            : VOORRAAD_BASIS;
+                const delta = Math.floor(Math.random() * 13) - 4; // -4 tot +8
+                const huidig = this.planetVoorraden[p.id][g.id] ?? range.min;
+                this.planetVoorraden[p.id][g.id] =
+                    Math.max(range.min, Math.min(range.max, huidig + delta));
+            });
+        });
+    },
 
     _initConcurrenten() {
         if (typeof CONCURRENTEN === 'undefined') return;
@@ -430,6 +467,7 @@ class GameState {
         this.controleerRente();
         this.controleerCrew();
         this._vervalMarktModifiers();
+        this._schommelVoorraden();
 
         this._simuleerConcurrenten();
 
@@ -537,6 +575,13 @@ class GameState {
                 bonusAantal = 8;
                 bonusPrijs = 50;
                 this.voegBerichtToe(`📢 Reclamecampagne actief! Meer passagiers en hogere ticketprijs.`, 'info');
+                // Marketing boost: verhoog voorraad van alle goederen op deze planeet
+                if (this.planetVoorraden?.[this.locatie]) {
+                    GOEDEREN.forEach(g => {
+                        this.planetVoorraden[this.locatie][g.id] =
+                            Math.min(200, (this.planetVoorraden[this.locatie][g.id] ?? 0) + 15);
+                    });
+                }
             } else {
                 this.voegBerichtToe(`📢 Reclamecampagne verlopen — niet aangekomen op bestemmingsplaneet, geen bonus.`, 'waarschuwing');
             }
@@ -1313,9 +1358,14 @@ class GameState {
 
         if (gewicht > vrijeRuimte) return { succes: false, reden: 'Onvoldoende laadruimte!' };
         if (totaal > this.speler.krediet) return { succes: false, reden: 'Onvoldoende krediet!' };
+        const beschikbaar = this.planetVoorraden?.[this.locatie]?.[goedId] ?? 999;
+        if (aantal > beschikbaar) return { succes: false, reden: 'Onvoldoende voorraad op deze planeet.' };
 
         this.speler.krediet -= totaal;
         this.lading[goedId] = (this.lading[goedId] || 0) + aantal;
+        if (this.planetVoorraden?.[this.locatie]) {
+            this.planetVoorraden[this.locatie][goedId] = Math.max(0, (this.planetVoorraden[this.locatie][goedId] ?? 0) - aantal);
+        }
         this.statistieken.handelstransacties++;
         this.statistieken.cargoTonVervoerd = (this.statistieken.cargoTonVervoerd ?? 0) + gewicht;
 
@@ -1366,6 +1416,16 @@ class GameState {
 
         // Marktimpact: aanbod drijft prijs omlaag
         this._pasMarktAan(this.locatie, goedId, -aantal * 0.005);
+
+        // Verhoog planeetvoorraad bij verkoop
+        if (this.planetVoorraden?.[this.locatie]) {
+            const planeet = PLANETEN.find(p => p.id === this.locatie);
+            const range = planeet?.specialiteit?.includes(goedId) ? VOORRAAD_SPEC
+                        : planeet?.vraag?.includes(goedId)        ? VOORRAAD_VRAAG
+                        : VOORRAAD_BASIS;
+            const huidig = this.planetVoorraden[this.locatie][goedId] ?? 0;
+            this.planetVoorraden[this.locatie][goedId] = Math.min(range.max + 40, huidig + aantal);
+        }
 
         // Werk aankoopregistratie bij
         this.aankoopAantallen[goedId] = Math.max(0, (this.aankoopAantallen[goedId] || 0) - aantal);
@@ -1783,6 +1843,7 @@ class GameState {
                 nettoWaardeGeschiedenisSpeler: this.nettoWaardeGeschiedenisSpeler,
                 ladingVerdacht: this.ladingVerdacht,
                 mortexUpgrades: this.mortexUpgrades,
+                planetVoorraden: this.planetVoorraden,
             };
             localStorage.setItem('gazillionaire_save', JSON.stringify(data));
         } catch(e) {}
@@ -1819,6 +1880,11 @@ class GameState {
             if (!this.ladingVerdacht) this.ladingVerdacht = {};
             if (!this.mortexUpgrades) this.mortexUpgrades = { afgeschermd: false };
             if (this.statistieken.mortexGladGestreken === undefined) this.statistieken.mortexGladGestreken = 0;
+            if (data.planetVoorraden) {
+                this.planetVoorraden = data.planetVoorraden;
+            } else {
+                this._initPlanetVoorraden(); // oude saves: initialiseer opnieuw
+            }
             return true;
         } catch(e) {
             return false;

@@ -564,7 +564,8 @@ const UI = {
             const prijs     = state.getPrijs(state.locatie, goed.id);
             const inLading  = state.lading[goed.id] || 0;
             const vrij      = state.schip.laadruimte - state.getLadingGewicht();
-            const maxKoop   = Math.min(Math.floor(vrij / goed.gewicht), Math.floor(state.speler.krediet / prijs));
+            const planeetVoorraadMax = state.planetVoorraden?.[state.locatie]?.[goed.id] ?? 999;
+            const maxKoop   = Math.min(Math.floor(vrij / goed.gewicht), Math.floor(state.speler.krediet / prijs), planeetVoorraadMax);
             const allePrijzen = PLANETEN.map(p => state.getPrijs(p.id, goed.id));
             const minPrijs  = Math.min(...allePrijzen);
             const maxPrijs  = Math.max(...allePrijzen);
@@ -580,16 +581,17 @@ const UI = {
                 marktLabelHtml = '<span class="markt-label label-vraag">📈</span>';
             }
 
-            // Lokale voorraad: max koopbaar + marktlabel
+            // Planeetvoorraad
+            const planeetVoorraad = state.planetVoorraden?.[state.locatie]?.[goed.id] ?? 0;
             let voorraadLabel = '';
             if (planeet.specialiteit?.includes(goed.id)) {
-                voorraadLabel = ' <span class="kleur-groen">★</span>';
+                voorraadLabel = ' <span class="kleur-groen" title="Lokale productie">★</span>';
             } else if (planeet.vraag?.includes(goed.id)) {
-                voorraadLabel = ' <span class="kleur-oranje">↑</span>';
+                voorraadLabel = ' <span class="kleur-oranje" title="Hoge vraag">↑</span>';
             }
-            const voorraadTd = maxKoop > 0
-                ? `<span style="font-family:var(--font-data)">${maxKoop} ton</span>${voorraadLabel}`
-                : `<span class="kleur-dimmed">—</span>${voorraadLabel}`;
+            const voorraadTd = planeetVoorraad > 0
+                ? `<span style="font-family:var(--font-data)">${planeetVoorraad} ton</span>${voorraadLabel}`
+                : `<span class="kleur-dimmed">0 ton</span>${voorraadLabel}`;
 
             // Aan boord
             const aankoopPrijs = state.aankoopPrijzen[goed.id];
