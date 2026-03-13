@@ -1277,24 +1277,25 @@ const UI = {
         {
             const crew = state.crew;
             if (crew && crew.grootte > 0) {
-                const totaalSalaris = crew.grootte * crew.salaris;
+                const weekTotaal = crew.grootte * crew.salaris * 7;
                 const beurtenTot = crew.volgendeBetaalBeurt - state.beurt;
                 const isAchterstallig = beurtenTot <= 0;
+                const dagenAchter = isAchterstallig ? state.beurt - crew.volgendeBetaalBeurt : 0;
                 const happinessKleur = crew.happiness >= 70 ? 'var(--groen)' : crew.happiness >= 40 ? 'var(--oranje)' : 'var(--rood)';
                 const happinessLabel = crew.happiness >= 80 ? '😄 Uitstekend' : crew.happiness >= 60 ? '😊 Goed' : crew.happiness >= 40 ? '😐 Matig' : crew.happiness >= 20 ? '😠 Ontevreden' : '😡 Muiterij dreigt!';
-                const kanBetalen = state.speler.krediet >= totaalSalaris;
+                const kanBetalen = state.speler.krediet >= weekTotaal;
 
                 html += `<div class="haven-blok"><div class="haven-blok-header">👨‍🚀 Bemanning</div><div class="haven-blok-inhoud">
                     <div class="stat-rij"><span class="stat-naam">Bemanningsleden</span><span class="stat-waarde">${crew.grootte} personen</span></div>
                     <div class="stat-rij"><span class="stat-naam">Happiness</span><span class="stat-waarde" style="color:${happinessKleur}">${happinessLabel}</span></div>
                     <div class="lading-balk-container" style="margin:2px 0 10px"><div class="lading-balk" style="width:${crew.happiness}%;background:${happinessKleur}"></div></div>
-                    <div class="stat-rij"><span class="stat-naam">Salaris</span><span class="stat-waarde">${crew.salaris} cr/pp per week</span></div>
-                    <div class="stat-rij"><span class="stat-naam">Totaal per week</span><span class="stat-waarde">${state.formatteerKrediet(totaalSalaris)}</span></div>
-                    <div class="stat-rij"><span class="stat-naam">Volgende betaling</span><span class="stat-waarde ${isAchterstallig ? 'kleur-rood' : beurtenTot <= 5 ? 'kleur-oranje' : ''}">${isAchterstallig ? '⚠ ACHTERSTALLIG!' : `over ${beurtenTot} beurt${beurtenTot === 1 ? '' : 'en'}`}</span></div>
+                    <div class="stat-rij"><span class="stat-naam">Dagloon</span><span class="stat-waarde">${crew.salaris} cr/pp/dag</span></div>
+                    <div class="stat-rij"><span class="stat-naam">Weekbetaling</span><span class="stat-waarde">${state.formatteerKrediet(weekTotaal)}</span></div>
+                    <div class="stat-rij"><span class="stat-naam">Volgende betaling</span><span class="stat-waarde ${isAchterstallig ? 'kleur-rood' : beurtenTot <= 3 ? 'kleur-oranje' : ''}">${isAchterstallig ? `⚠ ${dagenAchter} dag${dagenAchter === 1 ? '' : 'en'} achterstallig!` : `over ${beurtenTot} dag${beurtenTot === 1 ? '' : 'en'}`}</span></div>
                     <div class="actie-rij" style="margin-top:12px;gap:8px;flex-wrap:wrap">
-                        <button class="knop ${isAchterstallig ? 'gevaar' : 'primair'} klein" onclick="App.betaalCrewSalaris()" ${!kanBetalen ? 'disabled' : ''}>Betaal salaris (${state.formatteerKrediet(totaalSalaris)})</button>
-                        <button class="knop succes klein" onclick="App.verhoogCrewSalaris()">▲ Salaris (+${state.formatteerKrediet(10)}/pp)</button>
-                        <button class="knop gevaar klein" onclick="App.verlaagCrewSalaris()" ${crew.salaris <= 30 ? 'disabled' : ''}>▼ Salaris</button>
+                        <button class="knop ${isAchterstallig ? 'gevaar' : 'primair'} klein" onclick="App.betaalCrewSalaris()" ${!kanBetalen ? 'disabled' : ''}>Betaal salaris (${state.formatteerKrediet(weekTotaal)})</button>
+                        <button class="knop succes klein" onclick="App.verhoogCrewSalaris()">▲ +10 cr/dag</button>
+                        <button class="knop gevaar klein" onclick="App.verlaagCrewSalaris()" ${crew.salaris <= 30 ? 'disabled' : ''}>▼ −10 cr/dag</button>
                     </div>
                 </div></div>`;
             }

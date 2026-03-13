@@ -1253,7 +1253,7 @@ class GameState {
             }
 
             case 'crew_opstand': {
-                const totaal = (this.crew?.grootte ?? 0) * (this.crew?.salaris ?? 50);
+                const totaal = (this.crew?.grootte ?? 0) * (this.crew?.salaris ?? 100) * CREW_BETAAL_INTERVAL;
                 const dubbel = totaal * 2;
                 if (keuzeId === 'betaal') {
                     const betaling = Math.min(dubbel, this.speler.krediet);
@@ -1606,31 +1606,36 @@ class GameState {
     controleerCrew() {
         if (!this.crew || this.crew.grootte <= 0) return;
 
-        // Natuurlijk happiness-verval: −1 per 10 beurten (constante druk van lange reizen)
-        if (this.beurt % 10 === 0 && this.beurt > 0) {
-            this.crew.happiness = Math.max(0, this.crew.happiness - 1);
-        }
+        // Dagelijks verval: happiness daalt elke dag 1 punt (sleet van het reizen)
+        this.crew.happiness = Math.max(0, this.crew.happiness - 1);
 
-        // Betaalcheck: vuurt precies op het moment dat betaling vervalt
-        if (this.beurt >= this.crew.volgendeBetaalBeurt) {
-            const totaal = this.crew.grootte * this.crew.salaris;
-            const happinessDrop = 18;
-            this.crew.happiness = Math.max(0, this.crew.happiness - happinessDrop);
-            this.crew.volgendeBetaalBeurt += CREW_BETAAL_INTERVAL;
-            this.voegBerichtToe(`⚠ Crew salaris niet betaald! Happiness: ${this.crew.happiness}/100. Openstaand: ${this.formatteerKrediet(totaal)}`, 'gevaar');
+        // Betaalcheck: volgendeBetaalBeurt staat vast totdat betaald wordt
+        const dagenAchter = this.beurt - this.crew.volgendeBetaalBeurt;
+
+        if (dagenAchter === 0) {
+            // Eerste dag van gemiste betaling: directe grote straf
+            const weekTotaal = this.crew.grootte * this.crew.salaris * CREW_BETAAL_INTERVAL;
+            this.crew.happiness = Math.max(0, this.crew.happiness - 15);
+            this.voegBerichtToe(`⚠ Crew salaris gemist! −15 happiness. Openstaand: ${this.formatteerKrediet(weekTotaal)}`, 'gevaar');
+        } else if (dagenAchter > 0) {
+            // Elke dag verder achterstallig: −2 extra bovenop het dagelijkse verval
+            this.crew.happiness = Math.max(0, this.crew.happiness - 2);
+            if (dagenAchter % 3 === 0) {
+                this.voegBerichtToe(`😡 Crew is ${dagenAchter} dag(en) zonder salaris — muiterij-risico stijgt!`, 'gevaar');
+            }
         }
     }
 
     betaalCrewSalaris() {
         if (!this.crew || this.crew.grootte <= 0)
             return { succes: false, reden: 'Geen bemanning om te betalen.' };
-        const totaal = this.crew.grootte * this.crew.salaris;
-        if (this.speler.krediet < totaal)
-            return { succes: false, reden: `Onvoldoende credits. Benodigd: ${this.formatteerKrediet(totaal)}` };
-        this.speler.krediet -= totaal;
-        this.crew.volgendeBetaalBeurt = this.beurt + CREW_BETAAL_INTERVAL;
+        const weekTotaal = this.crew.grootte * this.crew.salaris * CREW_BETAAL_INTERVAL;
+        if (this.speler.krediet < weekTotaal)
+            return { succes: false, reden: `Onvoldoende credits. Weekbedrag: ${this.formatteerKrediet(weekTotaal)}` };
+        this.speler.krediet -= weekTotaal;
+        this.crew.volgendeBetaalBeurt = Math.max(this.crew.volgendeBetaalBeurt, this.beurt) + CREW_BETAAL_INTERVAL;
         this.crew.happiness = Math.min(100, this.crew.happiness + 5);
-        this.voegBerichtToe(`💼 Crew betaald: ${this.formatteerKrediet(totaal)} voor ${this.crew.grootte} bemanningsleden. Volgende betaling over ${CREW_BETAAL_INTERVAL} beurten (1 week).`, 'succes');
+        this.voegBerichtToe(`💼 Crew betaald: ${this.formatteerKrediet(weekTotaal)} voor ${this.crew.grootte} man (${this.crew.salaris} cr/pp/dag × ${CREW_BETAAL_INTERVAL} dagen). Volgende betaling over ${CREW_BETAAL_INTERVAL} beurten.`, 'succes');
         return { succes: true };
     }
 
@@ -1638,8 +1643,8 @@ class GameState {
         if (!this.crew) return { succes: false, reden: 'Geen crew.' };
         this.crew.salaris += bedrag;
         this.crew.happiness = Math.min(100, this.crew.happiness + 10);
-        const totaalPeriode = this.crew.grootte * this.crew.salaris;
-        this.voegBerichtToe(`📈 Salaris verhoogd naar ${this.crew.salaris} cr/pp per week (+10 happiness). Totaal per week: ${this.formatteerKrediet(totaalPeriode)}`, 'succes');
+        const totaalPeriode = this.crew.grootte * this.crew.salaris * CREW_BETAAL_INTERVAL;
+        this.voegBerichtToe(`📈 Salaris verhoogd naar ${this.crew.salaris} cr/pp/dag (+10 happiness). Weekbetaling: ${this.formatteerKrediet(totaalPeriode)}`, 'succes');
         return { succes: true };
     }
 
@@ -1650,8 +1655,8 @@ class GameState {
             return { succes: false, reden: `Minimum salaris is ${min} cr/pp. Verlagen niet mogelijk.` };
         this.crew.salaris = Math.max(min, this.crew.salaris - bedrag);
         this.crew.happiness = Math.max(0, this.crew.happiness - 15);
-        const totaalPeriode = this.crew.grootte * this.crew.salaris;
-        this.voegBerichtToe(`📉 Salaris verlaagd naar ${this.crew.salaris} cr/pp per week (−15 happiness). Totaal per week: ${this.formatteerKrediet(totaalPeriode)}`, 'waarschuwing');
+        const totaalPeriode = this.crew.grootte * this.crew.salaris * CREW_BETAAL_INTERVAL;
+        this.voegBerichtToe(`📉 Salaris verlaagd naar ${this.crew.salaris} cr/pp/dag (−15 happiness). Weekbetaling: ${this.formatteerKrediet(totaalPeriode)}`, 'waarschuwing');
         return { succes: true };
     }
 
