@@ -112,6 +112,11 @@ class GameState {
         this.wachtendePassagiers = {};     // {planeetId: { aantal: int, prijs: int }}
         this.ticketNiveau = 'midden';      // 'laag' | 'midden' | 'hoog'
 
+        // Bank spaarrekening
+        this.bankSaldo = 0;
+        this.bankRente = 2;     // percentage per beurt (start 2%, min 0, max 5)
+        this.bankBevroren = 0;  // beurten resterend dat transacties geblokkeerd zijn
+
         // Brandstof
         this.brandstof = 0;                 // huidige brandstof
         this.brandstofPrijzen = {};         // {planeetId: prijs per eenheid}
@@ -1538,6 +1543,69 @@ class GameState {
                 break;
             }
 
+            case 'bank_rente_omhoog': {
+                this.bankRente = Math.min(5, parseFloat(((this.bankRente ?? 2) + 0.5).toFixed(1)));
+                resultaat.bericht = `🏦 De Galactische Monetaire Unie verhoogt de basisrente. Jouw spaarrente is nu ${this.bankRente}% per beurt.`;
+                break;
+            }
+
+            case 'bank_hoogconjunctuur': {
+                this.bankRente = Math.min(5, parseFloat(((this.bankRente ?? 2) + 1).toFixed(1)));
+                resultaat.bericht = `📈 Economische bloei! Bankrentes stijgen. Jouw spaarrente is nu ${this.bankRente}% per beurt.`;
+                break;
+            }
+
+            case 'bank_kredietexpansie': {
+                this.bankRente = Math.min(5, parseFloat(((this.bankRente ?? 2) + 0.5).toFixed(1)));
+                resultaat.bericht = `💹 Galactische Handelsbank opent nieuwe kredietlijn. Jouw spaarrente stijgt naar ${this.bankRente}% per beurt.`;
+                break;
+            }
+
+            case 'bank_recessie': {
+                this.bankRente = Math.max(0, parseFloat(((this.bankRente ?? 2) - 0.5).toFixed(1)));
+                resultaat.bericht = `📉 Economische onzekerheid drukt de rentes. Jouw spaarrente daalt naar ${this.bankRente}% per beurt.`;
+                break;
+            }
+
+            case 'bank_nulrente': {
+                this.bankRente = 0;
+                resultaat.bericht = `🏛️ De Centrale Bank voert nulrentebeleid in. Jouw spaarrente is tijdelijk 0%.`;
+                break;
+            }
+
+            case 'bank_crisis': {
+                this.bankRente = Math.max(0, parseFloat(((this.bankRente ?? 2) - 1).toFixed(1)));
+                resultaat.bericht = `⚠️ Bankcrisis op Nexoria! Spaarrentes worden verlaagd. Jouw rente is nu ${this.bankRente}% per beurt.`;
+                break;
+            }
+
+            case 'bank_belasting': {
+                const saldo = this.bankSaldo ?? 0;
+                if (saldo > 0) {
+                    const belasting = Math.round(saldo * 0.03);
+                    this.bankSaldo -= belasting;
+                    resultaat.kredietDelta = -belasting;
+                    resultaat.bericht = `💸 De Belastingdienst Galacticus vordert ${this.formatteerKrediet(belasting)} (3%) van je banksaldo als vermogensbelasting. Resterend saldo: ${this.formatteerKrediet(this.bankSaldo)}`;
+                } else {
+                    resultaat.bericht = `💸 De Belastingdienst Galacticus vordert vermogensbelasting — maar je hebt geen banksaldo. Je komt er goed van af!`;
+                }
+                break;
+            }
+
+            case 'bank_bonus': {
+                const bonus = 500;
+                this.speler.krediet += bonus;
+                resultaat.kredietDelta = bonus;
+                resultaat.bericht = `🎁 Spaarbonus-actie! Als trouwe rekeninghouder ontvang je ${this.formatteerKrediet(bonus)} extra credits.`;
+                break;
+            }
+
+            case 'bank_bevriezing': {
+                this.bankBevroren = (this.bankBevroren ?? 0) + 1;
+                resultaat.bericht = `🔒 Politieke onrust heeft banktransacties tijdelijk geblokkeerd. Storten en opnemen is de komende beurt niet mogelijk.`;
+                break;
+            }
+
             default: {
                 resultaat.bericht = 'De reis verloopt rustig. Sterren en stilte.';
                 break;
@@ -1857,12 +1925,47 @@ class GameState {
         return { succes: true };
     }
 
+    stortenOpBank(bedrag) {
+        if ((this.bankBevroren ?? 0) > 0) return { succes: false, reden: 'Bank is tijdelijk bevroren door politieke onrust.' };
+        bedrag = Math.round(bedrag);
+        if (bedrag <= 0) return { succes: false, reden: 'Ongeldig bedrag.' };
+        if (bedrag > this.speler.krediet) return { succes: false, reden: 'Onvoldoende cash.' };
+        this.speler.krediet -= bedrag;
+        this.bankSaldo = (this.bankSaldo ?? 0) + bedrag;
+        this.voegBerichtToe(`🏦 ${this.formatteerKrediet(bedrag)} gestort op spaarrekening. Saldo: ${this.formatteerKrediet(this.bankSaldo)}`, 'info');
+        this.controleerAchievements();
+        return { succes: true };
+    }
+
+    opnemenVanBank(bedrag) {
+        if ((this.bankBevroren ?? 0) > 0) return { succes: false, reden: 'Bank is tijdelijk bevroren door politieke onrust.' };
+        bedrag = Math.round(bedrag);
+        if (bedrag <= 0) return { succes: false, reden: 'Ongeldig bedrag.' };
+        if (bedrag > (this.bankSaldo ?? 0)) bedrag = this.bankSaldo;
+        this.bankSaldo -= bedrag;
+        this.speler.krediet += bedrag;
+        this.voegBerichtToe(`🏦 ${this.formatteerKrediet(bedrag)} opgenomen van spaarrekening.`, 'info');
+        return { succes: true };
+    }
+
     controleerRente() {
+        // Schuldrente (elke RENTE_INTERVAL beurten)
         if (this.speler.schuld > 0 && this.beurt % RENTE_INTERVAL === 0) {
             const rente = Math.round(this.speler.schuld * RENTE_PERCENTAGE);
             this.speler.schuld += rente;
             this.voegBerichtToe(`Rente bijgeboekt: ${this.formatteerKrediet(rente)}. Totale schuld nu: ${this.formatteerKrediet(this.speler.schuld)}.`, 'waarschuwing');
         }
+        // Spaarrente (elke beurt)
+        if ((this.bankSaldo ?? 0) > 0 && (this.bankRente ?? 0) > 0) {
+            const spaarRente = Math.round(this.bankSaldo * (this.bankRente / 100));
+            if (spaarRente > 0) {
+                this.bankSaldo += spaarRente;
+                this.voegBerichtToe(`🏦 Spaarrente bijgeschreven: +${this.formatteerKrediet(spaarRente)} (${this.bankRente}% per beurt). Saldo: ${this.formatteerKrediet(this.bankSaldo)}`, 'goud');
+                this.controleerAchievements();
+            }
+        }
+        // Bankbevriezing ontdooien
+        if ((this.bankBevroren ?? 0) > 0) this.bankBevroren--;
     }
 
     // =========================================================================
@@ -2053,6 +2156,9 @@ class GameState {
                 ladingVerdacht: this.ladingVerdacht,
                 mortexUpgrades: this.mortexUpgrades,
                 planetVoorraden: this.planetVoorraden,
+                bankSaldo: this.bankSaldo ?? 0,
+                bankRente: this.bankRente ?? 2,
+                bankBevroren: this.bankBevroren ?? 0,
             };
             localStorage.setItem('gazillionaire_save', JSON.stringify(data));
         } catch(e) {}
@@ -2095,6 +2201,9 @@ class GameState {
             } else {
                 this._initPlanetVoorraden(); // oude saves: initialiseer opnieuw
             }
+            if (this.bankSaldo === undefined) this.bankSaldo = 0;
+            if (this.bankRente === undefined) this.bankRente = 2;
+            if (this.bankBevroren === undefined) this.bankBevroren = 0;
             return true;
         } catch(e) {
             return false;

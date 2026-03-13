@@ -6,13 +6,11 @@ const PLANETEN = [
     {
         id: 'nexoria',
         naam: 'Nexoria',
-        beschrijving: 'De grootste handelshub van de sector. Ideale startplek voor handelaars, met de Galactische Bank en de aandelenbeurs.',
+        beschrijving: 'De grootste handelshub van de sector. Ideale startplek voor handelaars, met de aandelenbeurs en een volledig uitgeruste bank.',
         kleur: '#4a9eff',
         x: 50, y: 50,
         specialiteit: [],
         vraag: [],
-        heeftBank: true,
-
     },
     {
         id: 'ferrum',
@@ -22,8 +20,6 @@ const PLANETEN = [
         x: 18, y: 28,
         specialiteit: ['ferroiet', 'lunasteen'],
         vraag: ['nebulakorrels', 'aquapure'],
-        heeftBank: false,
-
     },
     {
         id: 'agria',
@@ -33,8 +29,6 @@ const PLANETEN = [
         x: 80, y: 22,
         specialiteit: ['nebulakorrels', 'aquapure'],
         vraag: ['technoware', 'quantumchips'],
-        heeftBank: false,
-
     },
     {
         id: 'techton',
@@ -44,8 +38,6 @@ const PLANETEN = [
         x: 82, y: 72,
         specialiteit: ['technoware', 'quantumchips'],
         vraag: ['pyrogel', 'ferroiet'],
-        heeftBank: true,
-
     },
     {
         id: 'aqueron',
@@ -55,8 +47,6 @@ const PLANETEN = [
         x: 25, y: 75,
         specialiteit: ['bioplasma', 'aquapure'],
         vraag: ['luxuriet', 'lunasteen'],
-        heeftBank: false,
-
     },
     {
         id: 'pyroflux',
@@ -66,8 +56,6 @@ const PLANETEN = [
         x: 12, y: 60,
         specialiteit: ['pyrogel', 'kristalliet'],
         vraag: ['nebulakorrels', 'bioplasma'],
-        heeftBank: false,
-
     },
     {
         id: 'luxoria',
@@ -77,8 +65,6 @@ const PLANETEN = [
         x: 65, y: 88,
         specialiteit: ['luxuriet', 'lunasteen'],
         vraag: ['ferroiet', 'pyrogel'],
-        heeftBank: true,
-
     },
     {
         id: 'mortex',
@@ -88,8 +74,6 @@ const PLANETEN = [
         x: 48, y: 12,
         specialiteit: [],
         vraag: [],
-        heeftBank: false,
-
         isGevaarlijk: true,
     },
 ];
@@ -724,6 +708,88 @@ const EVENTS = [
             { id: 'praten', tekst: 'Onderhandel (50% kans)', stijl: 'knop' },
         ],
     },
+    // === BANK EVENTS ===
+    {
+        id: 'bank_rente_omhoog',
+        naam: 'Galactische Monetaire Unie verhoogt basisrente',
+        icoon: '🏦',
+        type: 'positief',
+        kans: 0.04,
+        beschrijving: 'De Galactische Monetaire Unie heeft de basisrente verhoogd. Je spaarrente stijgt met 0.5%.',
+        heeftKeuze: false,
+    },
+    {
+        id: 'bank_hoogconjunctuur',
+        naam: 'Economische Hoogconjunctuur',
+        icoon: '📈',
+        type: 'positief',
+        kans: 0.03,
+        beschrijving: 'Een periode van economische bloei. Alle banken verhogen hun rente tijdelijk met 1%.',
+        heeftKeuze: false,
+    },
+    {
+        id: 'bank_kredietexpansie',
+        naam: 'Kredietexpansie in de Buitenste Ring',
+        icoon: '💹',
+        type: 'positief',
+        kans: 0.04,
+        beschrijving: 'Een nieuwe kredietlijn wordt opengesteld door de Galactische Handelsbank. Spaarrente stijgt met 0.5%.',
+        heeftKeuze: false,
+    },
+    {
+        id: 'bank_recessie',
+        naam: 'Intergalactische Recessie Dreigt',
+        icoon: '📉',
+        type: 'gevaar',
+        kans: 0.04,
+        beschrijving: 'Economische onzekerheid trekt door de melkweg. Bankrentes dalen met 0.5%.',
+        heeftKeuze: false,
+    },
+    {
+        id: 'bank_nulrente',
+        naam: 'Centrale Bank Voert Nulrentebeleid In',
+        icoon: '🏛️',
+        type: 'gevaar',
+        kans: 0.02,
+        beschrijving: 'De Galactische Centrale Bank verlaagt de rente naar nul. Je spaargeld groeit tijdelijk niet meer.',
+        heeftKeuze: false,
+    },
+    {
+        id: 'bank_crisis',
+        naam: 'Bankcrisis op Nexoria',
+        icoon: '⚠️',
+        type: 'gevaar',
+        kans: 0.02,
+        beschrijving: 'Een bankcrisis heeft de sector geschokt. Spaarrentes worden met 1% verlaagd.',
+        heeftKeuze: false,
+    },
+    {
+        id: 'bank_belasting',
+        naam: 'Vermogensbelasting Galacticus',
+        icoon: '💸',
+        type: 'gevaar',
+        kans: 0.03,
+        beschrijving: 'De Belastingdienst Galacticus vordert 3% van je banksaldo als vermogensbelasting.',
+        heeftKeuze: false,
+    },
+    {
+        id: 'bank_bonus',
+        naam: 'Spaarbonus-actie',
+        icoon: '🎁',
+        type: 'positief',
+        kans: 0.03,
+        beschrijving: 'Als trouwe rekeninghouder ontvang je een eenmalige spaarbonus van 500 credits.',
+        heeftKeuze: false,
+    },
+    {
+        id: 'bank_bevriezing',
+        naam: 'Bankbevriezing door Politieke Onrust',
+        icoon: '🔒',
+        type: 'gevaar',
+        kans: 0.02,
+        beschrijving: 'Politieke onrust heeft alle banktransacties tijdelijk geblokkeerd. Storten en opnemen is de komende beurt niet mogelijk.',
+        heeftKeuze: false,
+    },
 ];
 
 const AANDELEN = [
@@ -1173,6 +1239,33 @@ const ACHIEVEMENTS = [
         beschrijving: 'Vervoer verdachte lading van Mortex zonder gepakt te worden.',
         beloning: 1000,
         check: s => (s.statistieken.mortexGladGestreken ?? 0) >= 1,
+    },
+    {
+        id: 'bank_100k',
+        naam: 'Stevige Spaarpot',
+        icoon: '🏦',
+        categorie: 'financien',
+        beschrijving: 'Bereik een banksaldo van 100.000 credits.',
+        beloning: 5000,
+        check: s => (s.bankSaldo ?? 0) >= 100000,
+    },
+    {
+        id: 'bank_250k',
+        naam: 'Galactisch Vermogen',
+        icoon: '💰',
+        categorie: 'financien',
+        beschrijving: 'Bereik een banksaldo van 250.000 credits.',
+        beloning: 10000,
+        check: s => (s.bankSaldo ?? 0) >= 250000,
+    },
+    {
+        id: 'bank_500k',
+        naam: 'Ruimtebankier',
+        icoon: '💎',
+        categorie: 'financien',
+        beschrijving: 'Bereik een banksaldo van 500.000 credits.',
+        beloning: 25000,
+        check: s => (s.bankSaldo ?? 0) >= 500000,
     },
 ];
 

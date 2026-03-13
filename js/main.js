@@ -569,6 +569,28 @@ const App = {
         if (!res.succes) this._fout(res.reden); else UI.renderSpel();
     },
 
+    stortenOpBank() {
+        const n = parseInt(document.getElementById('bank-bedrag')?.value) || 0;
+        const res = state.stortenOpBank(n);
+        if (!res.succes) this._fout(res.reden); else UI.renderSpel();
+    },
+
+    opnemenVanBank() {
+        const n = parseInt(document.getElementById('bank-bedrag')?.value) || 0;
+        const res = state.opnemenVanBank(n);
+        if (!res.succes) this._fout(res.reden); else UI.renderSpel();
+    },
+
+    stortenAlles() {
+        const res = state.stortenOpBank(state.speler.krediet);
+        if (!res.succes) this._fout(res.reden); else UI.renderSpel();
+    },
+
+    opnemenAlles() {
+        const res = state.opnemenVanBank(state.bankSaldo ?? 0);
+        if (!res.succes) this._fout(res.reden); else UI.renderSpel();
+    },
+
     // =========================================================================
     // HELPERS
     // =========================================================================

@@ -108,7 +108,7 @@ const UI = {
 
     _getPlaneetServiceTags(planeet) {
         const tags = [];
-        if (planeet.heeftBank)       tags.push('💳 Bank');
+        tags.push('💳 Bank');
         if (planeet.id === 'nexoria') tags.push('🌌 Galactische Beurs');
         if (planeet.id === 'techton') tags.push('🛸 Scheepswerf');
         if (planeet.id === 'luxoria') tags.push('🎰 Casino');
@@ -1346,22 +1346,41 @@ const UI = {
         }
 
         // === BANK TEGEL ===
-        if (planeet?.heeftBank) {
-            html += `<div class="haven-blok"><div class="haven-blok-header">💳 Galactische Bank</div><div class="haven-blok-inhoud">
-                <div class="stat-rij"><span class="stat-naam">Schuld</span><span class="stat-waarde kleur-oranje">${state.formatteerKrediet(state.speler.schuld)}</span></div>
+        {
+            const bankSaldo = state.bankSaldo ?? 0;
+            const bankRente = state.bankRente ?? 2;
+            const bankBevroren = state.bankBevroren ?? 0;
+            const maxStorten = state.speler.krediet;
+            const renteKleur = bankRente >= 3 ? 'var(--groen)' : bankRente >= 1 ? 'var(--accent)' : 'var(--rood)';
+
+            let bankHtml = `<div class="pax-sectie-label">Spaarrekening</div>`;
+            if (bankBevroren > 0) {
+                bankHtml += `<div class="kleur-rood" style="font-size:0.82em;margin-bottom:8px">🔒 Bank bevroren — transacties nog ${bankBevroren} beurt${bankBevroren > 1 ? 'en' : ''} geblokkeerd</div>`;
+            }
+            bankHtml += `
+                <div class="stat-rij"><span class="stat-naam">Saldo</span><span class="stat-waarde kleur-goud">${state.formatteerKrediet(bankSaldo)}</span></div>
+                <div class="stat-rij"><span class="stat-naam">Rente</span><span class="stat-waarde" style="color:${renteKleur}">${bankRente}% per beurt</span></div>
+                <div style="display:flex;gap:6px;align-items:center;margin:8px 0 4px">
+                    <input class="aantal-invoer" type="number" min="1" max="${Math.max(1, Math.max(maxStorten, bankSaldo))}" step="100" value="${Math.min(1000, Math.max(maxStorten, bankSaldo))}" id="bank-bedrag" style="width:80px">
+                    <button class="knop succes klein" onclick="App.stortenOpBank()" ${bankBevroren > 0 || maxStorten <= 0 ? 'disabled' : ''}>Storten</button>
+                    <button class="knop primair klein" onclick="App.opnemenVanBank()" ${bankBevroren > 0 || bankSaldo <= 0 ? 'disabled' : ''}>Opnemen</button>
+                </div>
+                <div style="display:flex;gap:6px;margin-bottom:14px">
+                    <button class="knop dimmed klein" onclick="App.stortenAlles()" ${bankBevroren > 0 || maxStorten <= 0 ? 'disabled' : ''}>Alles storten</button>
+                    <button class="knop dimmed klein" onclick="App.opnemenAlles()" ${bankBevroren > 0 || bankSaldo <= 0 ? 'disabled' : ''}>Alles opnemen</button>
+                </div>`;
+
+            bankHtml += `<div class="pax-sectie-label">Lening</div>
+                <div class="stat-rij"><span class="stat-naam">Schuld</span><span class="stat-waarde ${state.speler.schuld > 0 ? 'kleur-oranje' : ''}">${state.formatteerKrediet(state.speler.schuld)}</span></div>
                 <div class="stat-rij"><span class="stat-naam">Limiet</span><span class="stat-waarde">${state.formatteerKrediet(MAX_SCHULD)}</span></div>
                 <div class="stat-rij"><span class="stat-naam">Rente</span><span class="stat-waarde">${RENTE_PERCENTAGE*100}% per ${RENTE_INTERVAL} beurten</span></div>
-                <div class="actie-rij" style="margin-top:12px;gap:8px;flex-wrap:wrap">
-                    <input class="aantal-invoer" type="number" min="100" max="${Math.max(100,MAX_SCHULD-state.speler.schuld)}" step="100" value="1000" id="leen-bedrag" style="width:90px">
-                    <button class="knop primair klein" onclick="App.leenGeld()">Leen credits</button>
+                <div class="actie-rij" style="margin-top:8px;gap:8px;flex-wrap:wrap">
+                    <input class="aantal-invoer" type="number" min="100" max="${Math.max(100,MAX_SCHULD-state.speler.schuld)}" step="100" value="1000" id="leen-bedrag" style="width:80px">
+                    <button class="knop primair klein" onclick="App.leenGeld()">Leen</button>
                     <button class="knop gevaar klein" onclick="App.betaalLening()" ${state.speler.schuld<=0?'disabled':''}>Betaal af</button>
-                </div>
-            </div></div>`;
-        } else {
-            html += `<div class="haven-blok"><div class="haven-blok-header">💳 Galactische Bank</div><div class="haven-blok-inhoud">
-                <div class="kleur-dimmed" style="font-size:0.88em">Geen bank op deze planeet. Bezoek <strong>Nexoria</strong> of <strong>Techton</strong> om geld te lenen of af te lossen.</div>
-                ${state.speler.schuld > 0 ? `<div class="kleur-oranje" style="font-size:0.85em;margin-top:8px">Openstaande schuld: <strong>${state.formatteerKrediet(state.speler.schuld)}</strong></div>` : ''}
-            </div></div>`;
+                </div>`;
+
+            html += `<div class="haven-blok"><div class="haven-blok-header">💳 Galactische Bank</div><div class="haven-blok-inhoud">${bankHtml}</div></div>`;
         }
 
         // === PORTFOLIO TEGEL (full-width) ===
