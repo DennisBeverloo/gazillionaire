@@ -20,7 +20,7 @@
 
 **Locatie:** Een naamloze sector van de melkweg die bruist van handel en gevaar. Acht werelden zijn met elkaar verbonden via handelsroutes.
 
-**De speler:** Een beginnend ruimtehandelaar die met 10.000 credits en een tweedehands schip zijn fortuin probeert te maken. Geen achtergrondverhaal — de speler schrijft zijn eigen verhaal via zijn handelsbeslissingen.
+**De speler:** Een beginnend ruimtehandelaar die met 25.000 credits en een tweedehands schip zijn fortuin probeert te maken. Geen achtergrondverhaal — de speler schrijft zijn eigen verhaal via zijn handelsbeslissingen.
 
 **Galactische context:**
 - De **Galactische Handelsgilde** reguleert (of probeert te reguleren) de handel
@@ -92,11 +92,19 @@ Aqueron (25,75)               Techton (82,72)
 | Quantumchips | 💾 | 375 cr | 1 ton | Geavanceerde processors, topwaarde |
 | Luxuriet | 👑 | 440 cr | 1 ton | Luxeartikelen, duurste goed |
 
-**Prijsmechanisme:**
-- Specialiteitsplaneten verkopen 40–55% onder basisprijs
-- Vraagplaneten betalen 165–200% van basisprijs
-- Prijzen fluctueren elke beurt via een volatiliteitsmodel
-- Mortex Station hanteert een basiskorting van 35% op alle goederen (zwarte markt), bovenop eventuele specialiteitskorting
+**Prijsmechanisme (stapeling, in volgorde):**
+1. **Basisprijs** — specialiteitsplaneten: 40–55% korting; vraagplaneten: 165–200% opslag
+2. **MarktModifiers** — kumulatief effect van koop/verkoop in vorige bezoeken; vervalt 12%/beurt terug naar 1.0; wordt pas toegepast bij vertrek (niet tijdens verblijf, voorkomt arbitrage)
+3. **Voorraadfactor** — lage voorraad (+30% bij minimum), hoge voorraad (−25% bij maximum), neutraal bij het midden van de range
+4. **Scheepsbonus** — Spearhead −8% aankoopkorting, alleen bij kopen
+5. **Mortex-korting** — 35% basiskorting op alle goederen (zwarte markt)
+
+**Voorraadesysteem:**
+- Elke planeet heeft een reële voorraad per goed die schommelt elke reisbeurt (delta −4 tot +8)
+- Ranges: basis 25–80 ton, specialiteit 60–150 ton, hoge vraag 8–30 ton
+- Kopen verlaagt de planeetvoorraad; verkopen verhoogt die (max range+40)
+- Marketing-bonus bij aankomst: +15 ton op alle goederen op die planeet
+- Max-aankoop is min(betaalbaar, ruimte in ruim, beschikbare planeetvoorraad)
 
 ---
 
@@ -168,17 +176,62 @@ Reparatie (bij haven) en verzekering zijn nog steeds beschikbaar als diensten. D
 
 ---
 
-## 8. Passagiers
+## 8. Passagiers & Marketing
 
+### Passagiers
 - Beschikbaar als het schip passagierscapaciteit heeft
 - Op elke planeet wachten een wisselend aantal passagiers met een ticketprijs
 - Passagiers betalen bij aankomst op de volgende planeet
-- Marketing-campagne (koopbaar in haven) verhoogt het aantal wachtende passagiers bij de bestemming
 - Lifter-event tijdens reis: extra passagier die je meeneemt
+
+### Marketing-campagne
+- Koopbaar in de haven-tegel, kosten 500 credits
+- De campagne richt zich altijd op de **geselecteerde reisbestemming** (zichtbaar in de knoptekst)
+- Effect: +15 wachtende passagiers bij aankomst op de bestemmingsplaneet
+- De campagne vervalt bij **elke aankomst** — ongeacht of je op de bestemmingsplaneet landt
+- Bonus wordt alleen uitbetaald als je aankomt op de correcte bestemmingsplaneet
+- Slechts één actieve campagne tegelijk mogelijk
 
 ---
 
-## 8b. Planeet-specifieke Diensten
+## 8b. Bemanning (Crew)
+
+Elk schip heeft een vaste bemanning afhankelijk van het type en Mark. De bemanning heeft dagelijks salaris nodig en een gelukswaarde die de sfeer aan boord weergeeft.
+
+### Bemanningsgrootte per schip
+
+| Scheepstype | Mark I | Mark II | Mark III | Mark IV |
+|---|---|---|---|---|
+| Vrachtschip | 3 | 4 | 5 | 6 |
+| Passagiersschip | 4 | 5 | 6 | 7 |
+| Snel Schip | 2 | 3 | 4 | 5 |
+
+### Salaris & Betaling
+- **Dagloon:** 100 credits per bemanningslid per dag (beurt)
+- **Betaalinterval:** elke 7 beurten (wekelijks)
+- **Weekbetaling:** `bemanningsgrootte × 100 × 7` credits
+- De speler kan het dagloon aanpassen (±10 cr/dag per klik)
+- Bij betaling worden credits automatisch afgetrokken van de beurs
+
+### Gelukswaarde (0–100)
+- Start op 80 bij aanvang of na een bemanningswissel
+- Daalt passief met 1 punt per beurt
+- Daalt met 15 punten bij een gemiste betaling
+- Daalt met 2 punten voor elke extra dag na een gemiste betaling
+- Bonus: +10 bij een extra beloning (optioneel, te activeren in de haven)
+- Casino-uitje op Luxoria: +15 geluk voor de bemanning
+
+### Consequenties van laag geluk
+- Geluk < 30: risico op muiterij-event (sabotage, vertraging)
+- Geluk 0: muiterij gegarandeerd bij de volgende beurt
+
+### UI
+- Financiën-tabblad toont: Dagloon (cr/pp/dag), Weekbetaling (totaal), volgende betaaldatum, huidige gelukswaarde
+- Knoppen ▲/▼ om dagloon aan te passen (+/−10 cr/dag)
+
+---
+
+## 8c. Planeet-specifieke Diensten
 
 ### Luxoria — 🎰 Casino Stellaris
 
@@ -383,6 +436,12 @@ js/main.js        — App object, event handlers, init
 | Mark III = specialisatiekeuze (v5.0.0) | Dwingt een strategische beslissing op het moment dat je echt investeert; versterkt identiteit van elke route-stijl |
 | Scheepswerf exclusief op Techton (v5.0.0) | Nexoria en Techton hadden te overlappende rollen; Techton is nu de enige werf, Nexoria behoudt bank + beurs |
 | Scheepstype permanent (v5.0.0) | Voorkomt dat spelers vroeg switchen om het beste van alle types te combineren; versterkt commitment aan strategie |
+| Marketing koppelt aan geselecteerde bestemming (v5.1.x) | Verwijdert de extra stap van aparte bestemmingskeuze — campagne volgt de reisbestemming die al gekozen is |
+| Marketing vervalt bij elke aankomst (v5.1.x) | Voorkomt dat campagnes ophopen; houdt de mechaniek simpel en dwingt gerichte keuzes |
+| Uitgesteld markteffect bij kopen/verkopen (v5.2.x) | Accumuleer marktimpact tijdens bezoek, flush bij vertrek — voorkomt arbitrage waarbij direct terugverkopen winst oplevert dankzij de eigen aankoop |
+| Voorraadesysteem per planeet (v5.2.x) | Elke planeet heeft een reële voorraad die medebepalend is voor de prijs; geeft koopbeslissingen meer diepgang en maakt planeten-routing relevanter |
+| Handel-tab als lokale markttabel (v5.2.x) | Aparte tabel voor lokale markt (met knoppen +1/+10/max en −1/−10/alles) maakt kopen/verkopen sneller en overzichtelijker dan invoervelden |
+| Tooltips altijd gestijld via #top-tooltip (v5.2.x) | Gebruik nooit het `title=`-attribuut — browser-native tooltips zijn niet te stijlen; consistente `#top-tooltip`-aanpak geeft volledige controle over positie en opmaak |
 
 ---
 
@@ -401,4 +460,4 @@ js/main.js        — App object, event handlers, init
 
 ---
 
-*Laatste update: v5.0.0*
+*Laatste update: v5.2.14*
