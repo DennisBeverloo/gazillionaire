@@ -7,6 +7,7 @@ const START_KREDIET = 25000;
 const MAX_SCHULD = 8000;
 const RENTE_PERCENTAGE = 0.05;
 const RENTE_INTERVAL = 20;
+const CREW_BETAAL_INTERVAL = 7; // crew betaling elke week (7 beurten)
 
 class GameState {
     constructor() {
@@ -85,9 +86,9 @@ class GameState {
         // Crew
         this.crew = {
             grootte: 0,         // aantal bemanningsleden
-            salaris: 50,        // cr/pp per betaalperiode (RENTE_INTERVAL beurten)
+            salaris: 100,       // cr/pp per betaalperiode (CREW_BETAAL_INTERVAL beurten)
             happiness: 75,      // 0-100
-            volgendeBetaalBeurt: 20, // beurt waarop volgende betaling verschuldigd is
+            volgendeBetaalBeurt: CREW_BETAAL_INTERVAL, // beurt waarop volgende betaling verschuldigd is
             casinoBeurt: -99,   // beurt van laatste casino-uitje
         };
 
@@ -118,7 +119,7 @@ class GameState {
         this.speler.krediet -= schipTemplate.prijs;
         this.schipHP = schipTemplate.maxHP;
         this.crew.grootte = CREW_PER_SCHIP[schipId] ?? 3;
-        this.crew.volgendeBetaalBeurt = RENTE_INTERVAL; // eerste betaling over 20 beurten
+        this.crew.volgendeBetaalBeurt = CREW_BETAAL_INTERVAL; // eerste betaling over 7 beurten
         this.fase = 'spel';
         this.initPrijzen();
         this.initAandelen();
@@ -531,11 +532,17 @@ class GameState {
 
         // Controleer marketingcampagne — geldt alleen als we op de geplande planeet aankomen
         let bonusAantal = 0, bonusPrijs = 0;
-        if (this.marketingActief && this.marketingActief.planeet === this.locatie) {
-            bonusAantal = 8;
-            bonusPrijs = 50;
-            this.voegBerichtToe(`📢 Reclamecampagne actief! Meer passagiers en hogere ticketprijs.`, 'info');
-            this.marketingActief = null;
+        if (this.marketingActief) {
+            if (this.marketingActief.planeet === this.locatie) {
+                bonusAantal = 8;
+                bonusPrijs = 50;
+                this.voegBerichtToe(`📢 Reclamecampagne actief! Meer passagiers en hogere ticketprijs.`, 'info');
+                this.marketingActief = null;
+            } else {
+                // Verkeerde bestemming (bijv. door event-omleiding) — campagne vervalt
+                this.marketingActief = null;
+                this.voegBerichtToe(`📢 Reclamecampagne verlopen — niet aangekomen op bestemmingsplaneet.`, 'waarschuwing');
+            }
         }
         this.genereerPassagiersVoorPlaneet(this.locatie, bonusAantal, bonusPrijs);
 
@@ -1253,7 +1260,7 @@ class GameState {
                     this.speler.krediet -= betaling;
                     resultaat.kredietDelta = -betaling;
                     if (this.crew) {
-                        this.crew.volgendeBetaalBeurt = this.beurt + RENTE_INTERVAL;
+                        this.crew.volgendeBetaalBeurt = this.beurt + CREW_BETAAL_INTERVAL;
                         this.crew.happiness = Math.min(100, this.crew.happiness + 30);
                     }
                     resultaat.bericht = `Crew tevreden gesteld. Betaald: ${this.formatteerKrediet(betaling)}. Happiness +30.`;
@@ -1269,7 +1276,7 @@ class GameState {
                         this.speler.krediet -= gestolen;
                         resultaat.kredietDelta = -gestolen;
                         if (this.crew) {
-                            this.crew.volgendeBetaalBeurt = this.beurt + RENTE_INTERVAL;
+                            this.crew.volgendeBetaalBeurt = this.beurt + CREW_BETAAL_INTERVAL;
                         }
                         resultaat.bericht = `Onderhandeling mislukt! Crew haalt ${this.formatteerKrediet(gestolen)} op uit de kluis als achterstallig loon.`;
                     }
@@ -1609,7 +1616,7 @@ class GameState {
             const totaal = this.crew.grootte * this.crew.salaris;
             const happinessDrop = 18;
             this.crew.happiness = Math.max(0, this.crew.happiness - happinessDrop);
-            this.crew.volgendeBetaalBeurt += RENTE_INTERVAL; // volgende controle over 20 beurten
+            this.crew.volgendeBetaalBeurt += CREW_BETAAL_INTERVAL;
             this.voegBerichtToe(`⚠ Crew salaris niet betaald! Happiness: ${this.crew.happiness}/100. Openstaand: ${this.formatteerKrediet(totaal)}`, 'gevaar');
         }
     }
@@ -1621,9 +1628,9 @@ class GameState {
         if (this.speler.krediet < totaal)
             return { succes: false, reden: `Onvoldoende credits. Benodigd: ${this.formatteerKrediet(totaal)}` };
         this.speler.krediet -= totaal;
-        this.crew.volgendeBetaalBeurt = this.beurt + RENTE_INTERVAL;
+        this.crew.volgendeBetaalBeurt = this.beurt + CREW_BETAAL_INTERVAL;
         this.crew.happiness = Math.min(100, this.crew.happiness + 5);
-        this.voegBerichtToe(`💼 Crew betaald: ${this.formatteerKrediet(totaal)} voor ${this.crew.grootte} bemanningsleden. Volgende betaling over ${RENTE_INTERVAL} beurten.`, 'succes');
+        this.voegBerichtToe(`💼 Crew betaald: ${this.formatteerKrediet(totaal)} voor ${this.crew.grootte} bemanningsleden. Volgende betaling over ${CREW_BETAAL_INTERVAL} beurten (1 week).`, 'succes');
         return { succes: true };
     }
 
@@ -1632,7 +1639,7 @@ class GameState {
         this.crew.salaris += bedrag;
         this.crew.happiness = Math.min(100, this.crew.happiness + 10);
         const totaalPeriode = this.crew.grootte * this.crew.salaris;
-        this.voegBerichtToe(`📈 Salaris verhoogd naar ${this.crew.salaris} cr/pp per ${RENTE_INTERVAL} beurten (+10 happiness). Totaal per periode: ${this.formatteerKrediet(totaalPeriode)}`, 'succes');
+        this.voegBerichtToe(`📈 Salaris verhoogd naar ${this.crew.salaris} cr/pp per week (+10 happiness). Totaal per week: ${this.formatteerKrediet(totaalPeriode)}`, 'succes');
         return { succes: true };
     }
 
@@ -1644,7 +1651,7 @@ class GameState {
         this.crew.salaris = Math.max(min, this.crew.salaris - bedrag);
         this.crew.happiness = Math.max(0, this.crew.happiness - 15);
         const totaalPeriode = this.crew.grootte * this.crew.salaris;
-        this.voegBerichtToe(`📉 Salaris verlaagd naar ${this.crew.salaris} cr/pp per ${RENTE_INTERVAL} beurten (−15 happiness). Totaal per periode: ${this.formatteerKrediet(totaalPeriode)}`, 'waarschuwing');
+        this.voegBerichtToe(`📉 Salaris verlaagd naar ${this.crew.salaris} cr/pp per week (−15 happiness). Totaal per week: ${this.formatteerKrediet(totaalPeriode)}`, 'waarschuwing');
         return { succes: true };
     }
 
