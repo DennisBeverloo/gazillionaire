@@ -329,6 +329,35 @@ const App = {
         UI.renderSpel();
     },
 
+    koopN(goedId, n, evt) {
+        const goed = GOEDEREN.find(g => g.id === goedId);
+        const prijs = state.getPrijs(state.locatie, goedId);
+        const vrij = state.schip.laadruimte - state.getLadingGewicht();
+        const maxN = Math.min(Math.floor(vrij / goed.gewicht), Math.floor(state.speler.krediet / prijs));
+        const aantal = (n === 'max') ? maxN : Math.min(n, maxN);
+        if (aantal <= 0) return;
+        const res = state.koopGoed(goedId, aantal);
+        if (!res.succes) this._fout(res.reden);
+        else {
+            Audio.koop();
+            if (evt?.target) UI.toonKoopToast(evt.target, res.totaal);
+            UI.renderSpel();
+        }
+    },
+
+    verkoopN(goedId, n, evt) {
+        const inLading = state.lading[goedId] || 0;
+        const aantal = (n === 'alles') ? inLading : Math.min(n, inLading);
+        if (aantal <= 0) return;
+        const res = state.verkoopGoed(goedId, aantal);
+        if (!res.succes) this._fout(res.reden);
+        else {
+            Audio.verkoop();
+            if (evt?.target) UI.toonVerkoopToast(evt.target, res.totaal, res.winst);
+            UI.renderSpel();
+        }
+    },
+
     accepteerMissie(missieId) {
         const res = state.accepteerMissie(missieId);
         if (!res.succes) this._fout(res.reden);

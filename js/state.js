@@ -1333,7 +1333,7 @@ class GameState {
 
         this.voegBerichtToe(`Gekocht: ${aantal}× ${goed.naam} voor ${this.formatteerKrediet(totaal)}${this.schip?.spearheadBonus ? ' (−8% Spearhead)' : ''}.`, 'info');
         this.controleerAchievements();
-        return { succes: true };
+        return { succes: true, totaal, goed };
     }
 
     verkoopGoed(goedId, aantal) {

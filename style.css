@@ -462,16 +462,13 @@ html, body {
     font-size: 0.83em;
 }
 .handel-tabel th {
-    padding: 8px 10px;
+    padding: 7px 10px;
     text-align: left;
     color: var(--tekst-dim);
     border-bottom: 1px solid var(--rand);
+    font-size: 0.82em;
     font-weight: normal;
-    text-transform: uppercase;
-    font-size: 0.78em;
-    letter-spacing: 0.1em;
-    position: sticky;
-    top: 0;
+    white-space: nowrap;
     background: var(--bg-diep);
     z-index: 5;
 }
@@ -481,6 +478,15 @@ html, body {
     vertical-align: middle;
 }
 .handel-tabel tbody tr:hover td { background: rgba(255,255,255,0.02); }
+.handel-blok-vol { grid-column: 1 / -1; width: 100%; }
+.handel-tabel-wrap { overflow-x: auto; }
+.handel-banner-zwart {
+    padding: 8px 14px;
+    font-size: 0.82em;
+    color: var(--rood);
+    border-bottom: 1px solid var(--rand);
+}
+.handel-col-sec { /* shown by default, hidden on mobile */ }
 .goed-icoon { margin-right: 4px; }
 
 .actie-rij { display: flex; gap: 5px; align-items: center; }
@@ -1104,6 +1110,7 @@ html, body {
     border-bottom: 1px solid var(--rand);
     font-size: 0.82em;
     font-weight: normal;
+    text-decoration: none;
 }
 .galact-tabel th.galact-huidig-th {
     border-bottom: 2px solid var(--accent);
@@ -1274,7 +1281,7 @@ html, body {
     #bestemming-paneel-container { flex: 0 0 100%; border-top: 1px solid var(--rand); }
 
     /* Handel tabel: minder kolommen */
-    .handel-tabel th:nth-child(n+6), .handel-tabel td:nth-child(n+6) { display: none; }
+    .handel-col-sec { display: none; }
 
     /* Haven grid: 1 of 2 kolommen */
     .haven-raster { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
@@ -1305,9 +1312,6 @@ html, body {
     /* Haven grid: 1 kolom */
     .haven-raster { grid-template-columns: 1fr; }
     .planeet-raster { grid-template-columns: 1fr; }
-
-    /* Handel tabel: nog minder kolommen */
-    .handel-tabel th:nth-child(n+5), .handel-tabel td:nth-child(n+5) { display: none; }
 
     /* Instellingen modal */
     .instellingen-modal { max-width: 95vw; }
@@ -1555,6 +1559,30 @@ html, body {
 
 /* ===== EVENT GEVOLG: verberg leeg kader ===== */
 #event-gevolg:empty { display: none; }
+
+/* FLOATING TRADE TOAST */
+.floating-toast {
+    position: fixed;
+    transform: translateX(-50%);
+    z-index: 9999;
+    font-family: var(--font-data);
+    font-size: 0.88em;
+    font-weight: bold;
+    pointer-events: none;
+    opacity: 1;
+    text-align: center;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+    white-space: nowrap;
+    line-height: 1.3;
+    transition: transform 1s ease-out, opacity 1s ease-out;
+}
+.floating-toast.actief {
+    transform: translateX(-50%) translateY(-40px);
+    opacity: 0;
+}
+.floating-toast-koop    { color: #ff6070; }
+.floating-toast-winst   { color: #39ff14; }
+.floating-toast-verlies { color: #ff6070; }
 
 /* TRANSACTIE TOAST */
 #transactie-toast {

@@ -537,20 +537,23 @@ const UI = {
         }
 
         // === LOKALE MARKT / ZWARTE MARKT ===
-        if (state.locatie === 'mortex') {
-            html += `<div class="sectie-header zwarte-markt-header">💀 Zwarte Markt — ${planeet.naam}</div>
-                     <div class="info-balk zwarte-markt-banner">⚠️ Goederen gekocht op Mortex worden gemarkeerd als <strong>verdachte lading</strong>. Bij landing op andere planeten: 25% kans op douanecontrole en boete.</div>`;
-        } else {
-            html += `<div class="sectie-header">Lokale Markt — ${planeet.naam}</div>
-                     <p class="kleur-dimmed" style="font-size:0.82em;margin:0 0 10px">${planeet.beschrijving}</p>`;
-        }
+        const isZwart = state.locatie === 'mortex';
+        const marktTitel = isZwart ? `💀 Zwarte Markt — ${planeet.naam}` : `Lokale Markt — ${planeet.naam}`;
+        const marktKlasse = isZwart ? 'haven-blok-header zwarte-markt-header' : 'haven-blok-header';
 
-        html += `<table class="handel-tabel"><thead><tr>
+        html += `<div class="haven-blok handel-blok-vol">`;
+        html += `<div class="${marktKlasse}">${marktTitel}</div>`;
+        if (isZwart) {
+            html += `<div class="handel-banner-zwart">⚠️ Goederen gekocht op Mortex worden gemarkeerd als <strong>verdachte lading</strong>. Bij landing op andere planeten: 25% kans op douanecontrole en boete.</div>`;
+        }
+        html += `<div class="handel-tabel-wrap"><table class="handel-tabel"><thead><tr>
             <th>Goed</th>
-            <th>Prijs hier</th>
-            <th>In lading</th>
-            <th colspan="2">Kopen</th>
-            <th colspan="2">Verkopen</th>
+            <th class="handel-col-sec">Voorraad</th>
+            <th>Aan boord</th>
+            <th>Marktprijs</th>
+            <th class="handel-col-sec">Prijsrange</th>
+            <th>Kopen</th>
+            <th>Verkopen</th>
         </tr></thead><tbody>`;
 
         const gesorteerdeGoederen = [...GOEDEREN].sort((a, b) =>
@@ -568,73 +571,69 @@ const UI = {
             const prijsKlas = prijs === minPrijs ? 'kleur-groen' : prijs === maxPrijs ? 'kleur-rood' : '';
             const tipMin    = Math.max(5, Math.round(goed.basisPrijs * 0.25));
             const tipMax    = Math.round(goed.basisPrijs * 2.2);
-            const tipHtml   = `<span class="goed-tip">${goed.beschrijving}<br><span class="goed-tip-prijs">Bereik: ${tipMin}–${tipMax} credits &nbsp;·&nbsp; basis ${goed.basisPrijs} credits</span></span>`;
+            const tipHtml   = `<span class="goed-tip">${goed.beschrijving}<br><span class="goed-tip-prijs">Bereik: ${tipMin}–${tipMax} cr &nbsp;·&nbsp; basis ${goed.basisPrijs} cr</span></span>`;
 
             let marktLabelHtml = '';
             if (planeet.specialiteit?.includes(goed.id)) {
-                marktLabelHtml = '<span class="markt-label label-specialiteit">🏭 Lokale productie</span>';
+                marktLabelHtml = '<span class="markt-label label-specialiteit">🏭</span>';
             } else if (planeet.vraag?.includes(goed.id)) {
-                marktLabelHtml = '<span class="markt-label label-vraag">📈 Hoge vraag</span>';
+                marktLabelHtml = '<span class="markt-label label-vraag">📈</span>';
             }
 
-            // Lading info (in cargo column)
+            // Lokale voorraad indicator
+            let voorraadTd = '—';
+            if (planeet.specialiteit?.includes(goed.id)) {
+                voorraadTd = '<span class="kleur-groen">★ Aanbod</span>';
+            } else if (planeet.vraag?.includes(goed.id)) {
+                voorraadTd = '<span class="kleur-oranje">↑ Vraag</span>';
+            }
+
+            // Aan boord
             const aankoopPrijs = state.aankoopPrijzen[goed.id];
             const verdacht = state.ladingVerdacht?.[goed.id] || 0;
-            let ladingTd = '—';
+            let aanBoordTd = '—';
             if (inLading > 0) {
-                ladingTd = `<strong>${inLading}</strong>`;
-                if (verdacht > 0) ladingTd += ` <span class="verdacht-icoon" title="${verdacht} ton verdachte lading">⚠️</span>`;
+                aanBoordTd = `<strong>${inLading}</strong>`;
+                if (verdacht > 0) aanBoordTd += ` <span class="verdacht-icoon" title="${verdacht} ton verdachte lading">⚠️</span>`;
                 if (aankoopPrijs) {
-                    ladingTd += `<div class="aankoopprijs-info">gem. ${aankoopPrijs} credits</div>`;
+                    const pl = (prijs - aankoopPrijs) * inLading;
+                    const plKlas = pl >= 0 ? 'winst-positief' : 'winst-negatief';
+                    aanBoordTd += `<div class="aankoopprijs-info">${aankoopPrijs} cr &nbsp;<span class="${plKlas}">${pl >= 0 ? '+' : ''}${state.formatteerKrediet(pl)}</span></div>`;
                 }
             }
 
-            // Verkoop preview: opbrengst + P&L voor alle stuks in lading
-            let verkInfoHtml = '';
-            if (inLading > 0) {
-                const totaalOpbrengst = prijs * inLading;
-                verkInfoHtml = `<div class="verkoop-preview"><span class="kleur-dimmed">Alles: ${state.formatteerKrediet(totaalOpbrengst)}</span>`;
-                if (aankoopPrijs) {
-                    const totaalWinst = (prijs - aankoopPrijs) * inLading;
-                    const wKlas = totaalWinst >= 0 ? 'winst-positief' : 'winst-negatief';
-                    const wTeken = totaalWinst >= 0 ? '+' : '';
-                    verkInfoHtml += ` <span class="${wKlas}">(${wTeken}${state.formatteerKrediet(totaalWinst)})</span>`;
-                }
-                verkInfoHtml += '</div>';
-            }
-
+            // Marktdruk
             const mod = state.marktModifiers?.[state.locatie]?.[goed.id] ?? 1.0;
             let modHtml = '';
-            if (mod > 1.03) modHtml = `<span class="markt-mod markt-mod-op" title="Marktdruk: prijs gestegen door vraag">▲</span>`;
-            else if (mod < 0.97) modHtml = `<span class="markt-mod markt-mod-neer" title="Marktdruk: prijs gedaald door aanbod">▼</span>`;
+            if (mod > 1.03) modHtml = `<span class="markt-mod markt-mod-op" title="Prijs gestegen door vraag">▲</span>`;
+            else if (mod < 0.97) modHtml = `<span class="markt-mod markt-mod-neer" title="Prijs gedaald door aanbod">▼</span>`;
 
             html += `<tr>
                 <td><span class="goed-icoon">${goed.icoon}</span><span class="goed-tip-wrap">${goed.naam}${marktLabelHtml}${tipHtml}</span></td>
+                <td class="handel-col-sec">${voorraadTd}</td>
+                <td style="font-family:var(--font-data)">${aanBoordTd}</td>
                 <td class="${prijsKlas}" style="font-family:var(--font-data)">${state.formatteerKrediet(prijs)}${modHtml}</td>
-                <td style="font-family:var(--font-data)">${ladingTd}</td>
+                <td class="handel-col-sec kleur-dimmed" style="font-family:var(--font-data);font-size:0.85em">${tipMin}–${tipMax}</td>
                 <td>
                     <div class="actie-rij">
-                        <input class="aantal-invoer" type="number" min="1" max="${Math.max(1,maxKoop)}" value="1" id="koop-${goed.id}">
-                        <button class="knop succes klein" onclick="App.koopGoed('${goed.id}')" ${maxKoop<=0?'disabled':''}>Koop</button>
-                        <button class="knop succes klein" onclick="App.koopMax('${goed.id}')" ${maxKoop<=0?'disabled':''}>Max(${maxKoop})</button>
+                        <button class="knop primair klein" onclick="App.koopN('${goed.id}', 1, event)" ${maxKoop<=0?'disabled':''}>+1</button>
+                        <button class="knop primair klein" onclick="App.koopN('${goed.id}', 10, event)" ${maxKoop<10?'disabled':''}>+10</button>
+                        <button class="knop primair klein" onclick="App.koopN('${goed.id}', 'max', event)" ${maxKoop<=0?'disabled':''}>max(${maxKoop})</button>
                     </div>
                 </td>
                 <td>
                     <div class="actie-rij">
-                        <input class="aantal-invoer" type="number" min="1" max="${Math.max(1,inLading)}" value="1" id="verkoop-${goed.id}">
-                        <button class="knop gevaar klein" onclick="App.verkoopGoed('${goed.id}')" ${inLading<=0?'disabled':''}>Verkoop</button>
-                        <button class="knop gevaar klein" onclick="App.verkoopAlles('${goed.id}')" ${inLading<=0?'disabled':''}>Alles</button>
+                        <button class="knop primair klein" onclick="App.verkoopN('${goed.id}', 1, event)" ${inLading<=0?'disabled':''}>−1</button>
+                        <button class="knop primair klein" onclick="App.verkoopN('${goed.id}', 10, event)" ${inLading<10?'disabled':''}>−10</button>
+                        <button class="knop primair klein" onclick="App.verkoopN('${goed.id}', 'alles', event)" ${inLading<=0?'disabled':''}>alles</button>
                     </div>
-                    ${verkInfoHtml}
                 </td>
             </tr>`;
         });
 
-        html += '</tbody></table>';
+        html += '</tbody></table></div></div>';
 
         // === GALACTISCHE MARKT ===
-        html += '<div class="sectie-header" style="margin-top:22px">🌌 Galactische Markt — Prijsvergelijking</div>';
-        html += '<p class="kleur-dimmed" style="font-size:0.78em;margin:0 0 8px">Prijzen worden bijgewerkt na elke reis. <span class="badge-groen">■ Goedkoop</span> = koop hier &nbsp; <span class="badge-rood">■ Duur</span> = verkoop hier. Klik een planeetkolom om als bestemming te selecteren.</p>';
         html += this._renderGalactischeMarkt();
 
         container.innerHTML = html;
@@ -642,7 +641,8 @@ const UI = {
 
     _renderGalactischeMarkt() {
         const bestemming = state.geselecteerdePlaneet;
-        let html = '<div class="galact-wrap"><table class="galact-tabel"><thead><tr>';
+        let html = `<div class="haven-blok handel-blok-vol" style="margin-top:16px"><div class="haven-blok-header">🌌 Galactische Markt — Prijsvergelijking</div>`;
+        html += '<div class="galact-wrap"><table class="galact-tabel"><thead><tr>';
         html += '<th class="galact-goed-col">Goed</th>';
 
         PLANETEN.forEach(p => {
@@ -650,8 +650,9 @@ const UI = {
             const isBest = p.id === bestemming;
             let thKlas = isHier ? 'galact-huidig-th' : isBest ? 'galact-bestemming-th' : '';
             const raket = isBest ? ' 🚀' : '';
+            const titleAttr = isHier ? '' : `title="Kies als bestemming"`;
             const clickAttr = isHier ? '' : `onclick="App.selecteerBestemming('${p.id}')" style="cursor:pointer"`;
-            html += `<th class="${thKlas}" style="color:${p.kleur}" ${clickAttr}>${p.naam.replace(' Station','')}${raket}</th>`;
+            html += `<th class="${thKlas}" style="color:${p.kleur}" ${titleAttr} ${clickAttr}>${p.naam.replace(' Station','')}${raket}</th>`;
         });
         html += '</tr></thead><tbody>';
 
@@ -665,7 +666,7 @@ const UI = {
             const maxPrijs = Math.max(...allePrijzen);
             const tipMin2 = Math.max(5, Math.round(goed.basisPrijs * 0.25));
             const tipMax2 = Math.round(goed.basisPrijs * 2.2);
-            const tipHtml2 = `<span class="goed-tip">${goed.beschrijving}<br><span class="goed-tip-prijs">Bereik: ${tipMin2}–${tipMax2} credits &nbsp;·&nbsp; basis ${goed.basisPrijs} credits</span></span>`;
+            const tipHtml2 = `<span class="goed-tip">${goed.beschrijving}<br><span class="goed-tip-prijs">Bereik: ${tipMin2}–${tipMax2} cr</span></span>`;
 
             html += `<tr><td class="galact-goed-col"><span>${goed.icoon}</span><span class="goed-tip-wrap"> ${goed.naam}${tipHtml2}</span></td>`;
 
@@ -687,7 +688,7 @@ const UI = {
             html += '</tr>';
         });
 
-        html += '</tbody></table></div>';
+        html += '</tbody></table></div></div>';
         return html;
     },
 
@@ -1881,6 +1882,36 @@ const UI = {
         toast.classList.add('zichtbaar');
         clearTimeout(this._toastTimer);
         this._toastTimer = setTimeout(() => toast.classList.remove('zichtbaar'), 4000);
+    },
+
+    toonKoopToast(btn, bedrag) {
+        const fmt = n => new Intl.NumberFormat('nl-NL').format(Math.round(n));
+        const rect = btn.getBoundingClientRect();
+        const el = document.createElement('div');
+        el.className = 'floating-toast floating-toast-koop';
+        el.textContent = `−${fmt(bedrag)} cr`;
+        el.style.left = (rect.left + rect.width / 2) + 'px';
+        el.style.top = rect.top + 'px';
+        document.body.appendChild(el);
+        requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('actief')));
+        setTimeout(() => el.remove(), 1200);
+    },
+
+    toonVerkoopToast(btn, totaal, winst) {
+        const fmt = n => new Intl.NumberFormat('nl-NL').format(Math.round(n));
+        const rect = btn.getBoundingClientRect();
+        const el = document.createElement('div');
+        const positief = winst === null || winst >= 0;
+        el.className = `floating-toast ${positief ? 'floating-toast-winst' : 'floating-toast-verlies'}`;
+        const winstTekst = winst !== null
+            ? ` (${winst >= 0 ? '+' : ''}${fmt(winst)} cr ${winst >= 0 ? 'winst' : 'verlies'})`
+            : '';
+        el.innerHTML = `+${fmt(totaal)} cr${winstTekst ? `<br><small>${winstTekst}</small>` : ''}`;
+        el.style.left = (rect.left + rect.width / 2) + 'px';
+        el.style.top = rect.top + 'px';
+        document.body.appendChild(el);
+        requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('actief')));
+        setTimeout(() => el.remove(), 1200);
     },
 
     toonTransactieToast(config) {
