@@ -1407,6 +1407,48 @@ html, body {
 .aandeel-delta { font-family: var(--font-data); font-size: 0.78em; margin-bottom: 4px; }
 .sparkline-leeg { height: 50px; display: flex; align-items: center; color: var(--tekst-dim); font-size: 0.75em; }
 
+/* PORTFOLIO LAYOUT (grafiek + tabel) */
+.portfolio-layout {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+.portfolio-grafiek-wrap {
+    flex: 0 0 360px;
+    min-width: 240px;
+}
+.portfolio-tabel-wrap {
+    flex: 1;
+    min-width: 260px;
+}
+.portfolio-tabel {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82em;
+}
+.portfolio-tabel th {
+    color: var(--tekst-dim);
+    font-weight: 400;
+    padding: 3px 6px;
+    border-bottom: 1px solid var(--rand);
+    white-space: nowrap;
+}
+.portfolio-tabel td {
+    padding: 5px 6px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    white-space: nowrap;
+    font-family: var(--font-data);
+    font-size: 0.95em;
+}
+.portfolio-tabel td:first-child { font-family: var(--font-ui); }
+.pt-r { text-align: right; }
+.portfolio-totalen {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid var(--rand);
+}
+
 /* WINST/VERLIES in handelstabel */
 .winst-positief { color: var(--groen); font-size: 0.8em; }
 .winst-negatief { color: var(--rood); font-size: 0.8em; }

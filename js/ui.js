@@ -583,7 +583,6 @@ const UI = {
 
             // Planeetvoorraad
             const planeetVoorraad = state.planetVoorraden?.[state.locatie]?.[goed.id] ?? 0;
-            let voorraadLabel = '';
             const voorraadTd = planeetVoorraad > 0
                 ? `<span style="font-family:var(--font-data)">${planeetVoorraad} ton</span>`
                 : `<span class="kleur-dimmed">0 ton</span>`;
@@ -1367,15 +1366,15 @@ const UI = {
         }
 
         // === PORTFOLIO TEGEL (full-width) ===
-        const portWaarde = state.getPortefeuilleWaarde();
         html += `<div class="haven-blok haven-blok-vol-breed"><div class="haven-blok-header">📊 Aandelenportfolio</div><div class="haven-blok-inhoud">
-            <div style="margin-bottom:12px;font-size:0.88em">
-                Portefeuillewaarde: <strong class="kleur-goud">${state.formatteerKrediet(portWaarde)}</strong>
-                &nbsp;|&nbsp; Beschikbaar: <strong>${state.formatteerKrediet(state.speler.krediet)}</strong>
-                &nbsp;|&nbsp; <span class="kleur-dimmed" style="font-size:0.9em">Koersen bijgewerkt per reis</span>
-                ${state.locatie !== 'nexoria' ? `&nbsp;|&nbsp; <span class="kleur-dimmed" style="font-size:0.9em">🔒 Handel alleen op Nexoria (via 🪐 Planeet-tab)</span>` : `&nbsp;|&nbsp; <span class="kleur-accent" style="font-size:0.9em">📈 Handel via 🪐 Planeet-tab</span>`}
+            <div style="margin-bottom:10px;font-size:0.82em;color:var(--tekst-dim)">
+                Koersen bijgewerkt per reis &nbsp;·&nbsp;
+                ${state.locatie !== 'nexoria' ? '🔒 Handel alleen op Nexoria (via 🪐 Planeet-tab)' : '<span class="kleur-accent">📈 Handel via 🪐 Planeet-tab</span>'}
             </div>
-            ${this._renderAandelenKaarten(false)}
+            <div class="portfolio-layout">
+                ${this._renderPortfolioGrafiek()}
+                ${this._renderPortfolioTabel()}
+            </div>
         </div></div>`;
 
         html += '</div>';
@@ -1506,6 +1505,117 @@ const UI = {
             <polyline points="${punten}" fill="none" stroke="${kleur}" stroke-width="1.5" stroke-linejoin="round" opacity="0.9"/>
             <circle cx="${lastX}" cy="${lastY}" r="3" fill="${kleur}"/>
         </svg>`;
+    },
+
+    // =========================================================================
+    // PORTFOLIO GRAFIEK + TABEL
+    // =========================================================================
+
+    _renderPortfolioGrafiek() {
+        const KLEUREN = {
+            nexcorp: '#5ba4ff', aquatech: '#00d4ff', pyroenergie: '#ff8c42',
+            luxtrading: '#ffd700', techstar: '#39ff14', biomed: '#ff6eb4',
+        };
+        const W = 360, H = 150;
+        const padL = 32, padR = 10, padT = 10, padB = 18;
+        const cW = W - padL - padR, cH = H - padT - padB;
+
+        const allPrices = AANDELEN.flatMap(a => state.aandeelGeschiedenis[a.id] ?? []);
+        if (allPrices.length < 2) return `<div class="portfolio-grafiek-wrap"><div class="sparkline-leeg" style="height:${H}px">Nog geen koersdata — reis eerst een paar keer.</div></div>`;
+
+        const globalMin = Math.min(...allPrices) * 0.94;
+        const globalMax = Math.max(...allPrices) * 1.06;
+        const range = globalMax - globalMin || 1;
+        const toX = (i, len) => padL + (i / Math.max(len - 1, 1)) * cW;
+        const toY = v => padT + cH - ((v - globalMin) / range) * cH;
+
+        let gridHtml = '';
+        for (let i = 0; i <= 4; i++) {
+            const v = globalMin + (range / 4) * i;
+            const y = toY(v);
+            gridHtml += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>`;
+            gridHtml += `<text x="${padL - 3}" y="${(y + 3.5).toFixed(1)}" fill="rgba(255,255,255,0.3)" font-size="8" text-anchor="end" font-family="monospace">${Math.round(v)}</text>`;
+        }
+
+        let lijnenHtml = '';
+        AANDELEN.forEach(a => {
+            const data = state.aandeelGeschiedenis[a.id] ?? [];
+            if (data.length < 2) return;
+            const kleur = KLEUREN[a.id] ?? '#888';
+            const bezit = (state.aandelenPortefeuille[a.id] || 0) > 0;
+            const punten = data.map((p, i) => `${toX(i, data.length).toFixed(1)},${toY(p).toFixed(1)}`).join(' ');
+            lijnenHtml += `<polyline points="${punten}" fill="none" stroke="${kleur}" stroke-width="${bezit ? 2 : 1.2}" opacity="${bezit ? 1 : 0.45}" stroke-linejoin="round"/>`;
+            const lastX = toX(data.length - 1, data.length);
+            const lastY = toY(data[data.length - 1]);
+            lijnenHtml += `<circle cx="${lastX.toFixed(1)}" cy="${lastY.toFixed(1)}" r="${bezit ? 3.5 : 2}" fill="${kleur}" opacity="${bezit ? 1 : 0.55}"/>`;
+        });
+
+        const assenHtml = `<line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT + cH}" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+            <line x1="${padL}" y1="${padT + cH}" x2="${W - padR}" y2="${padT + cH}" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>`;
+
+        const legendaHtml = AANDELEN.map(a => {
+            const kleur = KLEUREN[a.id] ?? '#888';
+            const bezit = (state.aandelenPortefeuille[a.id] || 0) > 0;
+            return `<span class="grafiek-legenda-item" style="opacity:${bezit ? 1 : 0.45}"><span class="grafiek-kleur-balk" style="background:${kleur}"></span><span>${a.icoon} ${a.naam}</span></span>`;
+        }).join('');
+
+        return `<div class="portfolio-grafiek-wrap">
+            <svg viewBox="0 0 ${W} ${H}" style="display:block;width:100%;max-width:${W}px;height:auto">
+                ${gridHtml}${assenHtml}${lijnenHtml}
+            </svg>
+            <div class="grafiek-legenda" style="margin-top:6px;flex-wrap:wrap;gap:4px 10px;font-size:0.78em">${legendaHtml}</div>
+        </div>`;
+    },
+
+    _renderPortfolioTabel() {
+        const gehouden = AANDELEN.filter(a => (state.aandelenPortefeuille[a.id] || 0) > 0);
+
+        if (gehouden.length === 0) {
+            return `<div class="portfolio-tabel-wrap">
+                <div class="kleur-dimmed" style="font-size:0.85em;padding:8px 0 12px">Geen aandelen in portfolio.</div>
+                <div class="portfolio-totalen">
+                    <div class="stat-rij"><span class="stat-naam">Portefeuillewaarde</span><span class="stat-waarde kleur-goud">${state.formatteerKrediet(0)}</span></div>
+                    <div class="stat-rij"><span class="stat-naam">Beschikbaar</span><span class="stat-waarde">${state.formatteerKrediet(state.speler.krediet)}</span></div>
+                </div>
+            </div>`;
+        }
+
+        let totaleWaarde = 0, totaleKosten = 0;
+        const rijen = gehouden.map(a => {
+            const bezit = state.aandelenPortefeuille[a.id];
+            const koers = state.aandeelKoersen[a.id];
+            const gemAank = state.aandeelAankoopPrijzen?.[a.id] ?? koers;
+            const waarde = bezit * koers;
+            const kosten = bezit * gemAank;
+            const rend = waarde - kosten;
+            const rendPct = kosten > 0 ? (rend / kosten * 100).toFixed(1) : '0.0';
+            const rendKlas = rend > 0 ? 'kleur-groen' : rend < 0 ? 'kleur-rood' : 'kleur-dimmed';
+            totaleWaarde += waarde;
+            totaleKosten += kosten;
+            return `<tr>
+                <td>${a.icoon} ${a.naam}</td>
+                <td class="pt-r">${bezit}</td>
+                <td class="pt-r">${gemAank} cr</td>
+                <td class="pt-r">${koers} cr</td>
+                <td class="pt-r ${rendKlas}">${rend >= 0 ? '+' : ''}${state.formatteerKrediet(rend)}<br><span style="font-size:0.85em">${rend >= 0 ? '+' : ''}${rendPct}%</span></td>
+            </tr>`;
+        });
+
+        const totRend = totaleWaarde - totaleKosten;
+        const totPct = totaleKosten > 0 ? (totRend / totaleKosten * 100).toFixed(1) : '0.0';
+        const totKlas = totRend > 0 ? 'kleur-groen' : totRend < 0 ? 'kleur-rood' : 'kleur-dimmed';
+
+        return `<div class="portfolio-tabel-wrap">
+            <table class="portfolio-tabel">
+                <thead><tr><th>Asset</th><th class="pt-r">Aantal</th><th class="pt-r">Gem. aank.</th><th class="pt-r">Koers</th><th class="pt-r">Rendement</th></tr></thead>
+                <tbody>${rijen.join('')}</tbody>
+            </table>
+            <div class="portfolio-totalen">
+                <div class="stat-rij"><span class="stat-naam">Totale waarde</span><span class="stat-waarde kleur-goud">${state.formatteerKrediet(totaleWaarde)}</span></div>
+                <div class="stat-rij"><span class="stat-naam">Totaal rendement</span><span class="stat-waarde ${totKlas}">${totRend >= 0 ? '+' : ''}${state.formatteerKrediet(totRend)} (${totRend >= 0 ? '+' : ''}${totPct}%)</span></div>
+                <div class="stat-rij"><span class="stat-naam">Beschikbaar</span><span class="stat-waarde">${state.formatteerKrediet(state.speler.krediet)}</span></div>
+            </div>
+        </div>`;
     },
 
     // =========================================================================
