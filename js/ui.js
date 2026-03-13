@@ -1070,14 +1070,12 @@ const UI = {
 
     _renderTechton() {
         const huidig = state.schip;
-        const verkoopwaarde = Math.round(huidig.prijs * 0.60);
         const volgendMark = huidig.mark + 1;
 
         let html = `<div class="planeet-dienst-blok planeet-blok-vol-breed">
             <div class="sectie-header">🛸 Geavanceerde Scheepswerf</div>
             <p class="kleur-dimmed" style="font-size:0.83em;margin:4px 0 12px">
-                Inruilwaarde <strong>${huidig.naam}</strong>:
-                <strong class="kleur-goud">${state.formatteerKrediet(verkoopwaarde)}</strong>
+                Huidig schip: <strong>${huidig.naam}</strong>
                 ${huidig.mark >= 4 ? '<br><span style="color:var(--groen)">Je hebt het hoogste Mark bereikt voor dit scheepstype.</span>' : ''}
             </p>`;
 
@@ -1105,8 +1103,7 @@ const UI = {
         html += `<div class="upgrade-raster">`;
 
         opties.forEach(schip => {
-            const netto = schip.prijs - verkoopwaarde;
-            const kan   = state.speler.krediet >= netto;
+            const kan = state.speler.krediet >= schip.prijs;
             const specials = [];
             if (schip.immuunPiraten) specials.push('🛡️ Immuun voor piraten');
             if (schip.immuunMortexConfiscatie) specials.push('🔒 Mortex-lading beschermd');
@@ -1126,8 +1123,7 @@ const UI = {
                 <div class="schip-stat"><span>Schild</span><span class="waarde">${schip.schild}</span></div>
                 ${specials.length > 0 ? `<div style="margin:6px 0;font-size:0.78em;color:var(--accent)">${specials.join('<br>')}</div>` : ''}
                 <div class="upgrade-prijs" style="margin-top:8px">
-                    Netto: <strong>${state.formatteerKrediet(Math.max(0, netto))}</strong>
-                    ${netto < 0 ? `<span class="kleur-groen"> (+${state.formatteerKrediet(-netto)} retour)</span>` : ''}
+                    Prijs: <strong>${state.formatteerKrediet(schip.prijs)}</strong>
                 </div>
                 <button class="knop primair klein" ${!kan ? 'disabled' : ''} onclick="App.koopSchip('${schip.id}')">
                     ${kan ? (volgendMark === 3 ? 'Specialiseer →' : 'Upgrade →') : 'Onvoldoende credits'}

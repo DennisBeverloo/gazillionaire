@@ -459,13 +459,8 @@ const App = {
     koopSchip(schipId) {
         const nieuw = SCHEPEN.find(s => s.id === schipId);
         if (!nieuw) return;
-        const verkoopwaarde = Math.round(state.schip.prijs * 0.60);
-        const netto = nieuw.prijs - verkoopwaarde;
-        const betalingTekst = netto >= 0
-            ? `Netto betaling: ${state.formatteerKrediet(netto)}`
-            : `Je ontvangt: ${state.formatteerKrediet(-netto)} retour`;
         const label = nieuw.mark === 3 ? 'specialiseren naar' : 'upgraden naar';
-        if (!confirm(`${state.schip.naam} inruilen en ${label} ${nieuw.naam}?\n${betalingTekst}`)) return;
+        if (!confirm(`${label} ${nieuw.naam}?\nPrijs: ${state.formatteerKrediet(nieuw.prijs)}`)) return;
         const res = state.koopSchip(schipId);
         if (!res.succes) this._fout(res.reden); else { Audio.upgrade(); UI.renderSpel(); }
     },

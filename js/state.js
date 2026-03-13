@@ -1532,25 +1532,22 @@ class GameState {
         if (nieuwSchip.mark === 4 && this.schip.specialisatie && nieuwSchip.specialisatie !== this.schip.specialisatie)
             return { succes: false, reden: 'Je kunt je specialisatie niet wijzigen.' };
 
-        const verkoopwaarde = Math.round(this.schip.prijs * 0.60);
-        const nettoPrijs = nieuwSchip.prijs - verkoopwaarde;
-
-        if (nettoPrijs > this.speler.krediet)
-            return { succes: false, reden: `Onvoldoende krediet. Inruilwaarde: ${this.formatteerKrediet(verkoopwaarde)}. Netto: ${this.formatteerKrediet(nettoPrijs)}.` };
+        if (nieuwSchip.prijs > this.speler.krediet)
+            return { succes: false, reden: `Onvoldoende krediet. Je hebt ${this.formatteerKrediet(this.speler.krediet)}, dit schip kost ${this.formatteerKrediet(nieuwSchip.prijs)}.` };
 
         this.schip = { ...nieuwSchip };
         this.schipHP = nieuwSchip.maxHP;
-        this.speler.krediet -= nettoPrijs;
+        this.speler.krediet -= nieuwSchip.prijs;
         this.statistieken.schepenGekocht = (this.statistieken.schepenGekocht || 0) + 1;
         const oudeCrewGrootte = this.crew?.grootte ?? 0;
         const nieuweCrewGrootte = CREW_PER_SCHIP[schipId] ?? oudeCrewGrootte;
         if (this.crew) this.crew.grootte = nieuweCrewGrootte;
-        this.voegBerichtToe(`${nieuwSchip.naam} aangeschaft! Nettobetaling: ${this.formatteerKrediet(nettoPrijs)}.`, 'goud');
+        this.voegBerichtToe(`${nieuwSchip.naam} aangeschaft voor ${this.formatteerKrediet(nieuwSchip.prijs)}.`, 'goud');
         if (nieuweCrewGrootte > oudeCrewGrootte) {
             this.voegBerichtToe(`👨‍🚀 Je nieuwe schip vereist ${nieuweCrewGrootte} bemanningsleden (was ${oudeCrewGrootte}). Salariskosten stijgen.`, 'info');
         }
         this.controleerAchievements();
-        return { succes: true, verkoopwaarde, nettoPrijs };
+        return { succes: true };
     }
 
     // =========================================================================
