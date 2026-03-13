@@ -2154,6 +2154,7 @@ class GameState {
                 bankSaldo: this.bankSaldo ?? 0,
                 bankRente: this.bankRente ?? 2,
                 bankBevroren: this.bankBevroren ?? 0,
+                crew: this.crew,
             };
             localStorage.setItem('gazillionaire_save', JSON.stringify(data));
         } catch(e) {}
@@ -2199,6 +2200,26 @@ class GameState {
             if (this.bankSaldo === undefined) this.bankSaldo = 0;
             if (this.bankRente === undefined) this.bankRente = 2;
             if (this.bankBevroren === undefined) this.bankBevroren = 0;
+            // Migratie: crew ontbrak in oude saves — herstel en bereken happiness retroactief
+            if (!this.crew || !this.crew.grootte) {
+                const schipId = this.schip?.id;
+                this.crew = {
+                    grootte: CREW_PER_SCHIP[schipId] ?? 3,
+                    salaris: 100,
+                    happiness: 75,
+                    volgendeBetaalBeurt: this.beurt + CREW_BETAAL_INTERVAL,
+                };
+            }
+            // Retroactief happiness corrigeren als achterstallig maar happiness onrealistisch hoog
+            if (this.crew && this.crew.grootte > 0) {
+                const dagenAchter = this.beurt - (this.crew.volgendeBetaalBeurt ?? CREW_BETAAL_INTERVAL);
+                if (dagenAchter > 0) {
+                    const verwacht = Math.max(0, (this.crew.happiness ?? 75) - dagenAchter * 3 - 15);
+                    if ((this.crew.happiness ?? 75) > verwacht + 10) {
+                        this.crew.happiness = verwacht;
+                    }
+                }
+            }
             return true;
         } catch(e) {
             return false;
