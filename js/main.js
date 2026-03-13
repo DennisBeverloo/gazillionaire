@@ -479,7 +479,9 @@ const App = {
     // PASSAGIERS
     // =========================================================================
 
-    koopMarketing(planeetId) {
+    koopMarketing() {
+        const planeetId = state.geselecteerdePlaneet;
+        if (!planeetId) return this._fout('Kies eerst een bestemming op de kaart.');
         const res = state.koopMarketing(planeetId);
         if (!res.succes) this._fout(res.reden); else UI.renderSpel();
     },

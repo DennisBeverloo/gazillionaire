@@ -755,23 +755,16 @@ const UI = {
             let mktHtml = '';
             if (state.marketingActief) {
                 const campNaam = PLANETEN.find(p => p.id === state.marketingActief.planeet)?.naam ?? state.marketingActief.planeet;
-                mktHtml = `<div class="kleur-groen" style="font-size:0.88em">✓ Campagne actief voor <strong>${campNaam}</strong> — extra passagiers wachten bij aankomst.</div>`;
+                mktHtml = `<div class="kleur-groen" style="font-size:0.88em">✓ Campagne actief voor <strong>${campNaam}</strong> — extra passagiers en resources wachten bij aankomst.</div>`;
             } else if (selP && selP !== state.locatie) {
                 const mKosten = state.berekenMarketingKosten(selP);
                 const selPNaam = PLANETEN.find(p => p.id === selP)?.naam ?? selP;
                 const kanBetalen = state.speler.krediet >= mKosten;
-                mktHtml = `<div style="font-size:0.85em;margin-bottom:8px">Reclamecampagne voor <strong>${selPNaam}</strong>. Bij aankomst wachten meer passagiers op je, tegen hogere ticketprijs.</div>
-                    <button class="knop primair klein" onclick="App.koopMarketing('${selP}')" ${!kanBetalen ? 'disabled' : ''}>Start campagne (${state.formatteerKrediet(mKosten)})</button>`;
+                mktHtml = `<div style="font-size:0.85em;margin-bottom:8px">Campagne voor bestemming <strong>${selPNaam}</strong>. Bij aankomst wachten meer passagiers en resources op je.</div>
+                    <button class="knop primair klein" onclick="App.koopMarketing()" ${!kanBetalen ? 'disabled' : ''}>Start campagne (${state.formatteerKrediet(mKosten)})</button>`;
             } else {
-                const anderePlaneten = PLANETEN.filter(p => p.id !== state.locatie);
-                mktHtml = `<div style="font-size:0.85em;margin-bottom:8px">Kies de bestemmingsplaneet voor je reclamecampagne:</div>
-                    <div style="display:flex;flex-wrap:wrap;gap:5px">`;
-                anderePlaneten.forEach(p => {
-                    const kosten = state.berekenMarketingKosten(p.id);
-                    const kanBetalen = state.speler.krediet >= kosten;
-                    mktHtml += `<button class="knop primair klein" onclick="App.koopMarketing('${p.id}')" ${!kanBetalen ? 'disabled' : ''}>${p.naam} (${state.formatteerKrediet(kosten)})</button>`;
-                });
-                mktHtml += `</div>`;
+                mktHtml = `<div class="kleur-dimmed" style="font-size:0.85em">Kies eerst een bestemming op de kaart — de campagne geldt voor die planeet.</div>
+                    <button class="knop primair klein" disabled>Start campagne</button>`;
             }
             html += `<div class="haven-blok"><div class="haven-blok-header">📢 Marketing</div><div class="haven-blok-inhoud">${mktHtml}</div></div>`;
         }

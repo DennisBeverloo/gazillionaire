@@ -530,16 +530,17 @@ class GameState {
         if (this.brandstof < 10) this._aangekomendMetLageBrandstof = true;
         this.voegBerichtToe(`Aangekomen op ${planeet.naam}! Brandstof: ${this.brandstof}/${this.schip.brandstofTank}`, 'succes');
 
-        // Controleer marketingcampagne — geldt alleen als we op de geplande planeet aankomen
+        // Controleer marketingcampagne — vervalt altijd bij aankomst; bonus alleen op juiste planeet
         let bonusAantal = 0, bonusPrijs = 0;
         if (this.marketingActief) {
             if (this.marketingActief.planeet === this.locatie) {
                 bonusAantal = 8;
                 bonusPrijs = 50;
                 this.voegBerichtToe(`📢 Reclamecampagne actief! Meer passagiers en hogere ticketprijs.`, 'info');
-                this.marketingActief = null;
+            } else {
+                this.voegBerichtToe(`📢 Reclamecampagne verlopen — niet aangekomen op bestemmingsplaneet, geen bonus.`, 'waarschuwing');
             }
-            // Verkeerde planeet: campagne blijft actief, geen bonus
+            this.marketingActief = null;
         }
         this.genereerPassagiersVoorPlaneet(this.locatie, bonusAantal, bonusPrijs);
 
