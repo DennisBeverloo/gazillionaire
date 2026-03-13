@@ -2104,9 +2104,13 @@ const UI = {
         if (config.winst !== undefined && config.winst !== null && config.winst < 0) {
             toast.classList.add('verlies');
         }
+        toast.classList.remove('verdwijnt');
         toast.classList.add('zichtbaar');
         clearTimeout(this._transactieToastTimer);
-        this._transactieToastTimer = setTimeout(() => toast.classList.remove('zichtbaar'), 3500);
+        this._transactieToastTimer = setTimeout(() => {
+            toast.classList.add('verdwijnt');
+            setTimeout(() => toast.classList.remove('zichtbaar', 'verdwijnt'), 1000);
+        }, 5000);
     },
 
     // =========================================================================

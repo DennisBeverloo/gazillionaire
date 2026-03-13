@@ -1670,6 +1670,10 @@ html, body {
     border-color: var(--rood);
     box-shadow: 0 0 24px rgba(255,56,85,0.12);
 }
+#transactie-toast.verdwijnt {
+    opacity: 0 !important;
+    transition: opacity 1s ease-out !important;
+}
 
 /* ===== RANGLIJST ===== */
 .ranglijst-lijst { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
