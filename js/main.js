@@ -351,11 +351,10 @@ const App = {
     },
 
     koopN(goedId, n, evt) {
-        const goed = GOEDEREN.find(g => g.id === goedId);
         const prijs = state.getPrijs(state.locatie, goedId);
         const vrij = state.schip.laadruimte - state.getLadingGewicht();
         const planeetVoorraad = state.planetVoorraden?.[state.locatie]?.[goedId] ?? 999;
-        const maxN = Math.min(Math.floor(vrij / goed.gewicht), Math.floor(state.speler.krediet / prijs), planeetVoorraad);
+        const maxN = Math.min(vrij, Math.floor(state.speler.krediet / prijs), planeetVoorraad);
         const aantal = (n === 'max') ? maxN : Math.min(n, maxN);
         if (aantal <= 0) return;
         const res = state.koopGoed(goedId, aantal);

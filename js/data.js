@@ -79,16 +79,16 @@ const PLANETEN = [
 ];
 
 const GOEDEREN = [
-    { id: 'ferroiet',     naam: 'Ferroiet',     icoon: '🔩', basisPrijs: 50,  gewicht: 1, beschrijving: 'Basismetaal voor bouw en productie' },
-    { id: 'kristalliet',  naam: 'Kristalliet',  icoon: '💠', basisPrijs: 115, gewicht: 1, beschrijving: 'Energiekristallen voor reactoren en shields' },
-    { id: 'nebulakorrels',naam: 'Nebulakorrels',icoon: '🌾', basisPrijs: 32,  gewicht: 2, beschrijving: 'Voedzame graankorrels; basisvoedsel voor kolonies' },
-    { id: 'bioplasma',    naam: 'Bioplasma',    icoon: '💉', basisPrijs: 175, gewicht: 1, beschrijving: 'Medische basistof voor behandelingen' },
-    { id: 'technoware',   naam: 'Technoware',   icoon: '🔌', basisPrijs: 145, gewicht: 1, beschrijving: 'Elektronische componenten en modules' },
-    { id: 'quantumchips', naam: 'Quantumchips', icoon: '💾', basisPrijs: 375, gewicht: 1, beschrijving: 'Geavanceerde kwantumprocessors' },
-    { id: 'aquapure',     naam: 'Aquapure',     icoon: '💧', basisPrijs: 42,  gewicht: 3, beschrijving: 'Gezuiverd water voor menselijke kolonies' },
-    { id: 'pyrogel',      naam: 'Pyrogel',      icoon: '⛽', basisPrijs: 82,  gewicht: 2, beschrijving: 'Hoogenergetische ruimtebrandstof' },
-    { id: 'luxuriet',     naam: 'Luxuriet',     icoon: '👑', basisPrijs: 440, gewicht: 1, beschrijving: 'Allerhande luxe artikelen en statussymbolen' },
-    { id: 'lunasteen',    naam: 'Lunasteen',    icoon: '💎', basisPrijs: 310, gewicht: 1, beschrijving: 'Zeldzame edelstenen van buitenste manen' },
+    { id: 'ferroiet',     naam: 'Ferroiet',     icoon: '🔩', basisPrijs: 50,  beschrijving: 'Basismetaal voor bouw en productie' },
+    { id: 'kristalliet',  naam: 'Kristalliet',  icoon: '💠', basisPrijs: 115, beschrijving: 'Energiekristallen voor reactoren en shields' },
+    { id: 'nebulakorrels',naam: 'Nebulakorrels',icoon: '🌾', basisPrijs: 32,  beschrijving: 'Voedzame graankorrels; basisvoedsel voor kolonies' },
+    { id: 'bioplasma',    naam: 'Bioplasma',    icoon: '💉', basisPrijs: 175, beschrijving: 'Medische basistof voor behandelingen' },
+    { id: 'technoware',   naam: 'Technoware',   icoon: '🔌', basisPrijs: 145, beschrijving: 'Elektronische componenten en modules' },
+    { id: 'quantumchips', naam: 'Quantumchips', icoon: '💾', basisPrijs: 375, beschrijving: 'Geavanceerde kwantumprocessors' },
+    { id: 'aquapure',     naam: 'Aquapure',     icoon: '💧', basisPrijs: 42,  beschrijving: 'Gezuiverd water voor menselijke kolonies' },
+    { id: 'pyrogel',      naam: 'Pyrogel',      icoon: '⛽', basisPrijs: 82,  beschrijving: 'Hoogenergetische ruimtebrandstof' },
+    { id: 'luxuriet',     naam: 'Luxuriet',     icoon: '👑', basisPrijs: 440, beschrijving: 'Allerhande luxe artikelen en statussymbolen' },
+    { id: 'lunasteen',    naam: 'Lunasteen',    icoon: '💎', basisPrijs: 310, beschrijving: 'Zeldzame edelstenen van buitenste manen' },
 ];
 
 const SCHEPEN = [

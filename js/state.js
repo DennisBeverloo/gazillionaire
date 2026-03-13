@@ -702,15 +702,13 @@ class GameState {
             if (!prijs || voorraad <= 0) continue;
 
             const maxAffordable = Math.floor(npc.krediet / prijs);
-            const gewichtPerUnit = goed.gewicht || 1;
-            const maxByWeight = Math.floor(resterend / gewichtPerUnit);
-            const hoeveelheid = Math.min(voorraad, maxAffordable, maxByWeight, 20);
+            const hoeveelheid = Math.min(voorraad, maxAffordable, resterend, 20);
             if (hoeveelheid <= 0) continue;
 
             npc.krediet -= hoeveelheid * prijs;
             npc.lading.push({ goedId: goed.id, hoeveelheid, koopPrijs: prijs });
-            npc.ladingGewicht += hoeveelheid * gewichtPerUnit;
-            resterend -= hoeveelheid * gewichtPerUnit;
+            npc.ladingGewicht += hoeveelheid;
+            resterend -= hoeveelheid;
 
             // Verminder marktvoorraad
             if (this.planetVoorraden[planeetId]) {
@@ -1116,7 +1114,7 @@ class GameState {
             goedId,
             goedNaam:   goed.naam,
             goedIcoon:  goed.icoon,
-            goedGewicht: goed.gewicht,
+            goedGewicht: 1,
             hoeveelheid,
             minimumprijs,
             npcDeelnemers,
@@ -1248,10 +1246,10 @@ class GameState {
                 // Vind willekeurig goed, als er ruimte is
                 const ruimteVrij = this.schip.laadruimte - this.getLadingGewicht();
                 if (ruimteVrij > 0) {
-                    const goedOpties = GOEDEREN.filter(g => g.gewicht <= ruimteVrij);
+                    const goedOpties = GOEDEREN;
                     if (goedOpties.length > 0) {
                         const gevonden = goedOpties[Math.floor(Math.random() * goedOpties.length)];
-                        const aantal = Math.min(Math.floor(ruimteVrij / gevonden.gewicht), 5 + Math.floor(Math.random() * 8));
+                        const aantal = Math.min(ruimteVrij, 5 + Math.floor(Math.random() * 8));
                         this.lading[gevonden.id] = (this.lading[gevonden.id] || 0) + aantal;
                         resultaat.ladingDelta[gevonden.id] = aantal;
                         resultaat.bericht = `Je vindt ${aantal}× ${gevonden.icoon} ${gevonden.naam} in het wrak. Gratis lading!`;
@@ -1290,12 +1288,12 @@ class GameState {
                 if (keuzeId === 'koop') {
                     const ruimteVrij = this.schip.laadruimte - this.getLadingGewicht();
                     if (ruimteVrij > 0) {
-                        const dure = GOEDEREN.filter(g => g.basisPrijs > 100 && g.gewicht <= ruimteVrij);
+                        const dure = GOEDEREN.filter(g => g.basisPrijs > 100);
                         if (dure.length > 0 && this.speler.krediet > 100) {
                             const goed = dure[Math.floor(Math.random() * dure.length)];
                             const kortingsPrijs = Math.round(goed.basisPrijs * 0.35);
                             const maxAantal = Math.min(
-                                Math.floor(ruimteVrij / goed.gewicht),
+                                ruimteVrij,
                                 Math.floor(this.speler.krediet / kortingsPrijs),
                                 10
                             );
@@ -1632,10 +1630,9 @@ class GameState {
         const prijs = this.getPrijs(this.locatie, goedId);
         const effectiefPrijs = this.schip?.spearheadBonus ? Math.round(prijs * 0.92) : prijs;
         const totaal = effectiefPrijs * aantal;
-        const gewicht = goed.gewicht * aantal;
         const vrijeRuimte = this.schip.laadruimte - this.getLadingGewicht();
 
-        if (gewicht > vrijeRuimte) return { succes: false, reden: 'Onvoldoende laadruimte!' };
+        if (aantal > vrijeRuimte) return { succes: false, reden: 'Onvoldoende laadruimte!' };
         if (totaal > this.speler.krediet) return { succes: false, reden: 'Onvoldoende krediet!' };
         const beschikbaar = this.planetVoorraden?.[this.locatie]?.[goedId] ?? 999;
         if (aantal > beschikbaar) return { succes: false, reden: 'Onvoldoende voorraad op deze planeet.' };
@@ -1646,7 +1643,7 @@ class GameState {
             this.planetVoorraden[this.locatie][goedId] = Math.max(0, (this.planetVoorraden[this.locatie][goedId] ?? 0) - aantal);
         }
         this.statistieken.handelstransacties++;
-        this.statistieken.cargoTonVervoerd = (this.statistieken.cargoTonVervoerd ?? 0) + gewicht;
+        this.statistieken.cargoTonVervoerd = (this.statistieken.cargoTonVervoerd ?? 0) + aantal;
 
         // Werk gewogen gemiddelde aankoopprijs bij
         const huidigAant = this.aankoopAantallen[goedId] || 0;
@@ -1726,7 +1723,7 @@ class GameState {
     }
 
     getLadingGewicht() {
-        return GOEDEREN.reduce((tot, g) => tot + (this.lading[g.id] || 0) * g.gewicht, 0);
+        return GOEDEREN.reduce((tot, g) => tot + (this.lading[g.id] || 0), 0);
     }
 
     getLadingWaarde() {

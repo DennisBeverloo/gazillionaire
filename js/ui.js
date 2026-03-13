@@ -108,7 +108,6 @@ const UI = {
 
     _getPlaneetServiceTags(planeet) {
         const tags = [];
-        tags.push('💳 Bank');
         if (planeet.id === 'nexoria') tags.push('🌌 Galactische Beurs');
         if (planeet.id === 'techton') tags.push('🛸 Scheepswerf');
         if (planeet.id === 'luxoria') tags.push('🎰 Casino');
@@ -562,16 +561,14 @@ const UI = {
             <th>Verkopen</th>
         </tr></thead><tbody>`;
 
-        const gesorteerdeGoederen = [...GOEDEREN].sort((a, b) =>
-            state.getPrijs(state.locatie, a.id) - state.getPrijs(state.locatie, b.id)
-        );
+        const gesorteerdeGoederen = [...GOEDEREN].sort((a, b) => a.basisPrijs - b.basisPrijs);
 
         gesorteerdeGoederen.forEach(goed => {
             const prijs     = state.getPrijs(state.locatie, goed.id);
             const inLading  = state.lading[goed.id] || 0;
             const vrij      = state.schip.laadruimte - state.getLadingGewicht();
             const planeetVoorraadMax = state.planetVoorraden?.[state.locatie]?.[goed.id] ?? 999;
-            const maxKoop   = Math.min(Math.floor(vrij / goed.gewicht), Math.floor(state.speler.krediet / prijs), planeetVoorraadMax);
+            const maxKoop   = Math.min(vrij, Math.floor(state.speler.krediet / prijs), planeetVoorraadMax);
             const allePrijzen = PLANETEN.map(p => state.getPrijs(p.id, goed.id));
             const minPrijs  = Math.min(...allePrijzen);
             const maxPrijs  = Math.max(...allePrijzen);
@@ -604,9 +601,7 @@ const UI = {
             // Prijs betaald
             let prijsBetaaldTd = '—';
             if (inLading > 0 && aankoopPrijs) {
-                const pl = (prijs - aankoopPrijs) * inLading;
-                const plKlas = pl >= 0 ? 'winst-positief' : 'winst-negatief';
-                prijsBetaaldTd = `<span style="font-family:var(--font-data)">${Math.round(aankoopPrijs)} cr</span><div class="aankoopprijs-info"><span class="${plKlas}">${pl >= 0 ? '+' : ''}${state.formatteerKrediet(pl)}</span></div>`;
+                prijsBetaaldTd = `<span style="font-family:var(--font-data)">${Math.round(aankoopPrijs)} cr</span>`;
             }
 
             // Marktdruk
@@ -665,9 +660,7 @@ const UI = {
         });
         html += '</tr></thead><tbody>';
 
-        const gesorteerdeGoederen = [...GOEDEREN].sort((a, b) =>
-            state.getPrijs(state.locatie, a.id) - state.getPrijs(state.locatie, b.id)
-        );
+        const gesorteerdeGoederen = [...GOEDEREN].sort((a, b) => a.basisPrijs - b.basisPrijs);
 
         gesorteerdeGoederen.forEach(goed => {
             const allePrijzen = PLANETEN.map(p => state.getPrijs(p.id, goed.id));
@@ -793,7 +786,7 @@ const UI = {
                     : 'volgende bestemming';
                 mktHtml = `<div class="kleur-groen" style="font-size:0.88em">✓ Campagne actief voor <strong>${campNaam}</strong> — extra passagiers en resources wachten bij aankomst.</div>`;
             } else {
-                mktHtml = `<div style="font-size:0.85em;margin-bottom:8px">Zorg dat ze weten dat je eraan komt! Een campagne op je bestemming vergroot het aanbod aan passagiers en goederen zodra je landt.</div>
+                mktHtml = `<div style="font-size:0.85em;margin-bottom:8px">Een marketingcampagne verhoogt de beschikbare goederen en passagiers op je volgende bestemming.</div>
                     <button class="knop primair klein" onclick="App.koopMarketing()" ${!kanBetalen ? 'disabled' : ''}>Start campagne (${state.formatteerKrediet(mKosten)})</button>`;
             }
             html += `<div class="haven-blok"><div class="haven-blok-header">📢 Marketing</div><div class="haven-blok-inhoud">${mktHtml}</div></div>`;
