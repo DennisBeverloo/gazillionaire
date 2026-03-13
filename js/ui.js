@@ -618,7 +618,7 @@ const UI = {
                 <td class="handel-col-sec">${voorraadTd}</td>
                 <td style="font-family:var(--font-data)">${aanBoordTd}</td>
                 <td class="${prijsKlas}" style="font-family:var(--font-data)">${state.formatteerKrediet(prijs)}${modHtml}</td>
-                <td class="handel-col-sec kleur-dimmed" style="font-family:var(--font-data);font-size:0.85em">${tipMin}–${tipMax}</td>
+                <td class="handel-col-sec" style="font-family:var(--font-data)">${tipMin}–${tipMax}</td>
                 <td>
                     <div class="actie-rij">
                         <button class="knop primair klein" onclick="App.koopN('${goed.id}', 1, event)" ${maxKoop<=0?'disabled':''}>+1</button>
@@ -650,7 +650,7 @@ const UI = {
         let html = `<div class="haven-blok handel-blok-vol" style="margin-top:16px"><div class="haven-blok-header">🌌 Galactische Markt — Prijsvergelijking</div>`;
         html += '<div class="galact-wrap"><table class="galact-tabel"><thead><tr>';
         html += '<th class="galact-goed-col">Goed</th>';
-        html += '<th class="galact-prijsrange">Bereik</th>';
+        html += '<th class="galact-prijsrange">Prijsrange</th>';
 
         PLANETEN.forEach(p => {
             const isHier = p.id === state.locatie;
@@ -705,9 +705,7 @@ const UI = {
         if (!tooltip) return;
         container.querySelectorAll('.galact-tabel thead th[data-galact-tip]').forEach(th => {
             th.addEventListener('mouseenter', () => {
-                tooltip.innerHTML = `<div class="tt-label">Planeet</div>
-                    <div style="font-size:0.95em">${th.dataset.galactTip}</div>
-                    <div class="kleur-dimmed" style="font-size:0.82em;margin-top:5px">Klik om als bestemming in te stellen</div>`;
+                tooltip.innerHTML = `Kies bestemming`;
                 tooltip.classList.remove('verborgen');
                 this._positioneerTooltip(tooltip, th);
             });

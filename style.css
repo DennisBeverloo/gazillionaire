@@ -1168,11 +1168,11 @@ html, body {
 .galact-cel.galact-bestemming.galact-goedkoop { color: #7fff5a; background: rgba(57,255,20,0.18); }
 .galact-cel.galact-huidig.galact-duur,
 .galact-cel.galact-bestemming.galact-duur     { color: #ff7090; background: rgba(255,56,85,0.18); }
+/* Planeetheaders met tooltip: pointer cursor */
+.galact-tabel th[data-galact-tip] { cursor: pointer; }
 /* Prijsrange kolom in galactische markt */
 .galact-prijsrange {
     text-align: left;
-    color: var(--tekst);
-    font-size: 0.82em;
     padding-right: 14px;
     white-space: nowrap;
 }
