@@ -656,10 +656,9 @@ const UI = {
             const isHier = p.id === state.locatie;
             const isBest = p.id === bestemming;
             const thKlas = isHier ? 'galact-huidig-th' : isBest ? 'galact-bestemming-th' : '';
-            const raket = isBest ? ' 🚀' : '';
             const tipAttr = isHier ? '' : `data-galact-tip="${p.naam}"`;
             const clickAttr = isHier ? '' : `onclick="App.selecteerBestemming('${p.id}')" style="cursor:pointer"`;
-            html += `<th class="${thKlas}" style="color:${p.kleur}" ${tipAttr} ${clickAttr}>${p.naam.replace(' Station','')}${raket}</th>`;
+            html += `<th class="${thKlas}" style="color:${p.kleur}" ${tipAttr} ${clickAttr}>${p.naam.replace(' Station','')}</th>`;
         });
         html += '</tr></thead><tbody>';
 
@@ -687,10 +686,7 @@ const UI = {
                 if (prijs === minPrijs) klasse += ' galact-goedkoop';
                 else if (prijs === maxPrijs) klasse += ' galact-duur';
 
-                const inLading = state.lading[goed.id] || 0;
-                const ladingMark = (isHier && inLading > 0) ? `<sup>${inLading}t</sup>` : '';
-
-                html += `<td class="${klasse}">${prijs}${ladingMark}</td>`;
+                html += `<td class="${klasse}">${prijs}</td>`;
             });
 
             html += '</tr>';

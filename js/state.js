@@ -74,8 +74,9 @@ class GameState {
         // Marketing
         this.marketingActief = null;        // { planeet: planeetId, kosten } of null
 
-        // Marktmodifiers (koop/verkoop impact)
+        // Marktmodifiers (koop/verkoop impact) — pas toegepast bij vertrek
         this.marktModifiers = {};           // { planeetId: { goedId: multiplier } }
+        this._visitMarktSaldo = {};         // { goedId: delta } — wordt geflusht bij reisNaar()
 
         this.planetVoorraden = {}; // { planeetId: { goedId: aantal } }
 
@@ -436,6 +437,11 @@ class GameState {
             return { succes: false, reden: `Onvoldoende brandstof! Nodig: ${verbruik}, Aanwezig: ${this.brandstof}` };
         }
         this.brandstof -= verbruik;
+        // Flush marktimpact van deze planeet bij vertrek
+        for (const [goedId, delta] of Object.entries(this._visitMarktSaldo)) {
+            if (Math.abs(delta) > 0.001) this._pasMarktAan(this.locatie, goedId, delta);
+        }
+        this._visitMarktSaldo = {};
         const eventId = this.genereerReisEvents(planeetId);
         this.reisData = {
             van: this.locatie,
@@ -559,6 +565,7 @@ class GameState {
     }
 
     aankomst() {
+        this._visitMarktSaldo = {};
         this.locatie = this.reisData.naar;
         const planeet = PLANETEN.find(p => p.id === this.locatie);
         this.fase = 'spel';
@@ -1392,8 +1399,8 @@ class GameState {
             this.ladingVerdacht[goedId] = (this.ladingVerdacht[goedId] || 0) + aantal;
         }
 
-        // Marktimpact: vraag drijft prijs op
-        this._pasMarktAan(this.locatie, goedId, aantal * 0.004);
+        // Marktimpact: wordt pas bij vertrek geflusht (voorkomt direct terugverkopen met winst)
+        this._visitMarktSaldo[goedId] = (this._visitMarktSaldo[goedId] ?? 0) + aantal * 0.004;
 
         this.voegBerichtToe(`Gekocht: ${aantal}× ${goed.naam} voor ${this.formatteerKrediet(totaal)}${this.schip?.spearheadBonus ? ' (−8% Spearhead)' : ''}.`, 'info');
         this.controleerAchievements();
@@ -1427,8 +1434,8 @@ class GameState {
         this.statistieken.handelstransacties++;
         this.statistieken.verkopen = (this.statistieken.verkopen ?? 0) + 1;
 
-        // Marktimpact: aanbod drijft prijs omlaag
-        this._pasMarktAan(this.locatie, goedId, -aantal * 0.005);
+        // Marktimpact: wordt pas bij vertrek geflusht
+        this._visitMarktSaldo[goedId] = (this._visitMarktSaldo[goedId] ?? 0) - aantal * 0.005;
 
         // Verhoog planeetvoorraad bij verkoop
         if (this.planetVoorraden?.[this.locatie]) {

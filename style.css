@@ -302,6 +302,7 @@ html, body {
 #beurt-display { color: var(--tekst-dim); }
 
 /* Top balk tooltips */
+.top-tooltip { text-align: center; }
 .top-tooltip {
     position: fixed;
     z-index: 500;
@@ -1173,7 +1174,8 @@ html, body {
 /* Prijsrange kolom in galactische markt */
 .galact-prijsrange {
     text-align: left;
-    padding-right: 14px;
+    padding-left: 5px;
+    padding-right: 5px;
     white-space: nowrap;
 }
 
