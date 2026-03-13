@@ -538,11 +538,8 @@ class GameState {
                 bonusPrijs = 50;
                 this.voegBerichtToe(`📢 Reclamecampagne actief! Meer passagiers en hogere ticketprijs.`, 'info');
                 this.marketingActief = null;
-            } else {
-                // Verkeerde bestemming (bijv. door event-omleiding) — campagne vervalt
-                this.marketingActief = null;
-                this.voegBerichtToe(`📢 Reclamecampagne verlopen — niet aangekomen op bestemmingsplaneet.`, 'waarschuwing');
             }
+            // Verkeerde planeet: campagne blijft actief, geen bonus
         }
         this.genereerPassagiersVoorPlaneet(this.locatie, bonusAantal, bonusPrijs);
 

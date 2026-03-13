@@ -754,8 +754,7 @@ const UI = {
             let mktHtml = '';
             if (state.marketingActief) {
                 const campNaam = PLANETEN.find(p => p.id === state.marketingActief.planeet)?.naam ?? state.marketingActief.planeet;
-                mktHtml = `<div class="kleur-groen" style="font-size:0.88em">✓ Campagne actief voor <strong>${campNaam}</strong> — extra passagiers wachten bij aankomst.</div>
-                    <div class="kleur-dimmed" style="font-size:0.8em;margin-top:4px">Vervalt als je niet op ${campNaam} aankomt.</div>`;
+                mktHtml = `<div class="kleur-groen" style="font-size:0.88em">✓ Campagne actief voor <strong>${campNaam}</strong> — extra passagiers wachten bij aankomst.</div>`;
             } else if (selP && selP !== state.locatie) {
                 const mKosten = state.berekenMarketingKosten(selP);
                 const selPNaam = PLANETEN.find(p => p.id === selP)?.naam ?? selP;
