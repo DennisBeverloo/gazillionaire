@@ -296,12 +296,17 @@ const UI = {
                     <div class="tt-rij"><span>Wachtend hier</span><span class="tt-prijs">${wachtend}</span></div>`;
             }
             case 'brandstof-display': {
-                const prijs = state.brandstofPrijzen?.[state.locatie] ?? '?';
+                const prijsBasis = state.brandstofPrijzen?.[state.locatie] ?? '?';
+                const prijsEff = state._effectieveBrandstofPrijs?.() ?? prijsBasis;
+                const isKorting = state.locatie === 'pyroflux';
                 const pct = Math.round(state.brandstof / state.schip.brandstofTank * 100);
                 const kleur = state.brandstof < 20 ? 'var(--rood)' : state.brandstof < 40 ? 'var(--oranje)' : 'var(--groen)';
+                const prijsTekst = isKorting
+                    ? `<s>${prijsBasis} cr/l</s> <span style="color:var(--goud)">${prijsEff} cr/l</span>`
+                    : `${prijsEff} cr/l`;
                 return `<div class="tt-label">Brandstof</div>
                     <div class="tt-rij"><span>Niveau</span><span style="color:${kleur}">${state.brandstof}/${state.schip.brandstofTank} l (${pct}%)</span></div>
-                    <div class="tt-rij"><span>Prijs hier</span><span class="tt-prijs">${prijs} cr/l</span></div>`;
+                    <div class="tt-rij"><span>Prijs hier</span><span class="tt-prijs">${prijsTekst}</span></div>`;
             }
             case 'krediet-display': {
                 const schuld = state.speler?.schuld ?? 0;
@@ -747,36 +752,29 @@ const UI = {
         if (maxPax === 0) {
             paxHtml = `<div class="kleur-dimmed" style="font-size:0.85em">Je huidige schip heeft geen passagiersruimte.</div>`;
         } else {
-            const niveau = state.ticketNiveau || 'midden';
-            const niveauLabels = {
-                laag:   { label: 'Laag',   klasse: 'knop-niveau-laag',   hint: '×0.65 prijs · +60% vraag' },
-                midden: { label: 'Midden', klasse: 'knop-niveau-midden', hint: 'standaard' },
-                hoog:   { label: 'Hoog',   klasse: 'knop-niveau-hoog',   hint: '×1.5 prijs · −40% vraag' },
-            };
             const verwacht = aanBoord > 0 ? aanBoord * (state.passagiersTicketprijs || 0) : null;
             const kanInstappen = wachtendObj.aantal > 0 && aanBoord < maxPax;
             const instappers = Math.min(wachtendObj.aantal, maxPax - aanBoord);
             const isPaxSchip = state.schip?.type === 'pax';
 
-            paxHtml = `<div style="margin-bottom:10px">
-                <div class="kleur-dimmed" style="font-size:0.82em;margin-bottom:6px">Ticketprijsniveau:</div>
-                <div class="ticket-niveau-knoppen">
-                    ${['laag','midden','hoog'].map(n => {
-                        const actief = niveau === n;
-                        return `<button class="knop klein ticket-niveau-knop ${actief ? niveauLabels[n].klasse : ''}" onclick="App.setTicketNiveau('${n}')">
-                            ${niveauLabels[n].label}<br><span class="ticket-niveau-hint">${niveauLabels[n].hint}</span>
-                        </button>`;
-                    }).join('')}
-                </div>
-                ${isPaxSchip ? `<div class="kleur-accent" style="font-size:0.78em;margin-top:6px">🛳️ Passagiersschip — trekt van nature meer reizigers</div>` : ''}
-            </div>
-            <div class="pax-info-raster">
-                <div class="pax-info-rij"><span class="kleur-dimmed">Aan boord</span><strong>${aanBoord}/${maxPax}</strong></div>
+            paxHtml = `
+            <div class="pax-sectie-label">Passagiers</div>
+            <div class="pax-info-raster" style="margin-bottom:10px">
                 <div class="pax-info-rij"><span class="kleur-dimmed">Wachtend</span><strong>${wachtendObj.aantal}</strong></div>
-                <div class="pax-info-rij"><span class="kleur-dimmed">Ticketprijs</span><strong class="kleur-groen">${state.formatteerKrediet(wachtendObj.prijs)}/pp</strong></div>
+                <div class="pax-info-rij"><span class="kleur-dimmed">Aan boord</span><strong>${aanBoord} / ${maxPax}</strong></div>
                 ${verwacht !== null ? `<div class="pax-info-rij"><span class="kleur-dimmed">Bij aankomst</span><strong class="kleur-goud">+${state.formatteerKrediet(verwacht)}</strong></div>` : ''}
+                ${isPaxSchip ? `<div class="pax-info-rij" style="grid-column:1/-1"><span class="kleur-accent" style="font-size:0.78em">🛳️ Passagiersschip — trekt van nature meer reizigers</span></div>` : ''}
             </div>
-            ${kanInstappen ? `<button class="knop succes klein" style="margin-top:10px" onclick="App.boardPassagiers()">Neem ${instappers} passagier${instappers > 1 ? 's' : ''} aan boord</button>` : ''}`;
+            ${kanInstappen ? `<button class="knop succes klein" style="margin-bottom:12px" onclick="App.boardPassagiers()">Neem ${instappers} passagier${instappers > 1 ? 's' : ''} aan boord</button>` : ''}
+            <div class="pax-sectie-label">Ticketprijs</div>
+            <div class="pax-info-raster" style="margin-bottom:8px">
+                <div class="pax-info-rij"><span class="kleur-dimmed">Huidige prijs</span><strong class="kleur-groen">${state.formatteerKrediet(wachtendObj.prijs)}/pp</strong></div>
+            </div>
+            <div class="kleur-dimmed" style="font-size:0.78em;margin-bottom:6px">Wijzigen <span style="opacity:0.6">(geldt direct)</span></div>
+            <div style="display:flex;gap:6px;align-items:center">
+                <input type="number" id="ticket-prijs-invoer" class="aantal-invoer" min="50" max="2000" value="${wachtendObj.prijs}" style="width:80px">
+                <button class="knop primair klein" onclick="App.setTicketPrijs()">Stel in</button>
+            </div>`;
         }
         html += `<div class="haven-blok haven-blok-passagiers"><div class="haven-blok-header">🧳 Passagiers</div><div class="haven-blok-inhoud">${paxHtml}</div></div>`;
 
@@ -791,7 +789,7 @@ const UI = {
                     : 'volgende bestemming';
                 mktHtml = `<div class="kleur-groen" style="font-size:0.88em">✓ Campagne actief voor <strong>${campNaam}</strong> — extra passagiers en resources wachten bij aankomst.</div>`;
             } else {
-                mktHtml = `<div style="font-size:0.85em;margin-bottom:8px">Start een reclamecampagne. Bij aankomst wachten meer passagiers en resources op je.</div>
+                mktHtml = `<div style="font-size:0.85em;margin-bottom:8px">Zorg dat ze weten dat je eraan komt! Een campagne op je bestemming vergroot het aanbod aan passagiers en goederen zodra je landt.</div>
                     <button class="knop primair klein" onclick="App.koopMarketing()" ${!kanBetalen ? 'disabled' : ''}>Start campagne (${state.formatteerKrediet(mKosten)})</button>`;
             }
             html += `<div class="haven-blok"><div class="haven-blok-header">📢 Marketing</div><div class="haven-blok-inhoud">${mktHtml}</div></div>`;
@@ -811,8 +809,9 @@ const UI = {
             ? `<s>${bPrijsBasis} cr/l</s> <strong class="kleur-goud">${bPrijs} cr/l</strong> <span class="markt-label label-specialiteit">−40% Energiedepot</span>`
             : `<strong class="kleur-goud">${bPrijs} cr/l</strong>`;
         html += `<div class="haven-blok haven-blok-brandstof"><div class="haven-blok-header">${FUEL_IMG} Brandstof</div><div class="haven-blok-inhoud">
-            <div class="brandstof-info-rij"><span>Voorraad: <strong class="${bTekstKlasse}">${state.brandstof}/${tank} l</strong></span><span>Prijs: ${prijsHtml}</span></div>
-            <div class="lading-balk-container" style="margin:6px 0"><div id="brandstof-balk" class="lading-balk${this._animeerBrandstof ? ' animeer' : ''}" style="width:${this._animeerBrandstof ? (this._brandstofPctVoor ?? 0) : brandstofPct}%;background:${bKleur}" data-target="${brandstofPct}"></div></div>
+            <div style="margin-bottom:4px"><strong class="${bTekstKlasse}">${state.brandstof} / ${tank} liter</strong></div>
+            <div class="lading-balk-container" style="margin:0 0 8px"><div id="brandstof-balk" class="lading-balk${this._animeerBrandstof ? ' animeer' : ''}" style="width:${this._animeerBrandstof ? (this._brandstofPctVoor ?? 0) : brandstofPct}%;background:${bKleur}" data-target="${brandstofPct}"></div></div>
+            <div style="font-size:0.87em;margin-bottom:8px">Brandstofprijs: ${prijsHtml}</div>
             <div class="brandstof-acties">
                 <input type="number" id="brandstof-aantal" class="aantal-invoer" min="1" max="${vrij}" value="${Math.min(10, vrij)}" ${vrij <= 0 ? 'disabled' : ''}>
                 <button class="knop primair klein" onclick="App.koopBrandstof()" ${vrij <= 0 ? 'disabled' : ''}>Koop</button>
@@ -1968,7 +1967,7 @@ const UI = {
         document.getElementById('event-gevolg').textContent = '';
     },
 
-    toonAankomstPopup(event) {
+    toonAankomstPopup(event, callback) {
         if (event.type === 'gevaar') Audio.negatief(); else Audio.eventPositief();
         const popup = document.getElementById('aankomst-popup');
         if (!popup) return;
@@ -1986,9 +1985,22 @@ const UI = {
 
         // Zorg dat de knop de standaard sluitactie heeft
         const btn = popup.querySelector('.knop.primair');
-        if (btn) btn.onclick = () => UI.verbergAankomstPopup();
+        if (btn) btn.onclick = () => { UI.verbergAankomstPopup(); callback?.(); };
 
         popup.classList.remove('verborgen');
+    },
+
+    toonMarketingSummary(summary) {
+        Audio.eventPositief();
+        const popup = document.getElementById('marketing-summary-popup');
+        if (!popup) return;
+        document.getElementById('marketing-summary-passagiers').textContent = summary.extraPassagiers;
+        document.getElementById('marketing-summary-resources').textContent = summary.extraResources;
+        popup.classList.remove('verborgen');
+    },
+
+    verbergMarketingSummary() {
+        document.getElementById('marketing-summary-popup')?.classList.add('verborgen');
     },
 
     toonConcurrentAankomstPopup(evt, callback) {

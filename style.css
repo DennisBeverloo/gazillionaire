@@ -747,7 +747,7 @@ html, body {
 /* ===== HAVEN TAB ===== */
 .haven-raster {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 10px;
     padding: 10px;
     align-content: start;
@@ -1299,7 +1299,7 @@ html, body {
     .handel-col-sec { display: none; }
 
     /* Haven grid: 1 of 2 kolommen */
-    .haven-raster { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+    .haven-raster { grid-template-columns: repeat(2, 1fr); }
     .planeet-raster { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
 }
 
@@ -1750,6 +1750,7 @@ body[data-planeet="mortex"]  { --planet-accent: #8b0000; }
 }
 
 /* ===== PASSAGIERS ===== */
+.pax-sectie-label { font-family: var(--font-titel); font-size: 0.65em; letter-spacing: 0.12em; text-transform: uppercase; color: var(--tekst-dim); margin-bottom: 6px; margin-top: 4px; }
 .pax-info-raster { display: flex; flex-direction: column; gap: 6px; font-family: var(--font-data); font-size: 0.88em; }
 .pax-info-rij { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 

@@ -289,8 +289,19 @@ const App = {
             const evt = state.aankomstConcurrentEvents.shift();
             UI.toonConcurrentAankomstPopup(evt, () => this._toonAankomstEventQueue());
         } else if (state.huidigAankomstEvent) {
-            UI.toonAankomstPopup(state.huidigAankomstEvent);
+            const ev = state.huidigAankomstEvent;
             state.huidigAankomstEvent = null;
+            UI.toonAankomstPopup(ev, () => this._toonNaAankomstEvents());
+        } else {
+            this._toonNaAankomstEvents();
+        }
+    },
+
+    _toonNaAankomstEvents() {
+        if (state._pendingMarketingSummary) {
+            const s = state._pendingMarketingSummary;
+            state._pendingMarketingSummary = null;
+            UI.toonMarketingSummary(s);
         }
     },
 
@@ -490,6 +501,13 @@ const App = {
 
     setTicketNiveau(niveau) {
         state.setTicketNiveau(niveau);
+        UI.renderSpel();
+    },
+
+    setTicketPrijs() {
+        const prijs = parseInt(document.getElementById('ticket-prijs-invoer')?.value) || 0;
+        if (prijs <= 0) return;
+        state.setTicketPrijs(prijs);
         UI.renderSpel();
     },
 

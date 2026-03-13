@@ -744,18 +744,23 @@ class GameState {
 
         // Controleer marketingcampagne — vervalt altijd bij aankomst; bonus alleen op juiste planeet
         let bonusAantal = 0, bonusPrijs = 0;
+        this._pendingMarketingSummary = null;
         if (this.marketingActief) {
             if (this.marketingActief.planeet === this.locatie) {
-                bonusAantal = this.schip?.passagiersCapaciteit || 15;
+                bonusAantal = Math.floor(Math.random() * 8) + 8; // 8–15 extra passagiers
                 bonusPrijs = 50;
-                this.voegBerichtToe(`📢 Reclamecampagne actief! Meer passagiers en hogere ticketprijs.`, 'info');
-                // Marketing boost: verhoog voorraad van alle goederen op deze planeet
+                // Marketing boost: verhoog voorraad van alle goederen op deze planeet (random per goed)
+                let totalResourceBonus = 0;
                 if (this.planetVoorraden?.[this.locatie]) {
                     GOEDEREN.forEach(g => {
+                        const bonus = Math.floor(Math.random() * 12) + 8; // 8–19 ton per goed
+                        totalResourceBonus += bonus;
                         this.planetVoorraden[this.locatie][g.id] =
-                            Math.min(200, (this.planetVoorraden[this.locatie][g.id] ?? 0) + 15);
+                            Math.min(200, (this.planetVoorraden[this.locatie][g.id] ?? 0) + bonus);
                     });
                 }
+                this._pendingMarketingSummary = { extraPassagiers: bonusAantal, extraResources: totalResourceBonus };
+                this.voegBerichtToe(`📢 Reclamecampagne actief! Meer passagiers en hogere ticketprijs.`, 'info');
             } else {
                 this.voegBerichtToe(`📢 Reclamecampagne verlopen — niet aangekomen op bestemmingsplaneet, geen bonus.`, 'waarschuwing');
             }
@@ -890,6 +895,13 @@ class GameState {
         if (!['laag', 'midden', 'hoog'].includes(niveau)) return;
         this.ticketNiveau = niveau;
         if (this.locatie) this.genereerPassagiersVoorPlaneet(this.locatie);
+    }
+
+    setTicketPrijs(prijs) {
+        prijs = Math.max(50, Math.min(2000, Math.round(prijs)));
+        if (this.locatie && this.wachtendePassagiers[this.locatie]) {
+            this.wachtendePassagiers[this.locatie].prijs = prijs;
+        }
     }
 
     initPassagiers() {
