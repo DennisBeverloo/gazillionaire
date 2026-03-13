@@ -753,10 +753,30 @@ const UI = {
         if (maxPax === 0) {
             paxHtml = `<div class="kleur-dimmed" style="font-size:0.85em">Je huidige schip heeft geen passagiersruimte.</div>`;
         } else {
+            const niveau = state.ticketNiveau || 'midden';
+            const niveauLabels = {
+                laag:   { label: 'Laag',   klasse: 'knop-niveau-laag',   hint: '×0.65 prijs · +60% vraag' },
+                midden: { label: 'Midden', klasse: 'knop-niveau-midden', hint: 'standaard' },
+                hoog:   { label: 'Hoog',   klasse: 'knop-niveau-hoog',   hint: '×1.5 prijs · −40% vraag' },
+            };
             const verwacht = aanBoord > 0 ? aanBoord * (state.passagiersTicketprijs || 0) : null;
             const kanInstappen = wachtendObj.aantal > 0 && aanBoord < maxPax;
             const instappers = Math.min(wachtendObj.aantal, maxPax - aanBoord);
-            paxHtml = `<div class="pax-info-raster">
+            const isPaxSchip = state.schip?.type === 'pax';
+
+            paxHtml = `<div style="margin-bottom:10px">
+                <div class="kleur-dimmed" style="font-size:0.82em;margin-bottom:6px">Ticketprijsniveau:</div>
+                <div class="ticket-niveau-knoppen">
+                    ${['laag','midden','hoog'].map(n => {
+                        const actief = niveau === n;
+                        return `<button class="knop klein ticket-niveau-knop ${actief ? niveauLabels[n].klasse : ''}" onclick="App.setTicketNiveau('${n}')">
+                            ${niveauLabels[n].label}<br><span class="ticket-niveau-hint">${niveauLabels[n].hint}</span>
+                        </button>`;
+                    }).join('')}
+                </div>
+                ${isPaxSchip ? `<div class="kleur-accent" style="font-size:0.78em;margin-top:6px">🛳️ Passagiersschip — trekt van nature meer reizigers</div>` : ''}
+            </div>
+            <div class="pax-info-raster">
                 <div class="pax-info-rij"><span class="kleur-dimmed">Aan boord</span><strong>${aanBoord}/${maxPax}</strong></div>
                 <div class="pax-info-rij"><span class="kleur-dimmed">Wachtend</span><strong>${wachtendObj.aantal}</strong></div>
                 <div class="pax-info-rij"><span class="kleur-dimmed">Ticketprijs</span><strong class="kleur-groen">${state.formatteerKrediet(wachtendObj.prijs)}/pp</strong></div>

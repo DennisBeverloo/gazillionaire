@@ -1707,6 +1707,14 @@ body[data-planeet="mortex"]  { --planet-accent: #8b0000; }
 .pax-info-raster { display: flex; flex-direction: column; gap: 6px; font-family: var(--font-data); font-size: 0.88em; }
 .pax-info-rij { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 
+.ticket-niveau-knoppen { display: flex; gap: 6px; }
+.ticket-niveau-knop { flex: 1; padding: 6px 8px; line-height: 1.4; font-size: 0.8em; border-color: var(--rand); color: var(--tekst-dim); background: transparent; }
+.ticket-niveau-hint { font-size: 0.82em; color: var(--tekst-dim); display: block; }
+.knop-niveau-laag  { border-color: var(--groen)  !important; color: var(--groen)  !important; background: rgba(57,255,20,0.08)  !important; }
+.knop-niveau-midden{ border-color: var(--accent) !important; color: var(--accent) !important; background: rgba(0,212,255,0.08)  !important; }
+.knop-niveau-hoog  { border-color: var(--oranje) !important; color: var(--oranje) !important; background: rgba(255,140,66,0.08) !important; }
+.knop-niveau-laag .ticket-niveau-hint, .knop-niveau-midden .ticket-niveau-hint, .knop-niveau-hoog .ticket-niveau-hint { color: inherit; opacity: 0.75; }
+
 /* ===== VERKOOP PREVIEW in handelstabel ===== */
 .verkoop-preview {
     font-family: var(--font-data);

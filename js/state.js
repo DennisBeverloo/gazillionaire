@@ -108,6 +108,7 @@ class GameState {
         this.passagiers = 0;               // aantal aan boord (int)
         this.passagiersTicketprijs = 0;    // prijs per passagier voor huidige rit
         this.wachtendePassagiers = {};     // {planeetId: { aantal: int, prijs: int }}
+        this.ticketNiveau = 'midden';      // 'laag' | 'midden' | 'hoog'
 
         // Brandstof
         this.brandstof = 0;                 // huidige brandstof
@@ -592,7 +593,7 @@ class GameState {
         let bonusAantal = 0, bonusPrijs = 0;
         if (this.marketingActief) {
             if (this.marketingActief.planeet === this.locatie) {
-                bonusAantal = 8;
+                bonusAantal = this.schip?.passagiersCapaciteit || 15;
                 bonusPrijs = 50;
                 this.voegBerichtToe(`📢 Reclamecampagne actief! Meer passagiers en hogere ticketprijs.`, 'info');
                 // Marketing boost: verhoog voorraad van alle goederen op deze planeet
@@ -709,9 +710,28 @@ class GameState {
     }
 
     genereerPassagiersVoorPlaneet(planeetId, bonusAantal = 0, bonusPrijs = 0) {
-        const aantal = Math.floor(Math.random() * 6) + 3 + bonusAantal;  // 3-8 wachtend
-        const prijs  = Math.round(150 + Math.random() * 100 + bonusPrijs);
+        const niveauCfg = {
+            laag:   { aantalMult: 1.6, prijsMult: 0.65 },
+            midden: { aantalMult: 1.0, prijsMult: 1.0  },
+            hoog:   { aantalMult: 0.6, prijsMult: 1.5  },
+        };
+        const { aantalMult, prijsMult } = niveauCfg[this.ticketNiveau || 'midden'];
+
+        // Passagiersschepen trekken van nature meer reizigers aan
+        const cap = this.schip?.passagiersCapaciteit || 0;
+        const paxBonus = this.schip?.type === 'pax' ? Math.round(cap * 0.6) : 0;
+
+        const basisAantal = Math.floor(Math.random() * 6) + 3;  // 3–8
+        const aantal = Math.round(basisAantal * aantalMult) + paxBonus + bonusAantal;
+        const basisPrijs = Math.round(150 + Math.random() * 100);
+        const prijs = Math.round((basisPrijs + bonusPrijs) * prijsMult);
         this.wachtendePassagiers[planeetId] = { aantal, prijs };
+    }
+
+    setTicketNiveau(niveau) {
+        if (!['laag', 'midden', 'hoog'].includes(niveau)) return;
+        this.ticketNiveau = niveau;
+        if (this.locatie) this.genereerPassagiersVoorPlaneet(this.locatie);
     }
 
     initPassagiers() {
@@ -1851,6 +1871,7 @@ class GameState {
                 passagiers: this.passagiers,
                 passagiersTicketprijs: this.passagiersTicketprijs,
                 wachtendePassagiers: this.wachtendePassagiers,
+                ticketNiveau: this.ticketNiveau || 'midden',
                 brandstof: this.brandstof,
                 brandstofPrijzen: this.brandstofPrijzen,
                 eindeReden: this.eindeReden || null,
@@ -1884,6 +1905,7 @@ class GameState {
             if (Array.isArray(this.passagiers)) this.passagiers = this.passagiers.length;
             if (!this.passagiersTicketprijs) this.passagiersTicketprijs = 0;
             if (!this.wachtendePassagiers) { this.wachtendePassagiers = {}; this.initPassagiers(); }
+            if (!this.ticketNiveau) this.ticketNiveau = 'midden';
             // Migratie: old saves had schipBeschadigd boolean, new system uses schipHP
             delete this.schipBeschadigd;
             if (!this.schipHP || this.schipHP === 0) this.schipHP = this.schip?.maxHP ?? 40;

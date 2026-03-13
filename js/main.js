@@ -482,6 +482,11 @@ const App = {
         if (!res.succes) this._fout(res.reden); else UI.renderSpel();
     },
 
+    setTicketNiveau(niveau) {
+        state.setTicketNiveau(niveau);
+        UI.renderSpel();
+    },
+
     // =========================================================================
     // AANDELEN
     // =========================================================================
