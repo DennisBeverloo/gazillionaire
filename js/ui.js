@@ -91,9 +91,26 @@ const UI = {
             tab.classList.toggle('actief', tab.dataset.tab === state.activeTab);
         });
 
-        // "Ga naar planeet" knop actief markeren
+        // "Ga naar planeet" knop: planeet-specifiek label + verbergen op planeten zonder speciale functie
         const planeetGaKnop = document.getElementById('planeet-ga-naar-knop');
-        if (planeetGaKnop) planeetGaKnop.classList.toggle('actief', state.activeTab === 'planeet');
+        if (planeetGaKnop) {
+            const planeetLabels = {
+                nexoria: '🌌 Galactische Beurs',
+                techton: '🛸 Geavanceerde Scheepswerf',
+                luxoria: '🎰 Casino Stellaris',
+                agria:   '🔨 Oogstveiling',
+                mortex:  '💀 Zwarte Markt',
+                ferrum:  '⛏ Ertsverwerkingsfaciliteit',
+            };
+            const planeetLabel = planeetLabels[state.locatie];
+            if (planeetLabel) {
+                planeetGaKnop.textContent = planeetLabel;
+                planeetGaKnop.style.display = '';
+            } else {
+                planeetGaKnop.style.display = 'none';
+            }
+            planeetGaKnop.classList.toggle('actief', state.activeTab === 'planeet');
+        }
 
         // Handel-tab label: Zwarte Markt op Mortex
         const handelTabKnop = document.querySelector('.tab[data-tab="handel"]');
@@ -216,6 +233,8 @@ const UI = {
         const kredietEl = el('krediet-display');
         kredietEl.textContent = `💰 ${state.formatteerKrediet(state.speler.krediet)}`;
         kredietEl.classList.toggle('krediet-negatief', state.speler.krediet < 0);
+        kredietEl.style.cursor = 'pointer';
+        kredietEl.onclick = () => App.switchTab('financien');
 
         const rest = MAX_BEURTEN - state.beurt;
         const beurtEl = el('beurt-display');
@@ -978,7 +997,7 @@ const UI = {
 
     _renderAgria() {
         const veiling = state.agriaVeiling;
-        let html = `<div class="planeet-dienst-blok planeet-blok-vol-breed">
+        let html = `<div class="planeet-dienst-blok">
             <div class="sectie-header">🔨 Agria Oogstveiling</div>`;
 
         if (!veiling) {
@@ -1358,7 +1377,7 @@ const UI = {
                 <div class="stat-rij"><span class="stat-naam">Saldo</span><span class="stat-waarde kleur-goud">${state.formatteerKrediet(bankSaldo)}</span></div>
                 <div class="stat-rij"><span class="stat-naam">Rente</span><span class="stat-waarde" style="color:${renteKleur}">${bankRente}% per beurt</span></div>
                 <div style="display:flex;gap:6px;align-items:center;margin:8px 0 4px">
-                    <input class="aantal-invoer" type="number" min="1" max="${Math.max(1, Math.max(maxStorten, bankSaldo))}" step="100" value="${Math.min(1000, Math.max(maxStorten, bankSaldo))}" id="bank-bedrag" style="width:80px">
+                    <input class="aantal-invoer" type="number" min="1" max="${Math.max(1, Math.max(maxStorten, bankSaldo))}" step="100" value="${Math.max(1, Math.floor(state.speler.krediet / 2))}" id="bank-bedrag" style="width:80px">
                     <button class="knop succes klein" onclick="App.stortenOpBank()" ${bankBevroren > 0 || maxStorten <= 0 ? 'disabled' : ''}>Storten</button>
                     <button class="knop primair klein" onclick="App.opnemenVanBank()" ${bankBevroren > 0 || bankSaldo <= 0 ? 'disabled' : ''}>Opnemen</button>
                 </div>

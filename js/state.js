@@ -1089,11 +1089,9 @@ class GameState {
         const goedId = Math.random() < 0.5 ? 'nebulakorrels' : 'aquapure';
         const goed   = GOEDEREN.find(g => g.id === goedId);
 
-        // Hoeveelheid in eenheden; kies opties die ~15-35 ton geven
-        const unitOpties = goedId === 'nebulakorrels'
-            ? [8, 10, 12, 14, 16]   // × 2 ton = 16/20/24/28/32 ton
-            : [5, 7, 9, 11];         // × 3 ton = 15/21/27/33 ton
-        const hoeveelheid = unitOpties[Math.floor(Math.random() * unitOpties.length)];
+        // Hoeveelheid rond de vrachtcapaciteit van de speler (60-110%)
+        const laadruimte = this.schip?.laadruimte ?? 50;
+        const hoeveelheid = Math.max(10, Math.round(laadruimte * (0.6 + Math.random() * 0.5)));
 
         const marktprijs   = this.getPrijs('agria', goedId);
         const minimumprijs = Math.round(marktprijs * hoeveelheid * 0.65);
