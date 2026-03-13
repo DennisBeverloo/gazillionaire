@@ -149,6 +149,7 @@ const App = {
         state.geselecteerdePlaneet = planeetId;
         UI.renderBestemmingPaneel();
         UI.renderKaart();
+        if (state.activeTab === 'handel') UI.renderHandelTab();
     },
 
     selecteerBestemming(planeetId) {
@@ -353,7 +354,8 @@ const App = {
         const goed = GOEDEREN.find(g => g.id === goedId);
         const prijs = state.getPrijs(state.locatie, goedId);
         const vrij = state.schip.laadruimte - state.getLadingGewicht();
-        const maxN = Math.min(Math.floor(vrij / goed.gewicht), Math.floor(state.speler.krediet / prijs));
+        const planeetVoorraad = state.planetVoorraden?.[state.locatie]?.[goedId] ?? 999;
+        const maxN = Math.min(Math.floor(vrij / goed.gewicht), Math.floor(state.speler.krediet / prijs), planeetVoorraad);
         const aantal = (n === 'max') ? maxN : Math.min(n, maxN);
         if (aantal <= 0) return;
         const res = state.koopGoed(goedId, aantal);

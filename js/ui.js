@@ -555,6 +555,7 @@ const UI = {
             <th>Goed</th>
             <th class="handel-col-sec">Voorraad</th>
             <th>Aan boord</th>
+            <th class="handel-col-sec">Prijs betaald</th>
             <th>Marktprijs</th>
             <th class="handel-col-sec">Prijsrange</th>
             <th>Kopen</th>
@@ -597,13 +598,15 @@ const UI = {
             const verdacht = state.ladingVerdacht?.[goed.id] || 0;
             let aanBoordTd = '—';
             if (inLading > 0) {
-                aanBoordTd = `<strong>${inLading}</strong>`;
+                aanBoordTd = `<strong>${inLading} ton</strong>`;
                 if (verdacht > 0) aanBoordTd += ` <span class="verdacht-icoon" title="${verdacht} ton verdachte lading">⚠️</span>`;
-                if (aankoopPrijs) {
-                    const pl = (prijs - aankoopPrijs) * inLading;
-                    const plKlas = pl >= 0 ? 'winst-positief' : 'winst-negatief';
-                    aanBoordTd += `<div class="aankoopprijs-info">${aankoopPrijs} cr &nbsp;<span class="${plKlas}">${pl >= 0 ? '+' : ''}${state.formatteerKrediet(pl)}</span></div>`;
-                }
+            }
+            // Prijs betaald
+            let prijsBetaaldTd = '—';
+            if (inLading > 0 && aankoopPrijs) {
+                const pl = (prijs - aankoopPrijs) * inLading;
+                const plKlas = pl >= 0 ? 'winst-positief' : 'winst-negatief';
+                prijsBetaaldTd = `<span style="font-family:var(--font-data)">${Math.round(aankoopPrijs)} cr</span><div class="aankoopprijs-info"><span class="${plKlas}">${pl >= 0 ? '+' : ''}${state.formatteerKrediet(pl)}</span></div>`;
             }
 
             // Marktdruk
@@ -616,6 +619,7 @@ const UI = {
                 <td><span class="goed-icoon">${goed.icoon}</span><span class="goed-tip-wrap">${goed.naam}${marktLabelHtml}${tipHtml}</span></td>
                 <td class="handel-col-sec">${voorraadTd}</td>
                 <td style="font-family:var(--font-data)">${aanBoordTd}</td>
+                <td class="handel-col-sec" style="font-family:var(--font-data)">${prijsBetaaldTd}</td>
                 <td class="${prijsKlas}" style="font-family:var(--font-data)">${state.formatteerKrediet(prijs)}${modHtml}</td>
                 <td class="handel-col-sec" style="font-family:var(--font-data)">${tipMin}–${tipMax}</td>
                 <td>

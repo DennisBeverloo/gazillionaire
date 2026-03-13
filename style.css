@@ -1026,6 +1026,16 @@ html, body {
     backdrop-filter: blur(4px);
 }
 #aankomst-popup.verborgen { display: none; }
+#marketing-summary-popup {
+    position: fixed; inset: 0;
+    z-index: 101;
+    background: rgba(0,0,0,0.70);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+}
+#marketing-summary-popup.verborgen { display: none; }
 .aankomst-popup-inhoud { border-color: var(--goud); box-shadow: 0 0 60px rgba(0,0,0,0.6), 0 0 24px rgba(255,215,0,0.1); }
 .popup-inhoud {
     background: var(--bg-paneel);
