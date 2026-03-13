@@ -151,7 +151,7 @@ class GameState {
                     Math.floor(Math.random() * (range.max - range.min + 1)) + range.min;
             });
         });
-    },
+    }
 
     _schommelVoorraden() {
         PLANETEN.forEach(p => {
@@ -166,7 +166,7 @@ class GameState {
                     Math.max(range.min, Math.min(range.max, huidig + delta));
             });
         });
-    },
+    }
 
     _initConcurrenten() {
         if (typeof CONCURRENTEN === 'undefined') return;
