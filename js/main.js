@@ -155,6 +155,7 @@ const App = {
         state.geselecteerdePlaneet = planeetId || null;
         UI.renderBestemmingPaneel();
         UI.renderKaart();
+        if (state.activeTab === 'handel') UI.renderHandelTab();
     },
 
     switchTab(naam) {

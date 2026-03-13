@@ -53,6 +53,15 @@ Alle voortgangsbalken (brandstof, HP, lading, etc.) animeren bij een waardeveran
 De CSS-klasse `animeer` op `.lading-balk` geeft een `transition: width 0.6s cubic-bezier(...)`.
 Nieuw toe te voegen balken volgen altijd dit patroon.
 
+## Design: tooltips altijd gestijld
+
+Wanneer om een tooltip gevraagd wordt, gebruik altijd een **gestylde custom tooltip** — nooit de standaard `title`-attribuut van de browser. Gebruik het bestaande `#top-tooltip`-element met het `.top-tooltip`-patroon:
+
+1. Voeg `data-tip="..."` toe aan het element (geen `title=`)
+2. Attach `mouseenter`/`mouseleave` event listeners na render (bijv. in een `_init...Tooltips()` methode)
+3. Vul `#top-tooltip` met HTML via `tooltip.innerHTML = ...` en positioneer via `this._positioneerTooltip(tooltip, el)`
+4. Gebruik de bestaande CSS-klassen `.tt-label`, `.tt-rij`, `.tt-waarde` etc. voor opmaak
+
 ## Cache buster — verplicht bij elke CSS of JS wijziging
 Bij elke commit waarbij CSS of JavaScript is gewijzigd, moet de cache buster worden opgehoogd. Doe dit op **twee plaatsen**:
 

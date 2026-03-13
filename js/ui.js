@@ -642,6 +642,7 @@ const UI = {
         html += this._renderGalactischeMarkt();
 
         container.innerHTML = html;
+        this._initGalactTooltips(container);
     },
 
     _renderGalactischeMarkt() {
@@ -649,15 +650,16 @@ const UI = {
         let html = `<div class="haven-blok handel-blok-vol" style="margin-top:16px"><div class="haven-blok-header">🌌 Galactische Markt — Prijsvergelijking</div>`;
         html += '<div class="galact-wrap"><table class="galact-tabel"><thead><tr>';
         html += '<th class="galact-goed-col">Goed</th>';
+        html += '<th class="galact-prijsrange">Bereik</th>';
 
         PLANETEN.forEach(p => {
             const isHier = p.id === state.locatie;
             const isBest = p.id === bestemming;
-            let thKlas = isHier ? 'galact-huidig-th' : isBest ? 'galact-bestemming-th' : '';
+            const thKlas = isHier ? 'galact-huidig-th' : isBest ? 'galact-bestemming-th' : '';
             const raket = isBest ? ' 🚀' : '';
-            const titleAttr = isHier ? '' : `title="Kies als bestemming"`;
+            const tipAttr = isHier ? '' : `data-galact-tip="${p.naam}"`;
             const clickAttr = isHier ? '' : `onclick="App.selecteerBestemming('${p.id}')" style="cursor:pointer"`;
-            html += `<th class="${thKlas}" style="color:${p.kleur}" ${titleAttr} ${clickAttr}>${p.naam.replace(' Station','')}${raket}</th>`;
+            html += `<th class="${thKlas}" style="color:${p.kleur}" ${tipAttr} ${clickAttr}>${p.naam.replace(' Station','')}${raket}</th>`;
         });
         html += '</tr></thead><tbody>';
 
@@ -669,11 +671,12 @@ const UI = {
             const allePrijzen = PLANETEN.map(p => state.getPrijs(p.id, goed.id));
             const minPrijs = Math.min(...allePrijzen);
             const maxPrijs = Math.max(...allePrijzen);
-            const tipMin2 = Math.max(5, Math.round(goed.basisPrijs * 0.25));
-            const tipMax2 = Math.round(goed.basisPrijs * 2.2);
-            const tipHtml2 = `<span class="goed-tip">${goed.beschrijving}<br><span class="goed-tip-prijs">Bereik: ${tipMin2}–${tipMax2} cr</span></span>`;
+            const tipMin = Math.max(5, Math.round(goed.basisPrijs * 0.25));
+            const tipMax = Math.round(goed.basisPrijs * 2.2);
+            const tipHtml2 = `<span class="goed-tip">${goed.beschrijving}<br><span class="goed-tip-prijs">Bereik: ${tipMin}–${tipMax} cr</span></span>`;
 
             html += `<tr><td class="galact-goed-col"><span>${goed.icoon}</span><span class="goed-tip-wrap"> ${goed.naam}${tipHtml2}</span></td>`;
+            html += `<td class="galact-prijsrange">${tipMin}–${tipMax}</td>`;
 
             PLANETEN.forEach(p => {
                 const prijs = state.getPrijs(p.id, goed.id);
@@ -685,7 +688,7 @@ const UI = {
                 else if (prijs === maxPrijs) klasse += ' galact-duur';
 
                 const inLading = state.lading[goed.id] || 0;
-                const ladingMark = (isHier && inLading > 0) ? `<sup title="${inLading} aan boord">●</sup>` : '';
+                const ladingMark = (isHier && inLading > 0) ? `<sup>${inLading}t</sup>` : '';
 
                 html += `<td class="${klasse}">${prijs}${ladingMark}</td>`;
             });
@@ -695,6 +698,21 @@ const UI = {
 
         html += '</tbody></table></div></div>';
         return html;
+    },
+
+    _initGalactTooltips(container) {
+        const tooltip = document.getElementById('top-tooltip');
+        if (!tooltip) return;
+        container.querySelectorAll('.galact-tabel thead th[data-galact-tip]').forEach(th => {
+            th.addEventListener('mouseenter', () => {
+                tooltip.innerHTML = `<div class="tt-label">Planeet</div>
+                    <div style="font-size:0.95em">${th.dataset.galactTip}</div>
+                    <div class="kleur-dimmed" style="font-size:0.82em;margin-top:5px">Klik om als bestemming in te stellen</div>`;
+                tooltip.classList.remove('verborgen');
+                this._positioneerTooltip(tooltip, th);
+            });
+            th.addEventListener('mouseleave', () => tooltip.classList.add('verborgen'));
+        });
     },
 
     // =========================================================================
