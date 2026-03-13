@@ -511,6 +511,13 @@ const SCHEPEN = [
 
 const UPGRADES = [];
 
+// Crew-grootte per schip (bemanning vereist voor bediening)
+const CREW_PER_SCHIP = {
+    vracht_1: 3,  vracht_2: 5,  vracht_3a: 8,  vracht_3b: 7,  vracht_4a: 12, vracht_4b: 10,
+    pax_1:    4,  pax_2:    6,  pax_3a:   10,  pax_3b:    7,  pax_4a:   14,  pax_4b:   10,
+    snel_1:   2,  snel_2:   3,  snel_3a:   5,  snel_3b:    4,  snel_4a:   7,  snel_4b:    6,
+};
+
 // Kansen optellen naar 1.0
 const EVENTS = [
     {
@@ -703,6 +710,19 @@ const EVENTS = [
         kans: 0.18,
         beschrijving: 'De reis verloopt vlekkeloos. Sterrenbeelden passeren, je koers is recht, en alles is in orde.',
         heeftKeuze: false,
+    },
+    {
+        id: 'crew_opstand',
+        naam: 'Crew Opstand!',
+        icoon: '✊',
+        type: 'gevaar',
+        kans: 0,   // Alleen getriggerd door geluk-check; nooit via normale pool
+        beschrijving: 'Je bemanning is tot het uiterste gedreven. Ze eisen onmiddellijke betaling, anders leggen ze het werk neer.',
+        heeftKeuze: true,
+        keuzes: [
+            { id: 'betaal', tekst: 'Betaal dubbel salaris', stijl: 'gevaar' },
+            { id: 'praten', tekst: 'Onderhandel (50% kans)', stijl: 'knop' },
+        ],
     },
 ];
 

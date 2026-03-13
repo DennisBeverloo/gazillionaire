@@ -406,6 +406,26 @@ const App = {
         if (!res.succes) this._fout(res.reden); else UI.renderSpel();
     },
 
+    betaalCrewSalaris() {
+        const res = state.betaalCrewSalaris();
+        if (!res.succes) this._fout(res.reden); else UI.renderSpel();
+    },
+
+    verhoogCrewSalaris() {
+        const res = state.verhoogCrewSalaris();
+        if (!res.succes) this._fout(res.reden); else UI.renderSpel();
+    },
+
+    verlaagCrewSalaris() {
+        const res = state.verlaagCrewSalaris();
+        if (!res.succes) this._fout(res.reden); else UI.renderSpel();
+    },
+
+    casinoCrewUitje() {
+        const res = state.casinoCrewUitje();
+        if (!res.succes) this._fout(res.reden); else UI.renderSpel();
+    },
+
     koopSchip(schipId) {
         const nieuw = SCHEPEN.find(s => s.id === schipId);
         if (!nieuw) return;

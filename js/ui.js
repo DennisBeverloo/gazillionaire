@@ -51,6 +51,7 @@ const UI = {
                     <div class="schip-stat"><span>Brandstoftank</span><span class="waarde">${schip.brandstofTank} l</span></div>
                     <div class="schip-stat"><span>Passagiers</span><span class="waarde">${schip.passagiersCapaciteit > 0 ? schip.passagiersCapaciteit : '—'}</span></div>
                     <div class="schip-stat"><span>Schild</span><span class="waarde">${schip.schild}</span></div>
+                    <div class="schip-stat"><span>Bemanning</span><span class="waarde">${CREW_PER_SCHIP[schip.id] ?? '?'} pers.</span></div>
                     <div class="schip-stat"><span>Startkapitaal</span><span class="waarde ${resterend < 2000 ? 'kleur-rood' : 'kleur-groen'}">${state.formatteerKrediet(resterend)}</span></div>
                 </div>
                 <button class="knop primair schip-kies-knop" onclick="App.selecteerSchip('${schip.id}')">Dit schip kiezen</button>
@@ -780,23 +781,6 @@ const UI = {
             </div>
         </div></div>`;
 
-        // === VERZEKERING ===
-        const verzPrijs = state._berekenVerzekeringsPrijs();
-        const verzActief = state.verzekering?.actief;
-        let verzHtml = '';
-        if (verzActief) {
-            verzHtml = `<div class="kleur-groen" style="font-size:0.88em">✓ Verzekering actief — je bent gedekt voor de komende reis.</div>`;
-        } else {
-            const kanVerz = state.speler.krediet >= verzPrijs;
-            const cap = state.schip?.laadruimte ?? 0;
-            const paxCap = state.schip?.passagiersCapaciteit ?? 0;
-            verzHtml = `<div style="font-size:0.85em;margin-bottom:8px">Dekt verliezen door piraten, storms, lekken en douaneboetes. Vervalt bij aankomst.</div>
-                <div class="upgrade-prijs">${state.formatteerKrediet(verzPrijs)}</div>
-                <div class="kleur-dimmed" style="font-size:0.78em;margin-bottom:8px">Basisprijs + ${cap} ton laadruimte${paxCap > 0 ? ` + ${paxCap} passagiersplaatsen` : ''}</div>
-                <button class="knop primair klein" ${!kanVerz ? 'disabled' : ''} onclick="App.koopVerzekering()">${kanVerz ? 'Sluit af' : 'Onvoldoende credits'}</button>`;
-        }
-        html += `<div class="haven-blok haven-blok-verzekering"><div class="haven-blok-header">🛡️ Reisverzekering</div><div class="haven-blok-inhoud">${verzHtml}</div></div>`;
-
         html += '</div>'; // sluit haven-raster
         container.innerHTML = html;
 
@@ -1246,6 +1230,59 @@ const UI = {
         const planeet = PLANETEN.find(p => p.id === state.locatie);
         let html = '<div class="haven-raster">';
 
+        // === CREW MANAGEMENT ===
+        {
+            const crew = state.crew;
+            if (crew && crew.grootte > 0) {
+                const totaalSalaris = crew.grootte * crew.salaris;
+                const beurtenTot = crew.volgendeBetaalBeurt - state.beurt;
+                const isAchterstallig = beurtenTot <= 0;
+                const happinessKleur = crew.happiness >= 70 ? 'var(--groen)' : crew.happiness >= 40 ? 'var(--oranje)' : 'var(--rood)';
+                const happinessLabel = crew.happiness >= 80 ? '😄 Uitstekend' : crew.happiness >= 60 ? '😊 Goed' : crew.happiness >= 40 ? '😐 Matig' : crew.happiness >= 20 ? '😠 Ontevreden' : '😡 Muiterij dreigt!';
+                const kanBetalen = state.speler.krediet >= totaalSalaris;
+                const sindsLaatstCasino = state.beurt - (crew.casinoBeurt ?? -99);
+                const casinoBeschikbaar = sindsLaatstCasino >= 15;
+                const casinoKosten = crew.grootte * 50;
+                const kanCasino = state.speler.krediet >= casinoKosten;
+
+                html += `<div class="haven-blok"><div class="haven-blok-header">👨‍🚀 Bemanning</div><div class="haven-blok-inhoud">
+                    <div class="stat-rij"><span class="stat-naam">Bemanningsleden</span><span class="stat-waarde">${crew.grootte} personen</span></div>
+                    <div class="stat-rij"><span class="stat-naam">Happiness</span><span class="stat-waarde" style="color:${happinessKleur}">${happinessLabel}</span></div>
+                    <div class="lading-balk-container" style="margin:2px 0 10px"><div class="lading-balk" style="width:${crew.happiness}%;background:${happinessKleur}"></div></div>
+                    <div class="stat-rij"><span class="stat-naam">Salaris</span><span class="stat-waarde">${crew.salaris} cr/pp per ${RENTE_INTERVAL} beurten</span></div>
+                    <div class="stat-rij"><span class="stat-naam">Totaal per periode</span><span class="stat-waarde">${state.formatteerKrediet(totaalSalaris)}</span></div>
+                    <div class="stat-rij"><span class="stat-naam">Volgende betaling</span><span class="stat-waarde ${isAchterstallig ? 'kleur-rood' : beurtenTot <= 5 ? 'kleur-oranje' : ''}">${isAchterstallig ? '⚠ ACHTERSTALLIG!' : `over ${beurtenTot} beurt${beurtenTot === 1 ? '' : 'en'}`}</span></div>
+                    <div class="actie-rij" style="margin-top:12px;gap:8px;flex-wrap:wrap">
+                        <button class="knop ${isAchterstallig ? 'gevaar' : 'primair'} klein" onclick="App.betaalCrewSalaris()" ${!kanBetalen ? 'disabled' : ''}>Betaal salaris (${state.formatteerKrediet(totaalSalaris)})</button>
+                        <button class="knop succes klein" onclick="App.verhoogCrewSalaris()">▲ Salaris (+${state.formatteerKrediet(10)}/pp)</button>
+                        <button class="knop gevaar klein" onclick="App.verlaagCrewSalaris()" ${crew.salaris <= 30 ? 'disabled' : ''}>▼ Salaris</button>
+                    </div>
+                    <div style="margin-top:8px">
+                        <button class="knop dimmed klein" onclick="App.casinoCrewUitje()" ${(!casinoBeschikbaar || !kanCasino) ? 'disabled' : ''}>🎰 Casino-uitje (${state.formatteerKrediet(casinoKosten)})${!casinoBeschikbaar ? ` — nog ${15 - sindsLaatstCasino} beurten` : ''}</button>
+                    </div>
+                </div></div>`;
+            }
+        }
+
+        // === VERZEKERING ===
+        {
+            const verzPrijs = state._berekenVerzekeringsPrijs();
+            const verzActief = state.verzekering?.actief;
+            let verzHtml = '';
+            if (verzActief) {
+                verzHtml = `<div class="kleur-groen" style="font-size:0.88em">✓ Verzekering actief — je bent gedekt voor de komende reis.</div>`;
+            } else {
+                const kanVerz = state.speler.krediet >= verzPrijs;
+                const cap = state.schip?.laadruimte ?? 0;
+                const paxCap = state.schip?.passagiersCapaciteit ?? 0;
+                verzHtml = `<div style="font-size:0.85em;margin-bottom:8px">Dekt verliezen door piraten, storms, lekken en douaneboetes. Vervalt bij aankomst.</div>
+                    <div class="upgrade-prijs">${state.formatteerKrediet(verzPrijs)}</div>
+                    <div class="kleur-dimmed" style="font-size:0.78em;margin-bottom:8px">Basisprijs + ${cap} ton laadruimte${paxCap > 0 ? ` + ${paxCap} passagiersplaatsen` : ''}</div>
+                    <button class="knop primair klein" ${!kanVerz ? 'disabled' : ''} onclick="App.koopVerzekering()">${kanVerz ? 'Sluit af' : 'Onvoldoende credits'}</button>`;
+            }
+            html += `<div class="haven-blok haven-blok-verzekering"><div class="haven-blok-header">🛡️ Reisverzekering</div><div class="haven-blok-inhoud">${verzHtml}</div></div>`;
+        }
+
         // === BANK TEGEL ===
         if (planeet?.heeftBank) {
             html += `<div class="haven-blok"><div class="haven-blok-header">💳 Galactische Bank</div><div class="haven-blok-inhoud">
@@ -1661,6 +1698,24 @@ const UI = {
                 keuzes = event.keuzes.map(k => {
                     if (k.id === 'betaal') return { ...k, tekst: `Betaal losgeld (${state.formatteerKrediet(bedrag)})` };
                     if (k.id === 'vlucht') return { ...k, tekst: `Probeer te ontsnappen (${vluchtPct}% kans)` };
+                    return k;
+                });
+            }
+
+            if (event.id === 'crew_opstand' && state.crew) {
+                const totaal = state.crew.grootte * state.crew.salaris;
+                const dubbel = totaal * 2;
+                const kanBetalen = state.speler.krediet >= dubbel;
+                document.getElementById('event-beschrijving').innerHTML =
+                    `Je bemanning heeft het gehad en dreigt de boel stil te leggen!<br><br>` +
+                    `<span style="font-size:0.88em;color:var(--tekst-dim)">` +
+                    `👨‍🚀 Crew: <strong>${state.crew.grootte}</strong> &nbsp;|&nbsp; ` +
+                    `Happiness: <strong style="color:var(--rood)">${state.crew.happiness}/100</strong><br>` +
+                    `Eis: dubbel salaris = <strong style="color:var(--rood)">${state.formatteerKrediet(dubbel)}</strong>` +
+                    (kanBetalen ? '' : `<br><span style="color:var(--oranje)">⚠ Onvoldoende credits — onderhandelen is je enige optie.</span>`) +
+                    `</span>`;
+                keuzes = event.keuzes.map(k => {
+                    if (k.id === 'betaal') return { ...k, tekst: `Betaal dubbel salaris (${state.formatteerKrediet(dubbel)})`, stijl: kanBetalen ? 'gevaar' : 'dimmed' };
                     return k;
                 });
             }

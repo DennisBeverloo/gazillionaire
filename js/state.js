@@ -82,6 +82,15 @@ class GameState {
         // Verzekering
         this.verzekering = null;            // null of { actief: true }
 
+        // Crew
+        this.crew = {
+            grootte: 0,         // aantal bemanningsleden
+            salaris: 50,        // cr/pp per betaalperiode (RENTE_INTERVAL beurten)
+            happiness: 75,      // 0-100
+            volgendeBetaalBeurt: 20, // beurt waarop volgende betaling verschuldigd is
+            casinoBeurt: -99,   // beurt van laatste casino-uitje
+        };
+
         // Concurrenten
         this.concurrenten = [];             // [{id, locatie, krediet, waardeGeschiedenis}]
         this.nettoWaardeGeschiedenisSpeler = [];
@@ -108,6 +117,8 @@ class GameState {
         this.schip = { ...schipTemplate };
         this.speler.krediet -= schipTemplate.prijs;
         this.schipHP = schipTemplate.maxHP;
+        this.crew.grootte = CREW_PER_SCHIP[schipId] ?? 3;
+        this.crew.volgendeBetaalBeurt = RENTE_INTERVAL; // eerste betaling over 20 beurten
         this.fase = 'spel';
         this.initPrijzen();
         this.initAandelen();
@@ -394,7 +405,7 @@ class GameState {
         const eventKans = naarPlaneet?.isGevaarlijk ? 0.70 : 0.52;
         if (Math.random() > eventKans) return null;
 
-        const pool = EVENTS.filter(e => e.id !== 'niets');
+        const pool = EVENTS.filter(e => e.id !== 'niets' && e.id !== 'crew_opstand');
         const gevaarBonus = naarPlaneet?.isGevaarlijk ? 1.4 : 1.0;
         const totaal = pool.reduce((s, e) => s + e.kans * (e.type === 'gevaar' ? gevaarBonus : 1.0), 0);
         const r = Math.random() * totaal;
@@ -416,9 +427,19 @@ class GameState {
         this.updateAandeelKoersen();
         this.updateBrandstofPrijzen();
         this.controleerRente();
+        this.controleerCrew();
         this._vervalMarktModifiers();
 
         this._simuleerConcurrenten();
+
+        // Crew-opstand: prioriteit boven gepland event als happiness kritiek laag is
+        if ((this.crew?.grootte ?? 0) > 0 && (this.crew?.happiness ?? 100) < 25 && Math.random() < 0.18) {
+            const mutinyEvent = EVENTS.find(e => e.id === 'crew_opstand');
+            if (mutinyEvent) {
+                this.statistieken.eventsMeegemaakt++;
+                return { event: mutinyEvent };
+            }
+        }
 
         const eventId = this.reisData.events[this.reisData.stap - 1];
 
@@ -1224,6 +1245,38 @@ class GameState {
                 break;
             }
 
+            case 'crew_opstand': {
+                const totaal = (this.crew?.grootte ?? 0) * (this.crew?.salaris ?? 50);
+                const dubbel = totaal * 2;
+                if (keuzeId === 'betaal') {
+                    const betaling = Math.min(dubbel, this.speler.krediet);
+                    this.speler.krediet -= betaling;
+                    resultaat.kredietDelta = -betaling;
+                    if (this.crew) {
+                        this.crew.volgendeBetaalBeurt = this.beurt + RENTE_INTERVAL;
+                        this.crew.happiness = Math.min(100, this.crew.happiness + 30);
+                    }
+                    resultaat.bericht = `Crew tevreden gesteld. Betaald: ${this.formatteerKrediet(betaling)}. Happiness +30.`;
+                } else { // praten
+                    if (Math.random() < 0.50) {
+                        if (this.crew) {
+                            this.crew.happiness = Math.min(100, this.crew.happiness + 10);
+                            this.crew.volgendeBetaalBeurt = Math.max(this.crew.volgendeBetaalBeurt, this.beurt + 10);
+                        }
+                        resultaat.bericht = 'Onderhandeling geslaagd! Crew accepteert uitstel. Happiness +10.';
+                    } else {
+                        const gestolen = Math.min(totaal, this.speler.krediet);
+                        this.speler.krediet -= gestolen;
+                        resultaat.kredietDelta = -gestolen;
+                        if (this.crew) {
+                            this.crew.volgendeBetaalBeurt = this.beurt + RENTE_INTERVAL;
+                        }
+                        resultaat.bericht = `Onderhandeling mislukt! Crew haalt ${this.formatteerKrediet(gestolen)} op uit de kluis als achterstallig loon.`;
+                    }
+                }
+                break;
+            }
+
             default: {
                 resultaat.bericht = 'De reis verloopt rustig. Sterren en stilte.';
                 break;
@@ -1404,7 +1457,13 @@ class GameState {
         this.schipHP = nieuwSchip.maxHP;
         this.speler.krediet -= nettoPrijs;
         this.statistieken.schepenGekocht = (this.statistieken.schepenGekocht || 0) + 1;
+        const oudeCrewGrootte = this.crew?.grootte ?? 0;
+        const nieuweCrewGrootte = CREW_PER_SCHIP[schipId] ?? oudeCrewGrootte;
+        if (this.crew) this.crew.grootte = nieuweCrewGrootte;
         this.voegBerichtToe(`${nieuwSchip.naam} aangeschaft! Nettobetaling: ${this.formatteerKrediet(nettoPrijs)}.`, 'goud');
+        if (nieuweCrewGrootte > oudeCrewGrootte) {
+            this.voegBerichtToe(`👨‍🚀 Je nieuwe schip vereist ${nieuweCrewGrootte} bemanningsleden (was ${oudeCrewGrootte}). Salariskosten stijgen.`, 'info');
+        }
         this.controleerAchievements();
         return { succes: true, verkoopwaarde, nettoPrijs };
     }
@@ -1531,6 +1590,80 @@ class GameState {
             this.speler.schuld += rente;
             this.voegBerichtToe(`Rente bijgeboekt: ${this.formatteerKrediet(rente)}. Totale schuld nu: ${this.formatteerKrediet(this.speler.schuld)}.`, 'waarschuwing');
         }
+    }
+
+    // =========================================================================
+    // CREW BEHEER
+    // =========================================================================
+
+    controleerCrew() {
+        if (!this.crew || this.crew.grootte <= 0) return;
+
+        // Natuurlijk happiness-verval: −1 per 10 beurten (constante druk van lange reizen)
+        if (this.beurt % 10 === 0 && this.beurt > 0) {
+            this.crew.happiness = Math.max(0, this.crew.happiness - 1);
+        }
+
+        // Betaalcheck: vuurt precies op het moment dat betaling vervalt
+        if (this.beurt >= this.crew.volgendeBetaalBeurt) {
+            const totaal = this.crew.grootte * this.crew.salaris;
+            const happinessDrop = 18;
+            this.crew.happiness = Math.max(0, this.crew.happiness - happinessDrop);
+            this.crew.volgendeBetaalBeurt += RENTE_INTERVAL; // volgende controle over 20 beurten
+            this.voegBerichtToe(`⚠ Crew salaris niet betaald! Happiness: ${this.crew.happiness}/100. Openstaand: ${this.formatteerKrediet(totaal)}`, 'gevaar');
+        }
+    }
+
+    betaalCrewSalaris() {
+        if (!this.crew || this.crew.grootte <= 0)
+            return { succes: false, reden: 'Geen bemanning om te betalen.' };
+        const totaal = this.crew.grootte * this.crew.salaris;
+        if (this.speler.krediet < totaal)
+            return { succes: false, reden: `Onvoldoende credits. Benodigd: ${this.formatteerKrediet(totaal)}` };
+        this.speler.krediet -= totaal;
+        this.crew.volgendeBetaalBeurt = this.beurt + RENTE_INTERVAL;
+        this.crew.happiness = Math.min(100, this.crew.happiness + 5);
+        this.voegBerichtToe(`💼 Crew betaald: ${this.formatteerKrediet(totaal)} voor ${this.crew.grootte} bemanningsleden. Volgende betaling over ${RENTE_INTERVAL} beurten.`, 'succes');
+        return { succes: true };
+    }
+
+    verhoogCrewSalaris(bedrag = 10) {
+        if (!this.crew) return { succes: false, reden: 'Geen crew.' };
+        this.crew.salaris += bedrag;
+        this.crew.happiness = Math.min(100, this.crew.happiness + 10);
+        const totaalPeriode = this.crew.grootte * this.crew.salaris;
+        this.voegBerichtToe(`📈 Salaris verhoogd naar ${this.crew.salaris} cr/pp per ${RENTE_INTERVAL} beurten (+10 happiness). Totaal per periode: ${this.formatteerKrediet(totaalPeriode)}`, 'succes');
+        return { succes: true };
+    }
+
+    verlaagCrewSalaris(bedrag = 10) {
+        if (!this.crew) return { succes: false, reden: 'Geen crew.' };
+        const min = 30;
+        if (this.crew.salaris <= min)
+            return { succes: false, reden: `Minimum salaris is ${min} cr/pp. Verlagen niet mogelijk.` };
+        this.crew.salaris = Math.max(min, this.crew.salaris - bedrag);
+        this.crew.happiness = Math.max(0, this.crew.happiness - 15);
+        const totaalPeriode = this.crew.grootte * this.crew.salaris;
+        this.voegBerichtToe(`📉 Salaris verlaagd naar ${this.crew.salaris} cr/pp per ${RENTE_INTERVAL} beurten (−15 happiness). Totaal per periode: ${this.formatteerKrediet(totaalPeriode)}`, 'waarschuwing');
+        return { succes: true };
+    }
+
+    casinoCrewUitje() {
+        if (!this.crew || this.crew.grootte <= 0)
+            return { succes: false, reden: 'Geen bemanning voor een uitje.' };
+        const cooldown = 15;
+        const sindsLaatst = this.beurt - (this.crew.casinoBeurt ?? -99);
+        if (sindsLaatst < cooldown)
+            return { succes: false, reden: `Crew heeft nog ${cooldown - sindsLaatst} beurten rust nodig voor het volgende uitje.` };
+        const kosten = this.crew.grootte * 50;
+        if (this.speler.krediet < kosten)
+            return { succes: false, reden: `Onvoldoende credits voor casino-uitje (${this.formatteerKrediet(kosten)}).` };
+        this.speler.krediet -= kosten;
+        this.crew.happiness = Math.min(100, this.crew.happiness + 25);
+        this.crew.casinoBeurt = this.beurt;
+        const planeetNaam = PLANETEN.find(p => p.id === this.locatie)?.naam ?? 'hier';
+        this.voegBerichtToe(`🎰 Crew geniet van een casino-uitje op ${planeetNaam}! +25 happiness. Kosten: ${this.formatteerKrediet(kosten)}`, 'succes');
+        return { succes: true };
     }
 
     // =========================================================================
