@@ -580,13 +580,16 @@ const UI = {
                 marktLabelHtml = '<span class="markt-label label-vraag">📈</span>';
             }
 
-            // Lokale voorraad indicator
-            let voorraadTd = '—';
+            // Lokale voorraad: max koopbaar + marktlabel
+            let voorraadLabel = '';
             if (planeet.specialiteit?.includes(goed.id)) {
-                voorraadTd = '<span class="kleur-groen">★ Aanbod</span>';
+                voorraadLabel = ' <span class="kleur-groen">★</span>';
             } else if (planeet.vraag?.includes(goed.id)) {
-                voorraadTd = '<span class="kleur-oranje">↑ Vraag</span>';
+                voorraadLabel = ' <span class="kleur-oranje">↑</span>';
             }
+            const voorraadTd = maxKoop > 0
+                ? `<span style="font-family:var(--font-data)">${maxKoop} ton</span>${voorraadLabel}`
+                : `<span class="kleur-dimmed">—</span>${voorraadLabel}`;
 
             // Aan boord
             const aankoopPrijs = state.aankoopPrijzen[goed.id];
@@ -618,7 +621,7 @@ const UI = {
                     <div class="actie-rij">
                         <button class="knop primair klein" onclick="App.koopN('${goed.id}', 1, event)" ${maxKoop<=0?'disabled':''}>+1</button>
                         <button class="knop primair klein" onclick="App.koopN('${goed.id}', 10, event)" ${maxKoop<10?'disabled':''}>+10</button>
-                        <button class="knop primair klein" onclick="App.koopN('${goed.id}', 'max', event)" ${maxKoop<=0?'disabled':''}>max(${maxKoop})</button>
+                        <button class="knop primair klein" onclick="App.koopN('${goed.id}', 'max', event)" ${maxKoop<=0?'disabled':''}>max</button>
                     </div>
                 </td>
                 <td>
