@@ -186,7 +186,10 @@ const UI = {
 
         const geladen = state.getLadingGewicht?.() ?? 0;
         const maxLading = state.schip?.laadruimte ?? 0;
-        el('cargo-display').textContent = `📦 ${geladen}/${maxLading} ton`;
+        const cargoEl = el('cargo-display');
+        cargoEl.textContent = `📦 ${geladen}/${maxLading} ton`;
+        cargoEl.style.cursor = 'pointer';
+        cargoEl.onclick = () => App.switchTab('handel');
 
         const pax = state.passagiers ?? 0;
         const maxPax = state.schip?.passagiersCapaciteit ?? 0;
@@ -195,15 +198,21 @@ const UI = {
         if (maxPax > 0) {
             paxDisplay.textContent = `🧳 ${pax}/${maxPax}`;
             paxDisplay.style.display = '';
+            paxDisplay.style.cursor = 'pointer';
+            paxDisplay.onclick = () => App.switchTab('haven');
             if (paxSep) paxSep.style.display = '';
         } else {
             paxDisplay.style.display = 'none';
+            paxDisplay.onclick = null;
             if (paxSep) paxSep.style.display = 'none';
         }
 
         const brandstof = state.brandstof ?? 0;
         const maxBrandstof = state.schip?.brandstofTank ?? 0;
-        el('brandstof-display').innerHTML = `${FUEL_IMG} ${brandstof}/${maxBrandstof} l`;
+        const brandstofEl = el('brandstof-display');
+        brandstofEl.innerHTML = `${FUEL_IMG} ${brandstof}/${maxBrandstof} l`;
+        brandstofEl.style.cursor = 'pointer';
+        brandstofEl.onclick = () => App.switchTab('haven');
 
         const kredietEl = el('krediet-display');
         kredietEl.textContent = `💰 ${state.formatteerKrediet(state.speler.krediet)}`;
