@@ -1851,9 +1851,8 @@ const UI = {
                         UI.renderSpel();
                         if (state.fase === 'einde') {
                             UI.toonEindeScherm();
-                        } else if (state.huidigAankomstEvent) {
-                            UI.toonAankomstPopup(state.huidigAankomstEvent);
-                            state.huidigAankomstEvent = null;
+                        } else {
+                            App._toonAankomstEventQueue();
                         }
                     }, 1100);
                 });
@@ -1881,6 +1880,43 @@ const UI = {
             gestolenDiv.style.display = 'block';
         } else {
             gestolenDiv.style.display = 'none';
+        }
+
+        // Zorg dat de knop de standaard sluitactie heeft
+        const btn = popup.querySelector('.knop.primair');
+        if (btn) btn.onclick = () => UI.verbergAankomstPopup();
+
+        popup.classList.remove('verborgen');
+    },
+
+    toonConcurrentAankomstPopup(evt, callback) {
+        Audio.negatief();
+        const popup = document.getElementById('aankomst-popup');
+        if (!popup) { callback?.(); return; }
+
+        const npc = evt.npc;
+        const aankoopTekst = evt.aankopen.map(a => {
+            const goed = GOEDEREN.find(g => g.id === a.goed.id) || a.goed;
+            return `${a.hoeveelheid} ton ${goed.icoon} ${goed.naam}`;
+        }).join(' en ');
+
+        document.getElementById('aankomst-event-icoon').textContent = npc.icoon;
+        document.getElementById('aankomst-event-naam').textContent = `${npc.naam} was eerder!`;
+        document.getElementById('aankomst-event-beschrijving').textContent =
+            `${npc.naam} arriveerde eerder op ${evt.planeetNaam} en kocht ${aankoopTekst} voor een scherpe prijs.`;
+
+        const gestolenDiv = document.getElementById('aankomst-event-gestolen');
+        gestolenDiv.textContent = '⚠️ Marktprijzen zijn gestegen.';
+        gestolenDiv.className = 'event-gevolg kleur-oranje';
+        gestolenDiv.style.display = 'block';
+
+        const btn = popup.querySelector('.knop.primair');
+        if (btn) {
+            btn.onclick = () => {
+                popup.classList.add('verborgen');
+                gestolenDiv.className = 'event-gevolg';
+                callback?.();
+            };
         }
 
         popup.classList.remove('verborgen');

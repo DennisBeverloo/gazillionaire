@@ -101,8 +101,10 @@ class GameState {
         };
 
         // Concurrenten
-        this.concurrenten = [];             // [{id, locatie, krediet, waardeGeschiedenis}]
+        this.concurrenten = [];             // [{id, locatie, krediet, waardeGeschiedenis, lading, reisdoel, schipTier}]
         this.nettoWaardeGeschiedenisSpeler = [];
+        this.aankomstConcurrentEvents = [];
+        this._pendingConcurrentArrivalEvents = [];
 
         // Passagiers
         this.passagiers = 0;               // aantal aan boord (int)
@@ -179,6 +181,10 @@ class GameState {
                 locatie: startPlaneet,
                 krediet: c.startKrediet,
                 waardeGeschiedenis: [c.startKrediet],
+                lading: [],
+                ladingGewicht: 0,
+                reisdoel: null,
+                schipTier: 1,
             };
         });
     }
@@ -514,8 +520,8 @@ class GameState {
     _simuleerConcurrenten() {
         if (!this.concurrenten?.length || typeof CONCURRENTEN === 'undefined') return;
 
-        const bestemmingId = this.reisData?.naar;
-        const playerSpeed = this.schip?.snelheid || 1;
+        const spelersbestemming = this.reisData?.naar;
+        const spelerSnelheid = this.schip?.snelheid ?? 1;
 
         // Sample speler nettowaarde bij start van deze beurt
         this.nettoWaardeGeschiedenisSpeler.push(this.berekenNettowaarde());
@@ -525,44 +531,187 @@ class GameState {
             const sjab = CONCURRENTEN.find(c => c.id === npc.id);
             if (!sjab) return;
 
-            // Beweeg naar random planeet
-            const andere = PLANETEN.filter(p => p.id !== npc.locatie);
-            if (andere.length > 0 && Math.random() < 0.3 + sjab.snelheid * 0.1) {
-                npc.locatie = andere[Math.floor(Math.random() * andere.length)].id;
-            }
+            const effectieveSnelheid = this._npcEffectieveSnelheid(npc, sjab);
 
-            // Concurrentie: kans dat NPC ook jouw bestemming aandoet
-            if (bestemmingId && Math.random() < 0.38) {
-                const interferentieKans = sjab.snelheid / (sjab.snelheid + playerSpeed);
-                if (Math.random() < interferentieKans) {
-                    this._npcStoringPrijzen(sjab, bestemmingId);
+            // 1. Verwerk aankomst op huidig reisdoel
+            if (npc.reisdoel) {
+                const aankomstPlaneet = npc.reisdoel;
+                const eerderDanSpeler = spelersbestemming === aankomstPlaneet && effectieveSnelheid > spelerSnelheid;
+
+                // Verkoop lading op aankomstplaneet
+                this._npcVerkoopLading(npc, aankomstPlaneet);
+
+                // Koop nieuwe goederen op aankomstplaneet
+                const aankopen = this._npcKoopGoederen(npc, sjab, aankomstPlaneet);
+
+                // Zet nieuwe locatie
+                npc.locatie = aankomstPlaneet;
+
+                // Registreer aankomstevent als NPC eerder aankwam dan speler
+                if (eerderDanSpeler && aankopen.length > 0) {
+                    if (!this._pendingConcurrentArrivalEvents) this._pendingConcurrentArrivalEvents = [];
+                    this._pendingConcurrentArrivalEvents.push({
+                        npc: sjab,
+                        aankopen,
+                        planeetId: aankomstPlaneet,
+                        planeetNaam: PLANETEN.find(p => p.id === aankomstPlaneet)?.naam ?? aankomstPlaneet,
+                        npcSnelheid: effectieveSnelheid,
+                    });
+                    // Prijseffect: schaarsheid door NPC-aankopen
+                    aankopen.forEach(({ goed }) => {
+                        const huidig = this.planetPrijzen[aankomstPlaneet]?.[goed.id];
+                        if (!huidig) return;
+                        const factor = 1.06 + Math.random() * 0.12;
+                        const max = Math.round(goed.basisPrijs * 2.2);
+                        this.planetPrijzen[aankomstPlaneet][goed.id] = Math.min(max, Math.round(huidig * factor));
+                    });
                 }
             }
 
-            // Simuleer NPC-handel: gebaseerde winst + volatiliteit + zeldzame grote events
-            const variatie = (Math.random() * 2 - 1) * sjab.volatiliteit * npc.krediet;
-            let delta = sjab.baseWinstPerBeurt + variatie;
-            if (Math.random() < 0.04) {
-                delta += npc.krediet * (Math.random() < 0.55 ? 1 : -1) * (0.15 + Math.random() * 0.25);
+            // 2. Kies nieuw reisdoel voor volgende beurt
+            npc.reisdoel = this._npcKiesReisdoel(npc, sjab);
+
+            // 3. Zeldzaam negatief event (piraten, ongeluk, etc.)
+            if (Math.random() < 0.03) {
+                const verliesPct = 0.10 + Math.random() * 0.20;
+                npc.krediet = Math.max(500, Math.round(npc.krediet * (1 - verliesPct)));
             }
-            npc.krediet = Math.max(500, Math.round(npc.krediet + delta));
+
+            // 4. Schip upgrade op basis van vermogen
+            if (npc.schipTier === 1 && npc.krediet >= 15000) npc.schipTier = 2;
+            else if (npc.schipTier === 2 && npc.krediet >= 35000) npc.schipTier = 3;
+
+            // 5. Waarde-geschiedenis bijhouden
             npc.waardeGeschiedenis.push(npc.krediet);
             if (npc.waardeGeschiedenis.length > 160) npc.waardeGeschiedenis.shift();
         });
     }
 
-    _npcStoringPrijzen(sjab, planeetId) {
-        const planeetNaam = PLANETEN.find(p => p.id === planeetId)?.naam ?? planeetId;
-        const kandidaten = [...GOEDEREN].sort(() => Math.random() - 0.5).slice(0, 1 + Math.floor(Math.random() * 2));
-        kandidaten.forEach(goed => {
-            const huidig = this.planetPrijzen[planeetId]?.[goed.id];
-            if (!huidig) return;
-            const factor = 1.08 + Math.random() * 0.16;
-            const max = Math.round(goed.basisPrijs * 2.2);
-            this.planetPrijzen[planeetId][goed.id] = Math.min(max, Math.round(huidig * factor));
-            const pct = Math.round((factor - 1) * 100);
-            this.voegBerichtToe(`💼 ${sjab.naam} arriveerde eerder op ${planeetNaam} — ${goed.icoon} ${goed.naam} +${pct}%`, 'waarschuwing');
+    _npcEffectieveSnelheid(npc, sjab) {
+        return sjab.snelheid + (npc.schipTier - 1);
+    }
+
+    _npcLadingCapaciteit(npc) {
+        return npc.schipTier === 1 ? 30 : npc.schipTier === 2 ? 60 : 100;
+    }
+
+    _npcKiesReisdoel(npc, sjab) {
+        const andere = PLANETEN.filter(p => p.id !== npc.locatie);
+        if (!andere.length) return npc.locatie;
+
+        // Mira (Strateeg): kies planeet waar lading het meest oplevert
+        if (sjab.id === 'mira') {
+            return this._npcBesteSellPlaneet(npc, andere) ?? andere[Math.floor(Math.random() * andere.length)].id;
+        }
+        // Rok (Avonturier): voorkeur voor verre planeten
+        if (sjab.id === 'rok') {
+            const gesorteerd = [...andere].sort((a, b) =>
+                this.berekenAfstand(npc.locatie, b.id) - this.berekenAfstand(npc.locatie, a.id));
+            const top = gesorteerd.slice(0, Math.min(3, gesorteerd.length));
+            return top[Math.floor(Math.random() * top.length)].id;
+        }
+        // Voss (Veteraan): volg lading naar beste markt; zonder lading naar planeet met veel specialiteit
+        if (sjab.id === 'voss') {
+            if (npc.lading.length > 0) {
+                return this._npcBesteSellPlaneet(npc, andere) ?? andere[Math.floor(Math.random() * andere.length)].id;
+            }
+            const rijkst = andere.reduce((best, p) =>
+                (p.specialiteit?.length ?? 0) >= (best.specialiteit?.length ?? 0) ? p : best);
+            return rijkst.id;
+        }
+        // Zax (Opportunist): 60% beste markt, 40% random
+        if (sjab.id === 'zax') {
+            if (npc.lading.length > 0 && Math.random() < 0.6) {
+                return this._npcBesteSellPlaneet(npc, andere) ?? andere[Math.floor(Math.random() * andere.length)].id;
+            }
+            return andere[Math.floor(Math.random() * andere.length)].id;
+        }
+        // Nyx (Mysterie): volledig random
+        return andere[Math.floor(Math.random() * andere.length)].id;
+    }
+
+    _npcBesteSellPlaneet(npc, planeten) {
+        if (!npc.lading.length) return null;
+        let bestPlaneet = null, bestScore = -Infinity;
+        for (const planeet of planeten) {
+            let score = 0;
+            for (const item of npc.lading) {
+                const verkoopPrijs = this.planetPrijzen[planeet.id]?.[item.goedId] ?? 0;
+                score += (verkoopPrijs - item.koopPrijs) * item.hoeveelheid;
+            }
+            if (score > bestScore) { bestScore = score; bestPlaneet = planeet.id; }
+        }
+        return bestPlaneet;
+    }
+
+    _npcVerkoopLading(npc, planeetId) {
+        let opbrengst = 0;
+        npc.lading.forEach(item => {
+            const prijs = this.planetPrijzen[planeetId]?.[item.goedId] ?? item.koopPrijs;
+            opbrengst += prijs * item.hoeveelheid;
         });
+        npc.krediet += opbrengst;
+        npc.lading = [];
+        npc.ladingGewicht = 0;
+    }
+
+    _npcKoopGoederen(npc, sjab, planeetId) {
+        const capaciteit = this._npcLadingCapaciteit(npc);
+        let resterend = capaciteit - npc.ladingGewicht;
+        if (resterend <= 0) return [];
+
+        let kandidaten = GOEDEREN.filter(g => {
+            const prijs = this.planetPrijzen[planeetId]?.[g.id];
+            const voorraad = this.planetVoorraden[planeetId]?.[g.id] ?? 0;
+            return prijs && voorraad > 0;
+        });
+
+        // Persoonlijkheidsgebonden selectie
+        if (sjab.id === 'mira') {
+            // Strateeg: sorteer op goedkoopste relatief aan basisprijs
+            kandidaten.sort((a, b) =>
+                (this.planetPrijzen[planeetId][a.id] / a.basisPrijs) -
+                (this.planetPrijzen[planeetId][b.id] / b.basisPrijs));
+        } else if (sjab.id === 'voss') {
+            // Veteraan: koopt alleen als flink onder basisprijs
+            kandidaten = kandidaten.filter(g =>
+                (this.planetPrijzen[planeetId]?.[g.id] ?? Infinity) < g.basisPrijs * 0.80);
+        } else if (sjab.id === 'rok') {
+            // Avonturier: random volgorde, pakt soms dure goederen
+            kandidaten.sort(() => Math.random() - 0.5);
+        } else {
+            kandidaten.sort(() => Math.random() - 0.5);
+        }
+
+        const maxGoederen = sjab.id === 'mira' ? 2 : sjab.id === 'voss' ? 1 : 1 + Math.floor(Math.random() * 2);
+        const aankopen = [];
+
+        for (const goed of kandidaten.slice(0, maxGoederen)) {
+            if (resterend <= 0) break;
+            const prijs = this.planetPrijzen[planeetId]?.[goed.id];
+            const voorraad = this.planetVoorraden[planeetId]?.[goed.id] ?? 0;
+            if (!prijs || voorraad <= 0) continue;
+
+            const maxAffordable = Math.floor(npc.krediet / prijs);
+            const gewichtPerUnit = goed.gewicht || 1;
+            const maxByWeight = Math.floor(resterend / gewichtPerUnit);
+            const hoeveelheid = Math.min(voorraad, maxAffordable, maxByWeight, 20);
+            if (hoeveelheid <= 0) continue;
+
+            npc.krediet -= hoeveelheid * prijs;
+            npc.lading.push({ goedId: goed.id, hoeveelheid, koopPrijs: prijs });
+            npc.ladingGewicht += hoeveelheid * gewichtPerUnit;
+            resterend -= hoeveelheid * gewichtPerUnit;
+
+            // Verminder marktvoorraad
+            if (this.planetVoorraden[planeetId]) {
+                this.planetVoorraden[planeetId][goed.id] = Math.max(0, voorraad - hoeveelheid);
+            }
+
+            aankopen.push({ goed, hoeveelheid, prijs });
+        }
+
+        return aankopen;
     }
 
     aankomst() {
@@ -609,6 +758,11 @@ class GameState {
             this.marketingActief = null;
         }
         this.genereerPassagiersVoorPlaneet(this.locatie, bonusAantal, bonusPrijs);
+
+        // Concurrent aankomst events (gesorteerd: snelste concurrent eerst)
+        this.aankomstConcurrentEvents = (this._pendingConcurrentArrivalEvents || [])
+            .sort((a, b) => b.npcSnelheid - a.npcSnelheid);
+        this._pendingConcurrentArrivalEvents = [];
 
         // Planeet aankomst event
         const aankomstEvent = this._bepaalAankomstEvent();

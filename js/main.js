@@ -212,9 +212,8 @@ const App = {
                     UI.renderSpel();
                     if (state.fase === 'einde') {
                         UI.toonEindeScherm();
-                    } else if (state.huidigAankomstEvent) {
-                        UI.toonAankomstPopup(state.huidigAankomstEvent);
-                        state.huidigAankomstEvent = null;
+                    } else {
+                        this._toonAankomstEventQueue();
                     }
                 }, 1100);
             });
@@ -269,9 +268,8 @@ const App = {
                     UI.renderSpel();
                     if (state.fase === 'einde') {
                         UI.toonEindeScherm();
-                    } else if (state.huidigAankomstEvent) {
-                        UI.toonAankomstPopup(state.huidigAankomstEvent);
-                        state.huidigAankomstEvent = null;
+                    } else {
+                        this._toonAankomstEventQueue();
                     }
                 }, 1100);
             });
@@ -284,6 +282,16 @@ const App = {
         if (!el) return;
         el.textContent = tekst;
         el.className = 'reis-status ' + (klasse || '');
+    },
+
+    _toonAankomstEventQueue() {
+        if (state.aankomstConcurrentEvents?.length > 0) {
+            const evt = state.aankomstConcurrentEvents.shift();
+            UI.toonConcurrentAankomstPopup(evt, () => this._toonAankomstEventQueue());
+        } else if (state.huidigAankomstEvent) {
+            UI.toonAankomstPopup(state.huidigAankomstEvent);
+            state.huidigAankomstEvent = null;
+        }
     },
 
     // =========================================================================
