@@ -1594,9 +1594,9 @@ const UI = {
             totaleKosten += kosten;
             return `<tr>
                 <td>${a.icoon} ${a.naam}</td>
-                <td class="pt-r">${bezit}</td>
-                <td class="pt-r">${gemAank} cr</td>
-                <td class="pt-r">${koers} cr</td>
+                <td class="pt-r">${bezit} stuks</td>
+                <td class="pt-r">${gemAank} credits</td>
+                <td class="pt-r">${koers} credits</td>
                 <td class="pt-r ${rendKlas}">${rend >= 0 ? '+' : ''}${state.formatteerKrediet(rend)}<br><span style="font-size:0.85em">${rend >= 0 ? '+' : ''}${rendPct}%</span></td>
             </tr>`;
         });
@@ -1607,7 +1607,7 @@ const UI = {
 
         return `<div class="portfolio-tabel-wrap">
             <table class="portfolio-tabel">
-                <thead><tr><th>Asset</th><th class="pt-r">Aantal</th><th class="pt-r">Gem. aank.</th><th class="pt-r">Koers</th><th class="pt-r">Rendement</th></tr></thead>
+                <thead><tr><th>Asset</th><th class="pt-r">Aantal</th><th class="pt-r">Gemiddelde aankoopprijs</th><th class="pt-r">Koers</th><th class="pt-r">Rendement</th></tr></thead>
                 <tbody>${rijen.join('')}</tbody>
             </table>
             <div class="portfolio-totalen">
