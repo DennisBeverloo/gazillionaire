@@ -971,7 +971,7 @@ const UI = {
 
     _renderAgria() {
         const veiling = state.agriaVeiling;
-        let html = `<div class="planeet-dienst-blok">
+        let html = `<div class="planeet-dienst-blok planeet-blok-vol-breed">
             <div class="sectie-header">🔨 Agria Oogstveiling</div>`;
 
         if (!veiling) {
@@ -982,6 +982,9 @@ const UI = {
             const benodigdGewicht = veiling.hoeveelheid * veiling.goedGewicht;
             const vrijeRuimte     = state.schip.laadruimte - state.getLadingGewicht();
             const ruimteWaarschuwing = vrijeRuimte < benodigdGewicht;
+            const marktprijsPerStuk  = state.getPrijs('agria', veiling.goedId);
+            const totaleMarktwaarde  = marktprijsPerStuk * veiling.hoeveelheid;
+            const minPerStuk         = Math.round(veiling.minimumprijs / veiling.hoeveelheid);
 
             html += `<p class="kleur-dimmed" style="font-size:0.83em;margin:4px 0 12px">
                 Gesloten bod — iedereen biedt éénmalig tegelijk. Hoogste bieder wint het lot.
@@ -993,7 +996,13 @@ const UI = {
             </div>
             <div class="planeet-dienst-rij">
                 <span class="label">🏷 Minimumprijs</span>
-                <span class="waarde kleur-goud">${state.formatteerKrediet(veiling.minimumprijs)}</span>
+                <span class="waarde kleur-goud">${state.formatteerKrediet(veiling.minimumprijs)}
+                    <span class="kleur-dimmed" style="font-size:0.85em">(${state.formatteerKrediet(minPerStuk)}/stuk)</span></span>
+            </div>
+            <div class="planeet-dienst-rij">
+                <span class="label">📊 Marktwaarde</span>
+                <span class="waarde">${state.formatteerKrediet(totaleMarktwaarde)}
+                    <span class="kleur-dimmed" style="font-size:0.85em">(${state.formatteerKrediet(marktprijsPerStuk)}/stuk)</span></span>
             </div>
             <div class="planeet-dienst-rij">
                 <span class="label">💰 Jouw credits</span>
