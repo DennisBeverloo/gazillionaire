@@ -256,7 +256,20 @@ class GameState {
     getPrijs(planeetId, goedId) {
         const basis = this.planetPrijzen[planeetId]?.[goedId] ?? 0;
         const mod = this.marktModifiers?.[planeetId]?.[goedId] ?? 1.0;
-        return mod === 1.0 ? basis : Math.max(5, Math.round(basis * mod));
+        const naBasisMod = mod === 1.0 ? basis : Math.max(5, Math.round(basis * mod));
+
+        // Voorraad-modifier: lage voorraad → hogere prijs, hoge voorraad → lagere prijs
+        // Staat los van scheepsbonussen, planetkortingen en event-effecten
+        const voorraad = this.planetVoorraden?.[planeetId]?.[goedId];
+        if (voorraad === undefined) return naBasisMod;
+        const planeet = PLANETEN.find(p => p.id === planeetId);
+        const range = planeet?.specialiteit?.includes(goedId) ? VOORRAAD_SPEC
+                    : planeet?.vraag?.includes(goedId)        ? VOORRAAD_VRAAG
+                    : VOORRAAD_BASIS;
+        const stockRatio = Math.max(0, Math.min(1, (voorraad - range.min) / (range.max - range.min)));
+        // stockRatio 0 = minimale voorraad (+30% prijs), 0.5 = normaal, 1 = vol (−25% prijs)
+        const voorraadMod = 1.0 + 0.30 * (1 - 2 * stockRatio);
+        return Math.max(5, Math.round(naBasisMod * voorraadMod));
     }
 
     _pasMarktAan(planeetId, goedId, delta) {
