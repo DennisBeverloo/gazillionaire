@@ -1872,15 +1872,11 @@ class GameState {
 
             case 'kosmische_wolk': {
                 const schade = 12;
-                if (this.verzekering?.actief) {
-                    resultaat.bericht = `Corrosieve gaswolk! Je romp wordt geraakt, maar de schade is beperkt.`;
-                    resultaat.verzekeringsInfo = { gedekt: true, uitkering: null };
-                } else {
-                    this.schipHP = Math.max(1, this.schipHP - schade);
-                    resultaat.schade = true;
-                    resultaat.bericht = `Corrosieve gaswolk! Buitenbeplating aangetast. −${schade} HP. Schip: ${this.schipHP} HP.`;
-                    resultaat.verzekeringsInfo = { gedekt: false };
-                }
+                this.schipHP = Math.max(1, this.schipHP - schade);
+                resultaat.schade = true;
+                resultaat.bericht = `Corrosieve gaswolk! Buitenbeplating aangetast. −${schade} HP. Schip: ${this.schipHP} HP.`;
+                const reparatieKosten = schade * 12; // standaard tarief per HP (niet-Techton)
+                resultaat.verzekeringsInfo = this._verzekeringsUitkering(reparatieKosten);
                 break;
             }
 
