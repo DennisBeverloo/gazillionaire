@@ -190,6 +190,7 @@ const UI = {
 
         // Inhoud altijd renderen maar verbergen als er geen bestemming is (behoudt hoogte)
         const verbergStijl = dest ? '' : 'visibility:hidden';
+        const preflightHtml = dest ? this._renderPreflightHtml(this._preflightItems(dest)) : '';
 
         container.innerHTML = `<div class="bestemming-paneel">
             <div class="bestemming-inhoud" style="${verbergStijl}">
@@ -211,6 +212,7 @@ const UI = {
                         : dest ? `<span class="kleur-rood">✗ tekort: ${brandstofNodig - state.brandstof} l</span>` : ''}
                     </div>
                 </div>` : ''}
+                ${preflightHtml}
             </div>
             <button class="knop ${dest && heeftGenoeg ? 'primair' : dest ? 'gevaar' : 'dimmed'}"
                     style="width:100%;padding:10px 0;margin-top:8px"
@@ -218,6 +220,80 @@ const UI = {
                 ${dest ? `🚀 Reis naar ${dest.naam} →` : 'Selecteer bestemming'}
             </button>
         </div>`;
+    },
+
+    // =========================================================================
+    // PRE-FLIGHT CHECKLIST
+    // =========================================================================
+
+    _preflightItems(dest) {
+        const items = [];
+
+        // Goederen (basis — altijd zichtbaar)
+        const geladen = state.getLadingGewicht?.() ?? 0;
+        const maxLading = state.schip?.laadruimte ?? 0;
+        let cargoStatus;
+        if (geladen === 0) cargoStatus = 'open';
+        else if (maxLading > 0 && geladen >= maxLading) cargoStatus = 'groen';
+        else cargoStatus = 'oranje';
+        items.push({ label: 'Goederen geladen', status: cargoStatus });
+
+        // Passagiers (passagiers unlocked)
+        if (state.isUnlocked('passagiers')) {
+            const pax = state.passagiers ?? 0;
+            const maxPax = state.schip?.passagiersCapaciteit ?? 0;
+            if (maxPax > 0) {
+                let paxStatus;
+                if (pax === 0) paxStatus = 'open';
+                else if (pax >= maxPax) paxStatus = 'groen';
+                else paxStatus = 'oranje';
+                items.push({ label: 'Passagiers aan boord', status: paxStatus });
+            }
+        }
+
+        // Brandstof (brandstof unlocked)
+        if (state.isUnlocked('brandstof')) {
+            const brandstof = state.brandstof ?? 0;
+            const maxBrandstof = state.schip?.brandstofTank ?? 0;
+            let fuelStatus;
+            if (dest) {
+                const nodig = state.berekenBrandstofVerbruik(state.locatie, dest.id);
+                fuelStatus = brandstof >= nodig ? 'groen' : 'rood';
+            } else {
+                const pct = maxBrandstof > 0 ? brandstof / maxBrandstof : 1;
+                if (pct >= 0.75) fuelStatus = 'groen';
+                else if (pct >= 0.3) fuelStatus = 'oranje';
+                else fuelStatus = 'rood';
+            }
+            items.push({ label: 'Brandstof voldoende', status: fuelStatus });
+        }
+
+        // Verzekering (verzekering unlocked)
+        if (state.isUnlocked('verzekering')) {
+            items.push({ label: 'Verzekering actief', status: state.verzekering?.actief ? 'groen' : 'open' });
+        }
+
+        // Marketing (marketing unlocked)
+        if (state.isUnlocked('marketing')) {
+            let mktStatus = 'open';
+            if (state.marketingActief) {
+                mktStatus = (!dest || state.marketingActief.planeet === dest.id) ? 'groen' : 'oranje';
+            }
+            items.push({ label: 'Marketing opgezet', status: mktStatus });
+        }
+
+        return items;
+    },
+
+    _renderPreflightHtml(items) {
+        if (items.length === 0) return '';
+        const DOT   = { groen: '●', oranje: '●', rood: '●', open: '○' };
+        const KLEUR = { groen: 'var(--groen)', oranje: 'var(--oranje)', rood: 'var(--rood)', open: 'var(--tekst-dim)' };
+        const rows = items.map(it => `<div class="preflight-item">
+            <span class="preflight-dot" style="color:${KLEUR[it.status]}">${DOT[it.status]}</span>
+            <span class="${it.status === 'open' ? 'kleur-dimmed' : ''}">${it.label}</span>
+        </div>`).join('');
+        return `<div class="preflight-checklist"><div class="preflight-titel">Pre-flight</div>${rows}</div>`;
     },
 
     // =========================================================================

@@ -1918,6 +1918,33 @@ body[data-planeet="mortex"]  { --planet-accent: #8b0000; }
     border: 1px solid rgba(255,56,85,0.3);
 }
 
+/* ===== PRE-FLIGHT CHECKLIST ===== */
+.preflight-checklist {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255,255,255,0.07);
+}
+.preflight-titel {
+    font-size: 0.72em;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--tekst-dim);
+    margin-bottom: 4px;
+}
+.preflight-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.82em;
+    padding: 2px 0;
+}
+.preflight-dot {
+    font-size: 0.75em;
+    width: 12px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
 /* ===== BEURS: portfolio info per kaart ===== */
 .aandeel-portfolio-info {
     border-top: 1px solid var(--rand);

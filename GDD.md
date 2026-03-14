@@ -548,6 +548,20 @@ Progressief feature-unlocken op basis van beurtnummer:
 | 20 | planeet_diensten | Planeet-specifieke intro-dialogen |
 | 24 | missies | Missie-systeem |
 
+### Pre-flight Checklist
+
+Een compacte statuslijst in het bestemmingspaneel (rechterzijbalk) die verschijnt zodra de speler een bestemming selecteert. Toont de voorbereiding voor vertrek:
+
+| Item | Feature vereist | Groen | Oranje | Rood | Open |
+|---|---|---|---|---|---|
+| Goederen geladen | basis | Laadruimte vol | Deels geladen | — | Leeg |
+| Passagiers aan boord | passagiers | Capaciteit vol | Deels bezet | — | Geen |
+| Brandstof voldoende | brandstof | Genoeg voor rit | — | Tekort | — |
+| Verzekering actief | verzekering | Actief | — | — | Niet actief |
+| Marketing opgezet | marketing | Campagne voor deze bestemming | Campagne voor andere bestemming | — | Geen campagne |
+
+Items zijn alleen zichtbaar als de bijbehorende tutorial-feature unlocked is.
+
 ---
 
 ## 16. Missies
@@ -583,6 +597,7 @@ Bij elke landing worden nieuwe beschikbare missies gegenereerd (maximaal 3 actie
 | Mark III = specialisatiekeuze (v5.0.0) | Dwingt strategische beslissing; versterkt route-identiteit |
 | Scheepswerf exclusief op Techton (v5.0.0) | Nexoria en Techton hadden overlappende rollen |
 | Scheepstype permanent (v5.0.0) | Voorkomt vroeg switchen om beste combinatie te pakken |
+| Pre-flight checklist in bestemmingspaneel (v5.3.2) | Geeft speler directe feedback over reisvoorbereiding zonder extra navigatie |
 | Marketing koppelt aan geselecteerde bestemming (v5.1.x) | Verwijdert extra stap van aparte bestemmingskeuze |
 | Marketing vervalt bij elke aankomst (v5.1.x) | Voorkomt ophopen van campagnes |
 | Uitgesteld markteffect bij kopen/verkopen (v5.2.x) | Voorkomt arbitrage: marktimpact geflusht bij vertrek |

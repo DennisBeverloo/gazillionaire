@@ -62,6 +62,9 @@ Wanneer om een tooltip gevraagd wordt, gebruik altijd een **gestylde custom tool
 3. Vul `#top-tooltip` met HTML via `tooltip.innerHTML = ...` en positioneer via `this._positioneerTooltip(tooltip, el)`
 4. Gebruik de bestaande CSS-klassen `.tt-label`, `.tt-rij`, `.tt-waarde` etc. voor opmaak
 
+## GDD bijwerken — verplicht bij elke feature of ontwerpwijziging
+Bij elke commit waarbij een nieuwe feature, mechanic of UX-wijziging wordt geïmplementeerd, **moet `GDD.md` worden bijgewerkt** zodat het document altijd de actuele spelstatus weerspiegelt. Voeg `GDD.md` altijd toe aan de commit als er iets relevants is veranderd.
+
 ## Cache buster — verplicht bij elke CSS of JS wijziging
 Bij elke commit waarbij CSS of JavaScript is gewijzigd, moet de cache buster worden opgehoogd. Doe dit op **twee plaatsen**:
 
