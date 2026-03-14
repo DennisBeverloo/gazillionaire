@@ -2045,6 +2045,7 @@ const UI = {
         document.getElementById('event-titel').textContent = event.naam;
         document.getElementById('event-beschrijving').textContent = event.beschrijving;
         document.getElementById('event-gevolg').textContent = '';
+        this._toonEventMarketingMelding(null);
         this._toonEventVerzekering(null);
 
         const knoppen = document.getElementById('event-knoppen');
@@ -2118,6 +2119,7 @@ const UI = {
             // Automatische afhandeling — verwerk direct en toon resultaat
             const res = state.verwerkevent(event.id, null);
             if (res.bericht) document.getElementById('event-gevolg').textContent = res.bericht;
+            this._toonEventMarketingMelding(res.marketingGemist ?? null);
             this._toonEventVerzekering(res.verzekeringsInfo ?? null);
 
             // Update bestemmingsweergave bij omleiding
@@ -2171,6 +2173,7 @@ const UI = {
     verbergEventPopup() {
         document.getElementById('event-popup').classList.add('verborgen');
         document.getElementById('event-gevolg').textContent = '';
+        this._toonEventMarketingMelding(null);
         this._toonEventVerzekering(null);
     },
 
@@ -2255,9 +2258,18 @@ const UI = {
         document.getElementById('instellingen-overlay')?.classList.add('verborgen');
     },
 
-    toonEventResultaat(bericht, verzekeringsInfo) {
+    toonEventResultaat(bericht, verzekeringsInfo, marketingGemist) {
         document.getElementById('event-gevolg').textContent = bericht;
+        this._toonEventMarketingMelding(marketingGemist ?? null);
         this._toonEventVerzekering(verzekeringsInfo);
+    },
+
+    _toonEventMarketingMelding(info) {
+        const el = document.getElementById('event-marketing-melding');
+        if (!el) return;
+        if (!info) { el.textContent = ''; el.style.display = 'none'; return; }
+        el.style.display = '';
+        el.textContent = `📢 Je marketingcampagne was gericht op ${info.planeetNaam} — door de omleiding vervalt de bonus voor extra passagiers en goederen.`;
     },
 
     _toonEventVerzekering(info) {

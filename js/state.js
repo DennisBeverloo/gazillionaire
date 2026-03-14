@@ -1553,6 +1553,9 @@ class GameState {
                     resultaat.bericht = eventId === 'haven_gesloten'
                         ? `De haven van ${geplandNaam} is gesloten vanwege quarantaine. Noodkoers naar ${nieuwDoel.naam}!`
                         : `Kritische motorstoringen! Noodlanding op ${nieuwDoel.naam} — ${geplandNaam} is niet meer haalbaar.`;
+                    if (this.marketingActief) {
+                        resultaat.marketingGemist = { planeetNaam: geplandNaam };
+                    }
                 } else {
                     resultaat.bericht = 'Problemen onderweg, maar er is geen alternatieve bestemming beschikbaar.';
                 }
