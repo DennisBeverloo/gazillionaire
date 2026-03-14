@@ -232,6 +232,11 @@ class GameState {
         for (const stap of TUTORIAL_STAPPEN) {
             if (stap.beurt <= this.beurt && !this.unlockedFeatures.has(stap.feature)) {
                 this.unlockedFeatures.add(stap.feature);
+                // Reset feature-specific state zodat het pas vanaf unlock meedraait
+                if (stap.feature === 'bemanning' && this.crew) {
+                    this.crew.volgendeBetaalBeurt = this.beurt + CREW_BETAAL_INTERVAL;
+                    this.crew.happiness = 75;
+                }
                 if (stap.dialoog && !this.getoondeTutorialDialogen.has(stap.feature)) {
                     this.getoondeTutorialDialogen.add(stap.feature);
                     this._pendingTutorialDialogen.push(stap);
