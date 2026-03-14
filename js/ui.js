@@ -2139,6 +2139,7 @@ const UI = {
             btn.onclick = () => {
                 this.verbergEventPopup();
                 if (state.fase === 'einde') { UI.toonEindeScherm(); return; }
+                UI._deferToastsAankomst = true;
                 const aankomstResult = state.aankomst();
                 if (aankomstResult?.passagiersInfo) {
                     const pi = aankomstResult.passagiersInfo;
@@ -2152,10 +2153,11 @@ const UI = {
                         UI.toonScherm('spel-scherm');
                         state.activeTab = 'handel';
                         UI.renderSpel();
+                        UI.spoelAankomstToasts();
                         if (state.fase === 'einde') {
                             UI.toonEindeScherm();
                         } else {
-                            App._toonAankomstEventQueue();
+                            App._verwerkTutorialDialogen(() => App._toonAankomstEventQueue());
                         }
                     }, 1100);
                 });
