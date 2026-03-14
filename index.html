@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gazillionaire</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>">
-    <link rel="stylesheet" href="style.css?v=5.0.0">
+    <link rel="stylesheet" href="style.css?v=5.3.1">
 </head>
 <body>
 
@@ -43,9 +43,14 @@
             <label for="speler-naam">Jouw naam:</label>
             <input type="text" id="speler-naam" placeholder="Kapitein..." maxlength="24" autocomplete="off">
         </div>
+        <div class="tutorial-skip-rij">
+            <label class="tutorial-skip-label">
+                <input type="checkbox" id="skip-tutorial"> Sla tutorial over (alles direct beschikbaar)
+            </label>
+        </div>
         <button class="knop primair groot" id="start-knop">Begin de reis &rarr;</button>
     </div>
-    <span class="versie-label">v5.0.0</span>
+    <span class="versie-label">v5.3.1</span>
 </div>
 
 <!-- ============================================================
@@ -54,7 +59,7 @@
 <div id="schip-selectie-scherm" class="scherm">
     <div class="selectie-inhoud">
         <h2>Kies je Schip</h2>
-        <p>Je begint met <strong class="kleur-goud">10.000 credits</strong>. Het resterende bedrag is je startkapitaal voor de handel.</p>
+        <p>Je begint met <strong class="kleur-goud">25.000 credits</strong>. Het resterende bedrag is je startkapitaal voor de handel.</p>
         <div id="schip-opties" class="schip-raster"></div>
     </div>
 </div>
@@ -73,17 +78,17 @@
         <span id="schip-naam-display">🚀 ---</span>
         <span class="scheidslijn">|</span>
         <span id="cargo-display">📦 0/0 ton</span>
-        <span class="scheidslijn">|</span>
+        <span id="passagiers-sep" class="scheidslijn">|</span>
         <span id="passagiers-display">🧳 0/0</span>
-        <span class="scheidslijn">|</span>
+        <span id="brandstof-sep" class="scheidslijn">|</span>
         <span id="brandstof-display">⛽ 0/0 l</span>
         <span class="scheidslijn">|</span>
         <span id="krediet-display">💰 0 credits</span>
         <span id="beurt-display" style="margin-left:auto">Beurt 0/150</span>
-        <button class="top-nav-knop" onclick="App.switchTab('logboek')" title="Reislogboek — alle gebeurtenissen en berichten">📋</button>
-        <button class="top-nav-knop" onclick="App.switchTab('ranglijst')" title="Ranglijst — de rijkste handelaars">🏅</button>
-        <button class="top-nav-knop" onclick="App.switchTab('achievements')" title="Prestaties — behaalde achievements">🏆</button>
-        <button class="top-instellingen-knop" onclick="UI.toonInstellingen()" title="Instellingen">⚙</button>
+        <button id="nav-logboek" class="top-nav-knop" onclick="App.switchTab('logboek')">📋</button>
+        <button id="nav-ranglijst" class="top-nav-knop" onclick="App.switchTab('ranglijst')">🏅</button>
+        <button id="nav-achievements" class="top-nav-knop" onclick="App.switchTab('achievements')">🏆</button>
+        <button id="nav-instellingen" class="top-instellingen-knop" onclick="UI.toonInstellingen()">⚙</button>
     </div>
 
     <!-- Hoofd inhoud: links tabs + berichten, rechts kaart + schipstatus -->
@@ -95,7 +100,7 @@
                 <button class="tab actief" data-tab="handel">⚖ Handel</button>
                 <button class="tab" data-tab="haven">🛸 Ruimtehaven</button>
                 <button class="tab" data-tab="financien">💶 Financiën</button>
-                <button class="tab tab-planeet" data-tab="planeet" id="planeet-tab-knop">🪐 Planeet</button>
+                <button class="tab" data-tab="missies">🎯 Missies</button>
             </div>
             <div id="tab-inhoud">
                 <div id="handel-tab"       class="tab-paneel actief"></div>
@@ -105,6 +110,7 @@
                 <div id="ranglijst-tab"    class="tab-paneel"></div>
                 <div id="achievements-tab" class="tab-paneel"></div>
                 <div id="planeet-tab"      class="tab-paneel"></div>
+                <div id="missies-tab"     class="tab-paneel"></div>
             </div>
             <!-- Berichten balk onderin het linker paneel -->
             <div id="berichten-balk">
@@ -112,11 +118,12 @@
             </div>
         </div>
 
-        <!-- Rechts: planeetinfo + melkwegkaart + schipstatus -->
+        <!-- Rechts: planeetinfo + ga-naar-knop + minimap + bestemming -->
         <div id="zij-paneel">
             <div id="planeet-info-container"></div>
+            <button id="planeet-ga-naar-knop" onclick="App.switchTab('planeet')">🪐 Ga naar planeet</button>
             <div id="kaart-container">
-                <h3>Melkwegkaart</h3>
+                <h3>Bestemming</h3>
                 <svg id="galaxy-kaart" viewBox="0 0 296 200" preserveAspectRatio="xMidYMid meet"></svg>
             </div>
             <div id="bestemming-paneel-container"></div>
@@ -197,6 +204,19 @@
 </div>
 
 <!-- ============================================================
+     MARKETING SUMMARY POPUP
+     ============================================================ -->
+<div id="marketing-summary-popup" class="verborgen">
+    <div class="popup-inhoud aankomst-popup-inhoud">
+        <span class="event-icoon">📢</span>
+        <h3>Je campagne heeft zijn vruchten afgeworpen!</h3>
+        <p><strong id="marketing-summary-passagiers"></strong> extra passagiers wachten op je</p>
+        <p><strong id="marketing-summary-resources"></strong> ton extra goederen beschikbaar</p>
+        <button class="knop primair" onclick="UI.verbergMarketingSummary()">Geweldig! →</button>
+    </div>
+</div>
+
+<!-- ============================================================
      INSTELLINGEN MODAL (overlay, buiten alle schermen)
      ============================================================ -->
 <div id="instellingen-overlay" class="verborgen">
@@ -230,6 +250,16 @@
     </div>
 </div>
 
+<!-- Tutorial dialog overlay -->
+<div id="tutorial-overlay" class="verborgen">
+    <div class="tutorial-modal">
+        <div class="tutorial-icoon">🎓</div>
+        <h3 id="tutorial-titel"></h3>
+        <p id="tutorial-tekst"></p>
+        <button class="knop primair" id="tutorial-sluit">Begrepen! →</button>
+    </div>
+</div>
+
 <!-- Top balk tooltip -->
 <div id="top-tooltip" class="top-tooltip verborgen"></div>
 
@@ -241,10 +271,10 @@
 <script src="js/audio.js"></script>
 <script src="js/config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="js/data.js?v=5.0.0"></script>
-<script src="js/state.js?v=5.0.0"></script>
-<script src="js/ui.js?v=5.0.0"></script>
-<script src="js/db.js?v=5.0.0"></script>
-<script src="js/main.js?v=5.0.0"></script>
+<script src="js/data.js?v=5.3.1"></script>
+<script src="js/state.js?v=5.3.1"></script>
+<script src="js/ui.js?v=5.3.1"></script>
+<script src="js/db.js?v=5.3.1"></script>
+<script src="js/main.js?v=5.3.1"></script>
 </body>
 </html>

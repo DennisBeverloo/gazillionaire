@@ -7,6 +7,12 @@ const START_KREDIET = 25000;
 const MAX_SCHULD = 8000;
 const RENTE_PERCENTAGE = 0.05;
 const RENTE_INTERVAL = 20;
+const CREW_BETAAL_INTERVAL = 7; // crew betaling elke week (7 beurten)
+
+// Voorraadbereiken per planeet per goed
+const VOORRAAD_BASIS = { min: 25, max: 80 };
+const VOORRAAD_SPEC  = { min: 60, max: 150 }; // specialiteit: meer voorraad
+const VOORRAAD_VRAAG = { min: 8,  max: 30  }; // hoge vraag: weinig voorraad
 
 class GameState {
     constructor() {
@@ -68,20 +74,60 @@ class GameState {
         // Marketing
         this.marketingActief = null;        // { planeet: planeetId, kosten } of null
 
+        // Marktmodifiers (koop/verkoop impact) — pas toegepast bij vertrek
+        this.marktModifiers = {};           // { planeetId: { goedId: multiplier } }
+        this._visitMarktSaldo = {};         // { goedId: delta } — wordt geflusht bij reisNaar()
+
+        this.planetVoorraden = {}; // { planeetId: { goedId: aantal } }
+
+        // Missies
+        this.missies = [];                  // actieve/geaccepteerde missies
+        this.beschikbareMissies = [];       // gegenereerde maar nog niet geaccepteerd
+        this._missieIdTeller = 0;
+
         // Agria veiling
         this.agriaVeiling = null;
+
+        // Tutorial systeem
+        this.tutorialActief = true;
+        this.unlockedFeatures = new Set(['basis']);
+        this.getoondeTutorialDialogen = new Set();
+        this.planeetDienstenIntro = new Set();
+        this._pendingTutorialDialogen = [];
 
         // Verzekering
         this.verzekering = null;            // null of { actief: true }
 
+        // Crew
+        this.crew = {
+            grootte: 0,         // aantal bemanningsleden
+            salaris: 100,       // cr/pp per betaalperiode (CREW_BETAAL_INTERVAL beurten)
+            happiness: 75,      // 0-100
+            volgendeBetaalBeurt: CREW_BETAAL_INTERVAL, // beurt waarop volgende betaling verschuldigd is
+            casinoBeurt: -99,   // beurt van laatste casino-uitje
+        };
+
         // Concurrenten
-        this.concurrenten = [];             // [{id, locatie, krediet, waardeGeschiedenis}]
+        this.concurrenten = [];             // [{id, locatie, krediet, waardeGeschiedenis, lading, reisdoel, schipTier}]
         this.nettoWaardeGeschiedenisSpeler = [];
+        this.aankomstConcurrentEvents = [];
+        this._pendingConcurrentArrivalEvents = [];
 
         // Passagiers
         this.passagiers = 0;               // aantal aan boord (int)
         this.passagiersTicketprijs = 0;    // prijs per passagier voor huidige rit
         this.wachtendePassagiers = {};     // {planeetId: { aantal: int, prijs: int }}
+        this.ticketNiveau = 'midden';      // 'laag' | 'midden' | 'hoog'
+
+        // Bank spaarrekening
+        this.bankSaldo = 0;
+        this.bankRente = 2;     // percentage per beurt (start 2%, min 0, max 5)
+        this.bankBevroren = 0;  // beurten resterend dat transacties geblokkeerd zijn
+
+        // Kredietlimiet (kan verhoogd worden via event)
+        this.maxSchuld = MAX_SCHULD;
+        this._insiderBoost = null;         // { aandeelId, beurten }
+        this._noodoproepBonus = false;      // pending arrival bonus from noodoproep_passagier
 
         // Brandstof
         this.brandstof = 0;                 // huidige brandstof
@@ -100,15 +146,56 @@ class GameState {
         this.schip = { ...schipTemplate };
         this.speler.krediet -= schipTemplate.prijs;
         this.schipHP = schipTemplate.maxHP;
+        this.crew.grootte = CREW_PER_SCHIP[schipId] ?? 3;
+        this.crew.volgendeBetaalBeurt = CREW_BETAAL_INTERVAL; // eerste betaling over 7 beurten
         this.fase = 'spel';
         this.initPrijzen();
         this.initAandelen();
         this.initPassagiers();
         this.initBrandstof();
         this._initConcurrenten();
+        this._initPlanetVoorraden();
         this.nettoWaardeGeschiedenisSpeler = [this.berekenNettowaarde()];
         this.voegBerichtToe(`Welkom, ${this.speler.naam}! Je reis begint op Nexoria. Veel handelsgeluk!`, 'info');
         this.voegBerichtToe(`Je hebt een ${schipTemplate.naam} gekocht voor ${this.formatteerKrediet(schipTemplate.prijs)}`, 'goud');
+
+        // Tutorial: toepassen voorkeur uit localStorage (skip = alles direct unlocked)
+        const tutSkip = typeof localStorage !== 'undefined' && localStorage.getItem('gazillionaire_tutorial') === 'skip';
+        if (tutSkip) {
+            this.tutorialActief = false;
+            if (typeof TUTORIAL_STAPPEN !== 'undefined') {
+                TUTORIAL_STAPPEN.forEach(s => this.unlockedFeatures.add(s.feature));
+            }
+        }
+    }
+
+    _initPlanetVoorraden() {
+        this.planetVoorraden = {};
+        PLANETEN.forEach(p => {
+            this.planetVoorraden[p.id] = {};
+            GOEDEREN.forEach(g => {
+                const range = p.specialiteit?.includes(g.id) ? VOORRAAD_SPEC
+                            : p.vraag?.includes(g.id)        ? VOORRAAD_VRAAG
+                            : VOORRAAD_BASIS;
+                this.planetVoorraden[p.id][g.id] =
+                    Math.floor(Math.random() * (range.max - range.min + 1)) + range.min;
+            });
+        });
+    }
+
+    _schommelVoorraden() {
+        PLANETEN.forEach(p => {
+            if (!this.planetVoorraden[p.id]) return;
+            GOEDEREN.forEach(g => {
+                const range = p.specialiteit?.includes(g.id) ? VOORRAAD_SPEC
+                            : p.vraag?.includes(g.id)        ? VOORRAAD_VRAAG
+                            : VOORRAAD_BASIS;
+                const delta = Math.floor(Math.random() * 13) - 4; // -4 tot +8
+                const huidig = this.planetVoorraden[p.id][g.id] ?? range.min;
+                this.planetVoorraden[p.id][g.id] =
+                    Math.max(range.min, Math.min(range.max, huidig + delta));
+            });
+        });
     }
 
     _initConcurrenten() {
@@ -120,8 +207,37 @@ class GameState {
                 locatie: startPlaneet,
                 krediet: c.startKrediet,
                 waardeGeschiedenis: [c.startKrediet],
+                lading: [],
+                ladingGewicht: 0,
+                reisdoel: null,
+                schipTier: 1,
             };
         });
+    }
+
+    // =========================================================================
+    // TUTORIAL SYSTEEM
+    // =========================================================================
+
+    // Geeft true als de feature beschikbaar is (altijd true als tutorial uitgeschakeld)
+    isUnlocked(featureId) {
+        if (!this.tutorialActief) return true;
+        return this.unlockedFeatures.has(featureId);
+    }
+
+    // Unlock nieuwe features op basis van huidige beurt; vul _pendingTutorialDialogen
+    checkTutorialUnlocks() {
+        if (!this.tutorialActief) return;
+        if (typeof TUTORIAL_STAPPEN === 'undefined') return;
+        for (const stap of TUTORIAL_STAPPEN) {
+            if (stap.beurt <= this.beurt && !this.unlockedFeatures.has(stap.feature)) {
+                this.unlockedFeatures.add(stap.feature);
+                if (stap.dialoog && !this.getoondeTutorialDialogen.has(stap.feature)) {
+                    this.getoondeTutorialDialogen.add(stap.feature);
+                    this._pendingTutorialDialogen.push(stap);
+                }
+            }
+        }
     }
 
     // =========================================================================
@@ -197,7 +313,44 @@ class GameState {
     }
 
     getPrijs(planeetId, goedId) {
-        return this.planetPrijzen[planeetId]?.[goedId] ?? 0;
+        const basis = this.planetPrijzen[planeetId]?.[goedId] ?? 0;
+        const mod = this.marktModifiers?.[planeetId]?.[goedId] ?? 1.0;
+        const naBasisMod = mod === 1.0 ? basis : Math.max(5, Math.round(basis * mod));
+
+        // Voorraad-modifier: lage voorraad → hogere prijs, hoge voorraad → lagere prijs
+        // Staat los van scheepsbonussen, planetkortingen en event-effecten
+        const voorraad = this.planetVoorraden?.[planeetId]?.[goedId];
+        if (voorraad === undefined) return naBasisMod;
+        const planeet = PLANETEN.find(p => p.id === planeetId);
+        const range = planeet?.specialiteit?.includes(goedId) ? VOORRAAD_SPEC
+                    : planeet?.vraag?.includes(goedId)        ? VOORRAAD_VRAAG
+                    : VOORRAAD_BASIS;
+        const stockRatio = Math.max(0, Math.min(1, (voorraad - range.min) / (range.max - range.min)));
+        // stockRatio 0 = minimale voorraad (+20% prijs), 0.5 = normaal, 1 = vol (−20% prijs)
+        const voorraadMod = 1.0 + 0.20 * (1 - 2 * stockRatio);
+        return Math.max(5, Math.round(naBasisMod * voorraadMod));
+    }
+
+    _pasMarktAan(planeetId, goedId, delta) {
+        if (!this.marktModifiers[planeetId]) this.marktModifiers[planeetId] = {};
+        const huidig = this.marktModifiers[planeetId][goedId] ?? 1.0;
+        const nieuw = Math.max(0.55, Math.min(1.45, huidig + delta));
+        this.marktModifiers[planeetId][goedId] = nieuw;
+    }
+
+    _vervalMarktModifiers() {
+        const vervalFactor = 0.88; // elke beurt 12% terug naar 1.0
+        for (const planeetId of Object.keys(this.marktModifiers ?? {})) {
+            for (const goedId of Object.keys(this.marktModifiers[planeetId])) {
+                const m = this.marktModifiers[planeetId][goedId];
+                const nieuw = 1.0 + (m - 1.0) * vervalFactor;
+                if (Math.abs(nieuw - 1.0) < 0.005) {
+                    delete this.marktModifiers[planeetId][goedId];
+                } else {
+                    this.marktModifiers[planeetId][goedId] = nieuw;
+                }
+            }
+        }
     }
 
     getTrend(planeetId, goedId) {
@@ -206,6 +359,116 @@ class GameState {
         if (huidig > vorig * 1.02) return 'op';
         if (huidig < vorig * 0.98) return 'neer';
         return 'gelijk';
+    }
+
+    // =========================================================================
+    // MISSIES
+    // =========================================================================
+
+    genereerMissies() {
+        // Genereer nieuwe beschikbare missies bij aankomst op planeet
+        const andereplaneten = PLANETEN.filter(p => p.id !== this.locatie);
+        const goederen = [...GOEDEREN];
+        const nieuweM = [];
+
+        // 2 cargo-missies
+        for (let i = 0; i < 2; i++) {
+            const goed = goederen[Math.floor(Math.random() * goederen.length)];
+            const bestemming = andereplaneten[Math.floor(Math.random() * andereplaneten.length)];
+            const hoeveelheid = 5 + Math.floor(Math.random() * 16); // 5–20 ton
+            const basisBeloning = Math.round(goed.basisPrijs * hoeveelheid * (0.4 + Math.random() * 0.4));
+            nieuweM.push({
+                id: ++this._missieIdTeller,
+                type: 'cargo',
+                goedId: goed.id,
+                goedNaam: goed.naam,
+                goedIcoon: goed.icoon,
+                hoeveelheid,
+                bestemmingId: bestemming.id,
+                bestemmingNaam: bestemming.naam,
+                beloning: basisBeloning,
+                deadline: this.beurt + 20 + Math.floor(Math.random() * 11),
+                actief: false,
+            });
+        }
+
+        // 1 VIP-missie (alleen als schip passagiersruimte heeft of altijd aanbieden)
+        const vipBestemming = andereplaneten[Math.floor(Math.random() * andereplaneten.length)];
+        const vipBeloning = 800 + Math.floor(Math.random() * 1201); // 800–2000
+        nieuweM.push({
+            id: ++this._missieIdTeller,
+            type: 'vip',
+            bestemmingId: vipBestemming.id,
+            bestemmingNaam: vipBestemming.naam,
+            beloning: vipBeloning,
+            deadline: this.beurt + 15 + Math.floor(Math.random() * 11),
+            actief: false,
+            vipAanBoord: false,
+        });
+
+        this.beschikbareMissies = nieuweM;
+    }
+
+    accepteerMissie(missieId) {
+        if ((this.missies?.length ?? 0) >= 3) return { succes: false, reden: 'Je hebt al 3 actieve missies.' };
+        const idx = this.beschikbareMissies.findIndex(m => m.id === missieId);
+        if (idx < 0) return { succes: false, reden: 'Missie niet gevonden.' };
+        const missie = this.beschikbareMissies[idx];
+
+        if (missie.type === 'vip') {
+            const cap = this.schip?.passagiersCapaciteit || 0;
+            if (cap === 0) return { succes: false, reden: 'Je schip heeft geen passagiersruimte voor een VIP.' };
+            if (this.passagiers >= cap) return { succes: false, reden: 'Geen vrije passagiersplaats.' };
+            this.passagiers++;
+            missie.vipAanBoord = true;
+        }
+
+        missie.actief = true;
+        this.missies.push(missie);
+        this.beschikbareMissies.splice(idx, 1);
+        const naam = missie.type === 'vip'
+            ? `VIP-transport naar ${missie.bestemmingNaam}`
+            : `${missie.goedIcoon} ${missie.hoeveelheid}t ${missie.goedNaam} → ${missie.bestemmingNaam}`;
+        this.voegBerichtToe(`🎯 Missie geaccepteerd: ${naam}. Beloning: ${this.formatteerKrediet(missie.beloning)}`, 'goud');
+        return { succes: true };
+    }
+
+    _controleerMissieVoltooiing() {
+        if (!this.missies?.length) return;
+        const voltooide = [];
+
+        this.missies = this.missies.filter(m => {
+            // Verlopen missies verwijderen
+            if (this.beurt > m.deadline) {
+                if (m.type === 'vip' && m.vipAanBoord) this.passagiers = Math.max(0, this.passagiers - 1);
+                this.voegBerichtToe(`⌛ Missie verlopen: ${m.type === 'vip' ? 'VIP-transport' : m.goedNaam} naar ${m.bestemmingNaam}`, 'gevaar');
+                return false;
+            }
+            // Cargo: check of we op bestemming zijn met genoeg lading
+            if (m.type === 'cargo' && m.bestemmingId === this.locatie) {
+                const inHold = this.lading[m.goedId] || 0;
+                if (inHold >= m.hoeveelheid) {
+                    this.lading[m.goedId] -= m.hoeveelheid;
+                    if (this.lading[m.goedId] === 0) delete this.aankoopPrijzen[m.goedId];
+                    this.aankoopAantallen[m.goedId] = Math.max(0, (this.aankoopAantallen[m.goedId] || 0) - m.hoeveelheid);
+                    const marktwaarde = this.getPrijs(this.locatie, m.goedId) * m.hoeveelheid;
+                    const totaal = marktwaarde + m.beloning;
+                    this.speler.krediet += totaal;
+                    this.voegBerichtToe(`🎯 Missie voltooid! ${m.goedIcoon} ${m.hoeveelheid}t ${m.goedNaam} afgeleverd. +${this.formatteerKrediet(totaal)} (incl. ${this.formatteerKrediet(m.beloning)} bonus)`, 'goud');
+                    voltooide.push(m);
+                    return false;
+                }
+            }
+            // VIP: check of we op bestemming zijn
+            if (m.type === 'vip' && m.bestemmingId === this.locatie && m.vipAanBoord) {
+                this.passagiers = Math.max(0, this.passagiers - 1);
+                this.speler.krediet += m.beloning;
+                this.voegBerichtToe(`🎯 VIP-missie voltooid! VIP afgeleverd op ${m.bestemmingNaam}. +${this.formatteerKrediet(m.beloning)}`, 'goud');
+                voltooide.push(m);
+                return false;
+            }
+            return true;
+        });
     }
 
     // =========================================================================
@@ -232,6 +495,15 @@ class GameState {
             return { succes: false, reden: `Onvoldoende brandstof! Nodig: ${verbruik}, Aanwezig: ${this.brandstof}` };
         }
         this.brandstof -= verbruik;
+        // Koppel marketingcampagne aan bestemming bij vertrek
+        if (this.marketingActief && !this.marketingActief.planeet) {
+            this.marketingActief.planeet = planeetId;
+        }
+        // Flush marktimpact van deze planeet bij vertrek
+        for (const [goedId, delta] of Object.entries(this._visitMarktSaldo)) {
+            if (Math.abs(delta) > 0.001) this._pasMarktAan(this.locatie, goedId, delta);
+        }
+        this._visitMarktSaldo = {};
         const eventId = this.genereerReisEvents(planeetId);
         this.reisData = {
             van: this.locatie,
@@ -252,9 +524,19 @@ class GameState {
         const eventKans = naarPlaneet?.isGevaarlijk ? 0.70 : 0.52;
         if (Math.random() > eventKans) return null;
 
-        const pool = EVENTS.filter(e => e.id !== 'niets');
+        // Tutorial: filter event-pool op unlocked fase
+        const pool = EVENTS.filter(e => {
+            if (e.id === 'niets' || e.id === 'crew_opstand') return false;
+            if (this.tutorialActief && typeof EVENT_UNLOCK_FASE !== 'undefined') {
+                const fase = EVENT_UNLOCK_FASE[e.id] ?? 'planeet_diensten';
+                if (!this.isUnlocked(fase)) return false;
+            }
+            return true;
+        });
+        if (pool.length === 0) return null; // geen events unlocked in tutorial
         const gevaarBonus = naarPlaneet?.isGevaarlijk ? 1.4 : 1.0;
         const totaal = pool.reduce((s, e) => s + e.kans * (e.type === 'gevaar' ? gevaarBonus : 1.0), 0);
+        if (totaal === 0) return null;
         const r = Math.random() * totaal;
         let acc = 0;
         for (const e of pool) {
@@ -270,12 +552,27 @@ class GameState {
 
         this.reisData.stap++;
         this.beurt++;
+        // Tutorial: unlock nieuwe features op basis van nieuwe beurt
+        this.checkTutorialUnlocks();
         this.updatePrijzen(this.reisData.naar);
         this.updateAandeelKoersen();
         this.updateBrandstofPrijzen();
         this.controleerRente();
+        this.controleerCrew();
+        this._vervalMarktModifiers();
+        this._schommelVoorraden();
 
         this._simuleerConcurrenten();
+
+        // Crew-opstand: prioriteit boven gepland event als happiness kritiek laag is
+        // Tutorial: alleen als bemanning-feature unlocked is
+        if (this.isUnlocked('bemanning') && (this.crew?.grootte ?? 0) > 0 && (this.crew?.happiness ?? 100) < 25 && Math.random() < 0.18) {
+            const mutinyEvent = EVENTS.find(e => e.id === 'crew_opstand');
+            if (mutinyEvent) {
+                this.statistieken.eventsMeegemaakt++;
+                return { event: mutinyEvent };
+            }
+        }
 
         const eventId = this.reisData.events[this.reisData.stap - 1];
 
@@ -291,8 +588,8 @@ class GameState {
     _simuleerConcurrenten() {
         if (!this.concurrenten?.length || typeof CONCURRENTEN === 'undefined') return;
 
-        const bestemmingId = this.reisData?.naar;
-        const playerSpeed = this.schip?.snelheid || 1;
+        const spelersbestemming = this.reisData?.naar;
+        const spelerSnelheid = this.schip?.snelheid ?? 1;
 
         // Sample speler nettowaarde bij start van deze beurt
         this.nettoWaardeGeschiedenisSpeler.push(this.berekenNettowaarde());
@@ -302,52 +599,205 @@ class GameState {
             const sjab = CONCURRENTEN.find(c => c.id === npc.id);
             if (!sjab) return;
 
-            // Beweeg naar random planeet
-            const andere = PLANETEN.filter(p => p.id !== npc.locatie);
-            if (andere.length > 0 && Math.random() < 0.3 + sjab.snelheid * 0.1) {
-                npc.locatie = andere[Math.floor(Math.random() * andere.length)].id;
-            }
+            const effectieveSnelheid = this._npcEffectieveSnelheid(npc, sjab);
 
-            // Concurrentie: kans dat NPC ook jouw bestemming aandoet
-            if (bestemmingId && Math.random() < 0.38) {
-                const interferentieKans = sjab.snelheid / (sjab.snelheid + playerSpeed);
-                if (Math.random() < interferentieKans) {
-                    this._npcStoringPrijzen(sjab, bestemmingId);
+            // 1. Verwerk aankomst op huidig reisdoel
+            if (npc.reisdoel) {
+                const aankomstPlaneet = npc.reisdoel;
+                const eerderDanSpeler = spelersbestemming === aankomstPlaneet && effectieveSnelheid > spelerSnelheid;
+
+                // Verkoop lading op aankomstplaneet
+                this._npcVerkoopLading(npc, aankomstPlaneet);
+
+                // Koop nieuwe goederen op aankomstplaneet
+                const aankopen = this._npcKoopGoederen(npc, sjab, aankomstPlaneet);
+
+                // Zet nieuwe locatie
+                npc.locatie = aankomstPlaneet;
+
+                // Registreer aankomstevent als NPC eerder aankwam dan speler
+                if (eerderDanSpeler && aankopen.length > 0) {
+                    if (!this._pendingConcurrentArrivalEvents) this._pendingConcurrentArrivalEvents = [];
+                    this._pendingConcurrentArrivalEvents.push({
+                        npc: sjab,
+                        aankopen,
+                        planeetId: aankomstPlaneet,
+                        planeetNaam: PLANETEN.find(p => p.id === aankomstPlaneet)?.naam ?? aankomstPlaneet,
+                        npcSnelheid: effectieveSnelheid,
+                    });
+                    // Prijseffect: schaarsheid door NPC-aankopen
+                    aankopen.forEach(({ goed }) => {
+                        const huidig = this.planetPrijzen[aankomstPlaneet]?.[goed.id];
+                        if (!huidig) return;
+                        const factor = 1.06 + Math.random() * 0.12;
+                        const max = Math.round(goed.basisPrijs * 2.2);
+                        this.planetPrijzen[aankomstPlaneet][goed.id] = Math.min(max, Math.round(huidig * factor));
+                    });
                 }
             }
 
-            // Simuleer NPC-handel: gebaseerde winst + volatiliteit + zeldzame grote events
-            const variatie = (Math.random() * 2 - 1) * sjab.volatiliteit * npc.krediet;
-            let delta = sjab.baseWinstPerBeurt + variatie;
-            if (Math.random() < 0.04) {
-                delta += npc.krediet * (Math.random() < 0.55 ? 1 : -1) * (0.15 + Math.random() * 0.25);
+            // 2. Kies nieuw reisdoel voor volgende beurt
+            npc.reisdoel = this._npcKiesReisdoel(npc, sjab);
+
+            // 3. Zeldzaam negatief event (piraten, ongeluk, etc.)
+            if (Math.random() < 0.03) {
+                const verliesPct = 0.10 + Math.random() * 0.20;
+                npc.krediet = Math.max(500, Math.round(npc.krediet * (1 - verliesPct)));
             }
-            npc.krediet = Math.max(500, Math.round(npc.krediet + delta));
+
+            // 4. Schip upgrade op basis van vermogen
+            if (npc.schipTier === 1 && npc.krediet >= 15000) npc.schipTier = 2;
+            else if (npc.schipTier === 2 && npc.krediet >= 35000) npc.schipTier = 3;
+
+            // 5. Waarde-geschiedenis bijhouden
             npc.waardeGeschiedenis.push(npc.krediet);
             if (npc.waardeGeschiedenis.length > 160) npc.waardeGeschiedenis.shift();
         });
     }
 
-    _npcStoringPrijzen(sjab, planeetId) {
-        const planeetNaam = PLANETEN.find(p => p.id === planeetId)?.naam ?? planeetId;
-        const kandidaten = [...GOEDEREN].sort(() => Math.random() - 0.5).slice(0, 1 + Math.floor(Math.random() * 2));
-        kandidaten.forEach(goed => {
-            const huidig = this.planetPrijzen[planeetId]?.[goed.id];
-            if (!huidig) return;
-            const factor = 1.08 + Math.random() * 0.16;
-            const max = Math.round(goed.basisPrijs * 2.2);
-            this.planetPrijzen[planeetId][goed.id] = Math.min(max, Math.round(huidig * factor));
-            const pct = Math.round((factor - 1) * 100);
-            this.voegBerichtToe(`💼 ${sjab.naam} arriveerde eerder op ${planeetNaam} — ${goed.icoon} ${goed.naam} +${pct}%`, 'waarschuwing');
+    _npcEffectieveSnelheid(npc, sjab) {
+        return sjab.snelheid + (npc.schipTier - 1);
+    }
+
+    _npcLadingCapaciteit(npc) {
+        return npc.schipTier === 1 ? 30 : npc.schipTier === 2 ? 60 : 100;
+    }
+
+    _npcKiesReisdoel(npc, sjab) {
+        const andere = PLANETEN.filter(p => p.id !== npc.locatie);
+        if (!andere.length) return npc.locatie;
+
+        // Mira (Strateeg): kies planeet waar lading het meest oplevert
+        if (sjab.id === 'mira') {
+            return this._npcBesteSellPlaneet(npc, andere) ?? andere[Math.floor(Math.random() * andere.length)].id;
+        }
+        // Rok (Avonturier): voorkeur voor verre planeten
+        if (sjab.id === 'rok') {
+            const gesorteerd = [...andere].sort((a, b) =>
+                this.berekenAfstand(npc.locatie, b.id) - this.berekenAfstand(npc.locatie, a.id));
+            const top = gesorteerd.slice(0, Math.min(3, gesorteerd.length));
+            return top[Math.floor(Math.random() * top.length)].id;
+        }
+        // Voss (Veteraan): volg lading naar beste markt; zonder lading naar planeet met veel specialiteit
+        if (sjab.id === 'voss') {
+            if (npc.lading.length > 0) {
+                return this._npcBesteSellPlaneet(npc, andere) ?? andere[Math.floor(Math.random() * andere.length)].id;
+            }
+            const rijkst = andere.reduce((best, p) =>
+                (p.specialiteit?.length ?? 0) >= (best.specialiteit?.length ?? 0) ? p : best);
+            return rijkst.id;
+        }
+        // Zax (Opportunist): 60% beste markt, 40% random
+        if (sjab.id === 'zax') {
+            if (npc.lading.length > 0 && Math.random() < 0.6) {
+                return this._npcBesteSellPlaneet(npc, andere) ?? andere[Math.floor(Math.random() * andere.length)].id;
+            }
+            return andere[Math.floor(Math.random() * andere.length)].id;
+        }
+        // Nyx (Mysterie): volledig random
+        return andere[Math.floor(Math.random() * andere.length)].id;
+    }
+
+    _npcBesteSellPlaneet(npc, planeten) {
+        if (!npc.lading.length) return null;
+        let bestPlaneet = null, bestScore = -Infinity;
+        for (const planeet of planeten) {
+            let score = 0;
+            for (const item of npc.lading) {
+                const verkoopPrijs = this.planetPrijzen[planeet.id]?.[item.goedId] ?? 0;
+                score += (verkoopPrijs - item.koopPrijs) * item.hoeveelheid;
+            }
+            if (score > bestScore) { bestScore = score; bestPlaneet = planeet.id; }
+        }
+        return bestPlaneet;
+    }
+
+    _npcVerkoopLading(npc, planeetId) {
+        let opbrengst = 0;
+        npc.lading.forEach(item => {
+            const prijs = this.planetPrijzen[planeetId]?.[item.goedId] ?? item.koopPrijs;
+            opbrengst += prijs * item.hoeveelheid;
         });
+        npc.krediet += opbrengst;
+        npc.lading = [];
+        npc.ladingGewicht = 0;
+    }
+
+    _npcKoopGoederen(npc, sjab, planeetId) {
+        const capaciteit = this._npcLadingCapaciteit(npc);
+        let resterend = capaciteit - npc.ladingGewicht;
+        if (resterend <= 0) return [];
+
+        let kandidaten = GOEDEREN.filter(g => {
+            const prijs = this.planetPrijzen[planeetId]?.[g.id];
+            const voorraad = this.planetVoorraden[planeetId]?.[g.id] ?? 0;
+            return prijs && voorraad > 0;
+        });
+
+        // Persoonlijkheidsgebonden selectie
+        if (sjab.id === 'mira') {
+            // Strateeg: sorteer op goedkoopste relatief aan basisprijs
+            kandidaten.sort((a, b) =>
+                (this.planetPrijzen[planeetId][a.id] / a.basisPrijs) -
+                (this.planetPrijzen[planeetId][b.id] / b.basisPrijs));
+        } else if (sjab.id === 'voss') {
+            // Veteraan: koopt alleen als flink onder basisprijs
+            kandidaten = kandidaten.filter(g =>
+                (this.planetPrijzen[planeetId]?.[g.id] ?? Infinity) < g.basisPrijs * 0.80);
+        } else if (sjab.id === 'rok') {
+            // Avonturier: random volgorde, pakt soms dure goederen
+            kandidaten.sort(() => Math.random() - 0.5);
+        } else {
+            kandidaten.sort(() => Math.random() - 0.5);
+        }
+
+        const maxGoederen = sjab.id === 'mira' ? 2 : sjab.id === 'voss' ? 1 : 1 + Math.floor(Math.random() * 2);
+        const aankopen = [];
+
+        for (const goed of kandidaten.slice(0, maxGoederen)) {
+            if (resterend <= 0) break;
+            const prijs = this.planetPrijzen[planeetId]?.[goed.id];
+            const voorraad = this.planetVoorraden[planeetId]?.[goed.id] ?? 0;
+            if (!prijs || voorraad <= 0) continue;
+
+            const maxAffordable = Math.floor(npc.krediet / prijs);
+            const hoeveelheid = Math.min(voorraad, maxAffordable, resterend, 20);
+            if (hoeveelheid <= 0) continue;
+
+            npc.krediet -= hoeveelheid * prijs;
+            npc.lading.push({ goedId: goed.id, hoeveelheid, koopPrijs: prijs });
+            npc.ladingGewicht += hoeveelheid;
+            resterend -= hoeveelheid;
+
+            // Verminder marktvoorraad
+            if (this.planetVoorraden[planeetId]) {
+                this.planetVoorraden[planeetId][goed.id] = Math.max(0, voorraad - hoeveelheid);
+            }
+
+            aankopen.push({ goed, hoeveelheid, prijs });
+        }
+
+        return aankopen;
     }
 
     aankomst() {
+        if (!this.reisData) return { passagiersInfo: null };
+        this._visitMarktSaldo = {};
         this.locatie = this.reisData.naar;
         const planeet = PLANETEN.find(p => p.id === this.locatie);
         this.fase = 'spel';
         this.reisData = null;
         this.bezochteplaneten.add(this.locatie);
+
+        // Tutorial: planeet-specifieke intro-dialogen (na unlock planeet_diensten)
+        if (this.tutorialActief && this.isUnlocked('planeet_diensten')
+                && typeof PLANEET_DIENSTEN_INTRO_DIALOGEN !== 'undefined') {
+            const intro = PLANEET_DIENSTEN_INTRO_DIALOGEN[this.locatie];
+            if (intro && !this.planeetDienstenIntro.has(this.locatie)) {
+                this.planeetDienstenIntro.add(this.locatie);
+                this._pendingTutorialDialogen.push({ dialoog: intro });
+            }
+        }
         this.planeetBezoeken[this.locatie] = (this.planeetBezoeken[this.locatie] ?? 0) + 1;
 
         // Lever passagiers af
@@ -362,18 +812,49 @@ class GameState {
             this.passagiersTicketprijs = 0;
         }
 
+        // Noodoproep bonus
+        if (this._noodoproepBonus) {
+            this._noodoproepBonus = false;
+            if (Math.random() < 0.50) {
+                const bonus = 600;
+                this.speler.krediet += bonus;
+                this.voegBerichtToe(`🚨 De havenautoriteiten belonen je voor de noodevacuatie! +${this.formatteerKrediet(bonus)}`, 'succes');
+            }
+        }
+
         if (this.brandstof < 10) this._aangekomendMetLageBrandstof = true;
         this.voegBerichtToe(`Aangekomen op ${planeet.naam}! Brandstof: ${this.brandstof}/${this.schip.brandstofTank}`, 'succes');
 
-        // Controleer marketingcampagne — geldt alleen als we op de geplande planeet aankomen
+        // Controleer marketingcampagne — vervalt altijd bij aankomst; bonus alleen op juiste planeet
         let bonusAantal = 0, bonusPrijs = 0;
-        if (this.marketingActief && this.marketingActief.planeet === this.locatie) {
-            bonusAantal = 8;
-            bonusPrijs = 50;
-            this.voegBerichtToe(`📢 Reclamecampagne actief! Meer passagiers en hogere ticketprijs.`, 'info');
+        this._pendingMarketingSummary = null;
+        if (this.marketingActief) {
+            if (this.marketingActief.planeet === this.locatie) {
+                bonusAantal = Math.floor(Math.random() * 8) + 8; // 8–15 extra passagiers
+                bonusPrijs = 50;
+                // Marketing boost: verhoog voorraad van alle goederen op deze planeet (random per goed)
+                let totalResourceBonus = 0;
+                if (this.planetVoorraden?.[this.locatie]) {
+                    GOEDEREN.forEach(g => {
+                        const bonus = Math.floor(Math.random() * 12) + 8; // 8–19 ton per goed
+                        totalResourceBonus += bonus;
+                        this.planetVoorraden[this.locatie][g.id] =
+                            Math.min(200, (this.planetVoorraden[this.locatie][g.id] ?? 0) + bonus);
+                    });
+                }
+                this._pendingMarketingSummary = { extraPassagiers: bonusAantal, extraResources: totalResourceBonus };
+                this.voegBerichtToe(`📢 Reclamecampagne actief! Meer passagiers en hogere ticketprijs.`, 'info');
+            } else {
+                this.voegBerichtToe(`📢 Reclamecampagne verlopen — niet aangekomen op bestemmingsplaneet, geen bonus.`, 'waarschuwing');
+            }
             this.marketingActief = null;
         }
         this.genereerPassagiersVoorPlaneet(this.locatie, bonusAantal, bonusPrijs);
+
+        // Concurrent aankomst events (gesorteerd: snelste concurrent eerst)
+        this.aankomstConcurrentEvents = (this._pendingConcurrentArrivalEvents || [])
+            .sort((a, b) => b.npcSnelheid - a.npcSnelheid);
+        this._pendingConcurrentArrivalEvents = [];
 
         // Planeet aankomst event
         const aankomstEvent = this._bepaalAankomstEvent();
@@ -420,6 +901,10 @@ class GameState {
             }
         }
 
+        // Missies: voltooiing check dan nieuwe missies genereren
+        this._controleerMissieVoltooiing();
+        this.genereerMissies();
+
         this.controleerAchievements();
         this.controleerSpelEinde();
         return { passagiersInfo };
@@ -427,7 +912,10 @@ class GameState {
 
     _bepaalAankomstEvent() {
         if (typeof PLANEET_EVENTS === 'undefined') return null;
+        // Tutorial: planeet_events zijn pas beschikbaar na unlock planeet_diensten
+        if (this.tutorialActief && !this.isUnlocked('planeet_diensten')) return null;
         for (const event of PLANEET_EVENTS) {
+            if (event.conditie && !event.conditie(this)) continue;
             if (Math.random() < event.kans) return event;
         }
         return null;
@@ -466,14 +954,64 @@ class GameState {
             } else {
                 return; // Niets te stelen — event toch tonen maar zonder detail
             }
+        } else if (eff.type === 'opwaarderingAlles') {
+            GOEDEREN.forEach(goed => {
+                this.planetPrijzen[pid][goed.id] = Math.round(this.planetPrijzen[pid][goed.id] * eff.factor);
+            });
+        } else if (eff.type === 'kredietVerlies') {
+            const verlies = Math.min(eff.bedrag, this.speler.krediet);
+            this.speler.krediet -= verlies;
+        } else if (eff.type === 'ladingVordering') {
+            const aanwezig = this.lading[eff.goed] || 0;
+            const gevorderd = Math.min(eff.ton, aanwezig);
+            if (gevorderd > 0) {
+                this.lading[eff.goed] -= gevorderd;
+                if (this.lading[eff.goed] === 0) { delete this.aankoopPrijzen[eff.goed]; delete this.aankoopAantallen[eff.goed]; }
+                const vergoeding = gevorderd * (eff.prijs ?? 100);
+                this.speler.krediet += vergoeding;
+                event.beschrijving += ` ${gevorderd} ton gevorderd, vergoed: ${this.formatteerKrediet(vergoeding)}.`;
+            }
+        } else if (eff.type === 'haventol') {
+            if (this.schip?.immuunPiraten) {
+                event.beschrijving = 'Piraten detecteren je schip maar laten je door dankzij je speciale transponder. 🛡️';
+            } else {
+                const tol = Math.min(eff.bedrag, this.speler.krediet);
+                this.speler.krediet -= tol;
+            }
         }
         this.voegBerichtToe(`${event.icoon} ${event.naam}: ${event.beschrijving}`, 'waarschuwing');
     }
 
     genereerPassagiersVoorPlaneet(planeetId, bonusAantal = 0, bonusPrijs = 0) {
-        const aantal = Math.floor(Math.random() * 6) + 3 + bonusAantal;  // 3-8 wachtend
-        const prijs  = Math.round(150 + Math.random() * 100 + bonusPrijs);
+        const niveauCfg = {
+            laag:   { aantalMult: 1.6, prijsMult: 0.65 },
+            midden: { aantalMult: 1.0, prijsMult: 1.0  },
+            hoog:   { aantalMult: 0.6, prijsMult: 1.5  },
+        };
+        const { aantalMult, prijsMult } = niveauCfg[this.ticketNiveau || 'midden'];
+
+        // Passagiersschepen trekken van nature meer reizigers aan
+        const cap = this.schip?.passagiersCapaciteit || 0;
+        const paxBonus = this.schip?.type === 'pax' ? Math.round(cap * 0.6) : 0;
+
+        const basisAantal = Math.floor(Math.random() * 6) + 3;  // 3–8
+        const aantal = Math.round(basisAantal * aantalMult) + paxBonus + bonusAantal;
+        const basisPrijs = Math.round(150 + Math.random() * 100);
+        const prijs = Math.round((basisPrijs + bonusPrijs) * prijsMult);
         this.wachtendePassagiers[planeetId] = { aantal, prijs };
+    }
+
+    setTicketNiveau(niveau) {
+        if (!['laag', 'midden', 'hoog'].includes(niveau)) return;
+        this.ticketNiveau = niveau;
+        if (this.locatie) this.genereerPassagiersVoorPlaneet(this.locatie);
+    }
+
+    setTicketPrijs(prijs) {
+        prijs = Math.max(50, Math.min(2000, Math.round(prijs)));
+        if (this.locatie && this.wachtendePassagiers[this.locatie]) {
+            this.wachtendePassagiers[this.locatie].prijs = prijs;
+        }
     }
 
     initPassagiers() {
@@ -499,19 +1037,20 @@ class GameState {
     // MARKETING
     // =========================================================================
 
-    berekenMarketingKosten(planeetId) {
-        const afstand = this.berekenAfstand(this.locatie, planeetId);
-        return Math.round(200 + afstand * 8);
+    berekenMarketingKosten() {
+        const cargo = this.schip?.laadruimte ?? 0;
+        const pax = this.schip?.passagiersCapaciteit ?? 0;
+        return Math.round(150 + cargo * 1.5 + pax * 5);
     }
 
-    koopMarketing(planeetId) {
+    koopMarketing() {
         if ((this.schip?.passagiersCapaciteit || 0) <= 0) return { succes: false, reden: 'Je schip heeft geen passagiersruimte.' };
-        const kosten = this.berekenMarketingKosten(planeetId);
+        if (this.marketingActief) return { succes: false, reden: 'Er is al een campagne actief.' };
+        const kosten = this.berekenMarketingKosten();
         if (this.speler.krediet < kosten) return { succes: false, reden: 'Onvoldoende krediet!' };
-        const planeetNaam = PLANETEN.find(p => p.id === planeetId)?.naam ?? planeetId;
         this.speler.krediet -= kosten;
-        this.marketingActief = { planeet: planeetId, kosten };
-        this.voegBerichtToe(`📢 Reclamecampagne gestart voor ${planeetNaam} (${this.formatteerKrediet(kosten)}). Bij aankomst wachten meer passagiers op je.`, 'info');
+        this.marketingActief = { planeet: null, kosten };
+        this.voegBerichtToe(`📢 Reclamecampagne gestart (${this.formatteerKrediet(kosten)}). Bij aankomst wachten meer passagiers op je.`, 'info');
         return { succes: true };
     }
 
@@ -657,11 +1196,9 @@ class GameState {
         const goedId = Math.random() < 0.5 ? 'nebulakorrels' : 'aquapure';
         const goed   = GOEDEREN.find(g => g.id === goedId);
 
-        // Hoeveelheid in eenheden; kies opties die ~15-35 ton geven
-        const unitOpties = goedId === 'nebulakorrels'
-            ? [8, 10, 12, 14, 16]   // × 2 ton = 16/20/24/28/32 ton
-            : [5, 7, 9, 11];         // × 3 ton = 15/21/27/33 ton
-        const hoeveelheid = unitOpties[Math.floor(Math.random() * unitOpties.length)];
+        // Hoeveelheid rond de vrachtcapaciteit van de speler (60-110%)
+        const laadruimte = this.schip?.laadruimte ?? 50;
+        const hoeveelheid = Math.max(10, Math.round(laadruimte * (0.6 + Math.random() * 0.5)));
 
         const marktprijs   = this.getPrijs('agria', goedId);
         const minimumprijs = Math.round(marktprijs * hoeveelheid * 0.65);
@@ -682,7 +1219,7 @@ class GameState {
             goedId,
             goedNaam:   goed.naam,
             goedIcoon:  goed.icoon,
-            goedGewicht: goed.gewicht,
+            goedGewicht: 1,
             hoeveelheid,
             minimumprijs,
             npcDeelnemers,
@@ -774,13 +1311,14 @@ class GameState {
                         if (gevuldeGoederen.length > 0) {
                             const goedId = gevuldeGoederen[Math.floor(Math.random() * gevuldeGoederen.length)];
                             const verloren = Math.ceil(this.lading[goedId] * 0.4);
-                            const goedNaam = GOEDEREN.find(g=>g.id===goedId).naam;
+                            const goedObj = GOEDEREN.find(g=>g.id===goedId);
+                            const goedNaam = `${goedObj.icoon} ${goedObj.naam}`;
                             if (this.verzekering?.actief) {
                                 resultaat.bericht = `Gepakt! Piraten grijpen naar ${verloren}× ${goedNaam} — je verzekering dekt het verlies! 🛡️`;
                             } else {
                                 this.lading[goedId] = Math.max(0, this.lading[goedId] - verloren);
                                 resultaat.ladingDelta[goedId] = -verloren;
-                                resultaat.bericht = `Gepakt! Je verliest ${verloren} eenheden ${goedNaam}.`;
+                                resultaat.bericht = `Gepakt! Je verliest ${verloren}× ${goedNaam}.`;
                             }
                         } else {
                             const bedrag = Math.min(200, this.speler.krediet);
@@ -800,11 +1338,11 @@ class GameState {
             case 'stralingstorm': {
                 const extraBrandstof = Math.round(12 + Math.random() * 18);
                 if (this.verzekering?.actief) {
-                    resultaat.bericht = `De storm dwingt een grote omweg af (−${extraBrandstof} l brandstof) — je verzekering vergoedt het! 🛡️`;
+                    resultaat.bericht = `De storm dwingt een grote omweg af (⛽ −${extraBrandstof} l) — je verzekering vergoedt het! 🛡️`;
                 } else {
                     const werkelijk = Math.min(extraBrandstof, this.brandstof);
                     this.brandstof = Math.max(0, this.brandstof - extraBrandstof);
-                    resultaat.bericht = `De storm dwingt je een grote omweg te nemen. Extra brandstofverbruik: ${werkelijk} eenheden. Brandstof resterend: ${this.brandstof}.`;
+                    resultaat.bericht = `De storm dwingt je een grote omweg te nemen. ⛽ Extra brandstofverbruik: −${werkelijk} l. Resterend: ${this.brandstof} l.`;
                 }
                 break;
             }
@@ -813,13 +1351,13 @@ class GameState {
                 // Vind willekeurig goed, als er ruimte is
                 const ruimteVrij = this.schip.laadruimte - this.getLadingGewicht();
                 if (ruimteVrij > 0) {
-                    const goedOpties = GOEDEREN.filter(g => g.gewicht <= ruimteVrij);
+                    const goedOpties = GOEDEREN;
                     if (goedOpties.length > 0) {
                         const gevonden = goedOpties[Math.floor(Math.random() * goedOpties.length)];
-                        const aantal = Math.min(Math.floor(ruimteVrij / gevonden.gewicht), 5 + Math.floor(Math.random() * 8));
+                        const aantal = Math.min(ruimteVrij, 5 + Math.floor(Math.random() * 8));
                         this.lading[gevonden.id] = (this.lading[gevonden.id] || 0) + aantal;
                         resultaat.ladingDelta[gevonden.id] = aantal;
-                        resultaat.bericht = `Je vindt ${aantal}× ${gevonden.naam} in het wrak. Gratis lading!`;
+                        resultaat.bericht = `Je vindt ${aantal}× ${gevonden.icoon} ${gevonden.naam} in het wrak. Gratis lading!`;
                     } else {
                         resultaat.bericht = 'Je vindt het wrak, maar je ruim is te vol voor de lading.';
                     }
@@ -855,12 +1393,12 @@ class GameState {
                 if (keuzeId === 'koop') {
                     const ruimteVrij = this.schip.laadruimte - this.getLadingGewicht();
                     if (ruimteVrij > 0) {
-                        const dure = GOEDEREN.filter(g => g.basisPrijs > 100 && g.gewicht <= ruimteVrij);
+                        const dure = GOEDEREN.filter(g => g.basisPrijs > 100);
                         if (dure.length > 0 && this.speler.krediet > 100) {
                             const goed = dure[Math.floor(Math.random() * dure.length)];
                             const kortingsPrijs = Math.round(goed.basisPrijs * 0.35);
                             const maxAantal = Math.min(
-                                Math.floor(ruimteVrij / goed.gewicht),
+                                ruimteVrij,
                                 Math.floor(this.speler.krediet / kortingsPrijs),
                                 10
                             );
@@ -870,7 +1408,7 @@ class GameState {
                                 this.lading[goed.id] = (this.lading[goed.id] || 0) + maxAantal;
                                 resultaat.kredietDelta = -totaal;
                                 resultaat.ladingDelta[goed.id] = maxAantal;
-                                resultaat.bericht = `Deal! Je koopt ${maxAantal}× ${goed.naam} voor slechts ${this.formatteerKrediet(kortingsPrijs)}/stuk.`;
+                                resultaat.bericht = `Deal! Je koopt ${maxAantal}× ${goed.icoon} ${goed.naam} voor slechts ${this.formatteerKrediet(kortingsPrijs)}/stuk.`;
                             } else {
                                 resultaat.bericht = 'Je hebt geen krediet voor de deal.';
                             }
@@ -892,7 +1430,7 @@ class GameState {
                     resultaat.bericht = `Ionennevel verstoort de navigatie (−${extraNevel} l brandstof) — je verzekering vergoedt het! 🛡️`;
                 } else {
                     this.brandstof = Math.max(0, this.brandstof - extraNevel);
-                    resultaat.bericht = `De ionennevel dwingt je van koers. Extra brandstofverbruik: ${extraNevel} eenheden. Brandstof resterend: ${this.brandstof}.`;
+                    resultaat.bericht = `De ionennevel dwingt je van koers. ⛽ Extra brandstofverbruik: −${extraNevel} l. Resterend: ${this.brandstof} l.`;
                 }
                 break;
             }
@@ -960,9 +1498,9 @@ class GameState {
                         const beloning = Math.round(50 + Math.random() * 80);
                         this.speler.krediet += beloning;
                         resultaat.kredietDelta = beloning;
-                        resultaat.bericht = `Je geeft ${geef} liter brandstof. De piloot is dankbaar en geeft je ${this.formatteerKrediet(beloning)} als dank.`;
+                        resultaat.bericht = `Je geeft ⛽ ${geef} l brandstof. De piloot is dankbaar en geeft je ${this.formatteerKrediet(beloning)} als dank.`;
                     } else {
-                        resultaat.bericht = `Je hebt zelf niet genoeg brandstof om ${geef} eenheden weg te geven.`;
+                        resultaat.bericht = `Je hebt zelf niet genoeg brandstof om ⛽ ${geef} l weg te geven.`;
                     }
                 } else {
                     resultaat.bericht = 'Je vliegt door. De noodoproep vervaagt in de statische ruis.';
@@ -993,13 +1531,13 @@ class GameState {
                     const goed = GOEDEREN.find(g => g.id === goedId);
                     const verloren = Math.ceil(this.lading[goedId] / 2);
                     if (this.verzekering?.actief) {
-                        resultaat.bericht = `Koelsysteemstoring! ${verloren}× ${goed.naam} dreigt te bederven — je verzekering dekt het verlies! 🛡️`;
+                        resultaat.bericht = `Koelsysteemstoring! ${verloren}× ${goed.icoon} ${goed.naam} dreigt te bederven — je verzekering dekt het verlies! 🛡️`;
                     } else {
                         this.lading[goedId] -= verloren;
                         this.aankoopAantallen[goedId] = Math.max(0, (this.aankoopAantallen[goedId] || 0) - verloren);
                         if (this.lading[goedId] === 0) { delete this.aankoopPrijzen[goedId]; delete this.aankoopAantallen[goedId]; }
                         resultaat.ladingDelta[goedId] = -verloren;
-                        resultaat.bericht = `Koelsysteemstoring! ${verloren}× ${goed.naam} zijn bedorven en verloren gegaan.`;
+                        resultaat.bericht = `Koelsysteemstoring! ${verloren}× ${goed.icoon} ${goed.naam} zijn bedorven en verloren gegaan.`;
                     }
                 } else {
                     resultaat.bericht = 'Koelsysteemstoring, maar je had geen kwetsbare lading. Mazzel!';
@@ -1076,6 +1614,575 @@ class GameState {
                 break;
             }
 
+            case 'crew_opstand': {
+                const totaal = (this.crew?.grootte ?? 0) * (this.crew?.salaris ?? 100) * CREW_BETAAL_INTERVAL;
+                const dubbel = totaal * 2;
+                if (keuzeId === 'betaal') {
+                    const betaling = Math.min(dubbel, this.speler.krediet);
+                    this.speler.krediet -= betaling;
+                    resultaat.kredietDelta = -betaling;
+                    if (this.crew) {
+                        this.crew.volgendeBetaalBeurt = this.beurt + CREW_BETAAL_INTERVAL;
+                        this.crew.happiness = Math.min(100, this.crew.happiness + 30);
+                    }
+                    resultaat.bericht = `Crew tevreden gesteld. Betaald: ${this.formatteerKrediet(betaling)}. Happiness +30.`;
+                } else { // praten
+                    if (Math.random() < 0.50) {
+                        if (this.crew) {
+                            this.crew.happiness = Math.min(100, this.crew.happiness + 10);
+                            this.crew.volgendeBetaalBeurt = Math.max(this.crew.volgendeBetaalBeurt, this.beurt + 10);
+                        }
+                        resultaat.bericht = 'Onderhandeling geslaagd! Crew accepteert uitstel. Happiness +10.';
+                    } else {
+                        const gestolen = Math.min(totaal, this.speler.krediet);
+                        this.speler.krediet -= gestolen;
+                        resultaat.kredietDelta = -gestolen;
+                        if (this.crew) {
+                            this.crew.volgendeBetaalBeurt = this.beurt + CREW_BETAAL_INTERVAL;
+                        }
+                        resultaat.bericht = `Onderhandeling mislukt! Crew haalt ${this.formatteerKrediet(gestolen)} op uit de kluis als achterstallig loon.`;
+                    }
+                }
+                break;
+            }
+
+            case 'bank_rente_omhoog': {
+                this.bankRente = Math.min(5, parseFloat(((this.bankRente ?? 2) + 0.5).toFixed(1)));
+                resultaat.bericht = `🏦 De Galactische Monetaire Unie verhoogt de basisrente. Jouw spaarrente is nu ${this.bankRente}% per beurt.`;
+                break;
+            }
+
+            case 'bank_hoogconjunctuur': {
+                this.bankRente = Math.min(5, parseFloat(((this.bankRente ?? 2) + 1).toFixed(1)));
+                resultaat.bericht = `📈 Economische bloei! Bankrentes stijgen. Jouw spaarrente is nu ${this.bankRente}% per beurt.`;
+                break;
+            }
+
+            case 'bank_kredietexpansie': {
+                this.bankRente = Math.min(5, parseFloat(((this.bankRente ?? 2) + 0.5).toFixed(1)));
+                resultaat.bericht = `💹 Galactische Handelsbank opent nieuwe kredietlijn. Jouw spaarrente stijgt naar ${this.bankRente}% per beurt.`;
+                break;
+            }
+
+            case 'bank_recessie': {
+                this.bankRente = Math.max(0, parseFloat(((this.bankRente ?? 2) - 0.5).toFixed(1)));
+                resultaat.bericht = `📉 Economische onzekerheid drukt de rentes. Jouw spaarrente daalt naar ${this.bankRente}% per beurt.`;
+                break;
+            }
+
+            case 'bank_nulrente': {
+                this.bankRente = 0;
+                resultaat.bericht = `🏛️ De Centrale Bank voert nulrentebeleid in. Jouw spaarrente is tijdelijk 0%.`;
+                break;
+            }
+
+            case 'bank_crisis': {
+                this.bankRente = Math.max(0, parseFloat(((this.bankRente ?? 2) - 1).toFixed(1)));
+                resultaat.bericht = `⚠️ Bankcrisis op Nexoria! Spaarrentes worden verlaagd. Jouw rente is nu ${this.bankRente}% per beurt.`;
+                break;
+            }
+
+            case 'bank_belasting': {
+                const saldo = this.bankSaldo ?? 0;
+                if (saldo > 0) {
+                    const belasting = Math.round(saldo * 0.03);
+                    this.bankSaldo -= belasting;
+                    resultaat.kredietDelta = -belasting;
+                    resultaat.bericht = `💸 De Belastingdienst Galacticus vordert ${this.formatteerKrediet(belasting)} (3%) van je banksaldo als vermogensbelasting. Resterend saldo: ${this.formatteerKrediet(this.bankSaldo)}`;
+                } else {
+                    resultaat.bericht = `💸 De Belastingdienst Galacticus vordert vermogensbelasting — maar je hebt geen banksaldo. Je komt er goed van af!`;
+                }
+                break;
+            }
+
+            case 'bank_bonus': {
+                const bonus = 500;
+                this.speler.krediet += bonus;
+                resultaat.kredietDelta = bonus;
+                resultaat.bericht = `🎁 Spaarbonus-actie! Als trouwe rekeninghouder ontvang je ${this.formatteerKrediet(bonus)} extra credits.`;
+                break;
+            }
+
+            case 'bank_bevriezing': {
+                this.bankBevroren = (this.bankBevroren ?? 0) + 1;
+                resultaat.bericht = `🔒 Politieke onrust heeft banktransacties tijdelijk geblokkeerd. Storten en opnemen is de komende beurt niet mogelijk.`;
+                break;
+            }
+
+            case 'erfenis': {
+                const bedrag = Math.round(700 + Math.random() * 400 + this.speler.krediet * 0.02);
+                this.speler.krediet += bedrag;
+                resultaat.kredietDelta = bedrag;
+                resultaat.bericht = `Een verre neef die je nooit hebt gekend, heeft je ${this.formatteerKrediet(bedrag)} nagelaten. Winst!`;
+                break;
+            }
+
+            case 'loterij': {
+                const prijs = Math.round(1000 + Math.random() * 800 + this.speler.krediet * 0.03);
+                this.speler.krediet += prijs;
+                resultaat.kredietDelta = prijs;
+                resultaat.bericht = `Je loterijticket is een winnaar! ${this.formatteerKrediet(prijs)} wordt overgemaakt. Geluksvogel!`;
+                break;
+            }
+
+            case 'keizerlijke_donatie': {
+                if (keuzeId === 'doneer') {
+                    const bedrag = Math.min(700, this.speler.krediet);
+                    this.speler.krediet -= bedrag;
+                    resultaat.kredietDelta = -bedrag;
+                    resultaat.bericht = `Je doneer ${this.formatteerKrediet(bedrag)} aan het Galactisch Welvaartsfonds. De Kanselier is tevreden.`;
+                } else {
+                    resultaat.bericht = 'Je weigert vriendelijk. Twee beurten later arresteert een douanebot je schip.';
+                    if (Math.random() < 0.40) {
+                        const boete = Math.round(200 + Math.random() * 400);
+                        const werkelijk = Math.min(boete, this.speler.krediet);
+                        this.speler.krediet -= werkelijk;
+                        resultaat.kredietDelta = -werkelijk;
+                        resultaat.bericht += ` Boete: ${this.formatteerKrediet(werkelijk)}.`;
+                    } else {
+                        resultaat.bericht = 'Je weigert vriendelijk. Gelukkig vergeet de Kanselier je snel weer.';
+                    }
+                }
+                break;
+            }
+
+            case 'speculant_bod': {
+                if (keuzeId === 'verkoop') {
+                    const gevuld = Object.keys(this.lading).filter(k => this.lading[k] > 0);
+                    if (gevuld.length > 0) {
+                        let totaal = 0;
+                        gevuld.forEach(goedId => {
+                            const prijs = this.getPrijs(this.locatie ?? this.reisData?.van ?? PLANETEN[0].id, goedId);
+                            totaal += Math.round(prijs * this.lading[goedId] * 1.15);
+                            delete this.aankoopPrijzen[goedId];
+                            delete this.aankoopAantallen[goedId];
+                            this.lading[goedId] = 0;
+                        });
+                        this.speler.krediet += totaal;
+                        resultaat.kredietDelta = totaal;
+                        resultaat.bericht = `Deal! Speculant koopt al je lading voor ${this.formatteerKrediet(totaal)} (115% marktwaarde). Ruim nu leeg.`;
+                    } else {
+                        resultaat.bericht = 'Je ruim is leeg — de speculant rijdt teleurgesteld weg.';
+                    }
+                } else {
+                    resultaat.bericht = 'Je bedankt voor het aanbod en vliegt door.';
+                }
+                break;
+            }
+
+            case 'belastingboete': {
+                const boete = Math.max(200, Math.floor(this.speler.krediet * 0.03));
+                const werkelijk = Math.min(boete, this.speler.krediet);
+                this.speler.krediet -= werkelijk;
+                resultaat.kredietDelta = -werkelijk;
+                resultaat.bericht = `De Galactische Belastingdienst vordert een naheffing van ${this.formatteerKrediet(werkelijk)}. Bezwaar is nutteloos.`;
+                break;
+            }
+
+            case 'geheime_lading': {
+                if (keuzeId === 'open') {
+                    const ruimte = this.schip.laadruimte - this.getLadingGewicht();
+                    if (ruimte > 0) {
+                        const goedkope = GOEDEREN.filter(g => g.basisPrijs <= 60);
+                        const goed = goedkope[Math.floor(Math.random() * goedkope.length)];
+                        const aantal = Math.min(ruimte, 5 + Math.floor(Math.random() * 8));
+                        this.lading[goed.id] = (this.lading[goed.id] || 0) + aantal;
+                        this.ladingVerdacht[goed.id] = (this.ladingVerdacht[goed.id] || 0) + aantal;
+                        resultaat.ladingDelta[goed.id] = aantal;
+                        resultaat.bericht = `Je opent het krat: ${aantal}× ${goed.icoon} ${goed.naam}. Mogelijke herkomst onbekend — gemarkeerd als verdachte lading.`;
+                    } else {
+                        resultaat.bericht = 'Je opent het krat maar je ruim zit vol. Je dumpt het alsnog.';
+                    }
+                } else {
+                    resultaat.bericht = 'Je dumpt het mysterieuze pakket de ruimte in. Beter veilig.';
+                }
+                break;
+            }
+
+            case 'slechte_kwaliteit': {
+                const organisch = ['nebulakorrels', 'aquapure'];
+                const aanwezig = organisch.filter(id => (this.lading[id] || 0) > 0);
+                if (aanwezig.length > 0) {
+                    let berichten = [];
+                    aanwezig.forEach(goedId => {
+                        const goed = GOEDEREN.find(g => g.id === goedId);
+                        const verloren = Math.ceil(this.lading[goedId] * 0.30);
+                        if (this.verzekering?.actief) {
+                            berichten.push(`${verloren}× ${goed.icoon} ${goed.naam} bedorven — je verzekering dekt het verlies! 🛡️`);
+                        } else {
+                            this.lading[goedId] -= verloren;
+                            this.aankoopAantallen[goedId] = Math.max(0, (this.aankoopAantallen[goedId] || 0) - verloren);
+                            if (this.lading[goedId] === 0) { delete this.aankoopPrijzen[goedId]; delete this.aankoopAantallen[goedId]; }
+                            resultaat.ladingDelta[goedId] = -verloren;
+                            berichten.push(`${verloren}× ${goed.icoon} ${goed.naam} bedorven`);
+                        }
+                    });
+                    resultaat.bericht = `Organische lading aangetast bij de bron: ${berichten.join(', ')}.`;
+                } else {
+                    resultaat.bericht = 'Geen organische lading aan boord — geen bederf door slechte kwaliteit.';
+                }
+                break;
+            }
+
+            case 'cargo_volledig_verloren': {
+                const gevuld = Object.keys(this.lading).filter(k => this.lading[k] > 0);
+                if (gevuld.length > 0) {
+                    let ladingWaarde = 0;
+                    gevuld.forEach(goedId => {
+                        const prijs = this.aankoopPrijzen[goedId] || GOEDEREN.find(g=>g.id===goedId)?.basisPrijs || 50;
+                        ladingWaarde += prijs * this.lading[goedId];
+                        this.lading[goedId] = 0;
+                        delete this.aankoopPrijzen[goedId];
+                        delete this.aankoopAantallen[goedId];
+                    });
+                    if (this.verzekering?.actief) {
+                        this.speler.krediet += ladingWaarde;
+                        resultaat.kredietDelta = ladingWaarde;
+                        resultaat.bericht = `Kortsluiting in vrachtruim! Alles vernietigd — je verzekering vergoedt ${this.formatteerKrediet(ladingWaarde)}! 🛡️`;
+                    } else {
+                        resultaat.bericht = `Kortsluiting in vrachtruim! Alles vernietigd. Totaal verlies: ~${this.formatteerKrediet(ladingWaarde)}.`;
+                    }
+                } else {
+                    resultaat.bericht = 'Drukregeling faalt, maar je had geen lading. Geluk!';
+                }
+                break;
+            }
+
+            case 'smokkelaar_ruil': {
+                if (keuzeId === 'ruil') {
+                    const gevuld = Object.keys(this.lading).filter(k => this.lading[k] > 0);
+                    if (gevuld.length > 0) {
+                        gevuld.forEach(goedId => {
+                            this.lading[goedId] = 0;
+                            delete this.aankoopPrijzen[goedId];
+                            delete this.aankoopAantallen[goedId];
+                        });
+                        const ruimte = this.schip.laadruimte - this.getLadingGewicht();
+                        const aantal = Math.min(ruimte, 8);
+                        if (aantal > 0) {
+                            this.lading['luxuriet'] = (this.lading['luxuriet'] || 0) + aantal;
+                            this.ladingVerdacht['luxuriet'] = (this.ladingVerdacht['luxuriet'] || 0) + aantal;
+                            resultaat.ladingDelta['luxuriet'] = aantal;
+                        }
+                        this.speler.krediet += 500;
+                        resultaat.kredietDelta = 500;
+                        resultaat.bericht = `Ruil gesloten: lading ingeleverd, ${aantal}× 👑 Luxuriet ontvangen + 500 credits. Gemarkeerd als verdachte lading.`;
+                    } else {
+                        resultaat.bericht = 'Je ruim is leeg — de smokkelaar rijdt teleurgesteld weg.';
+                    }
+                } else {
+                    resultaat.bericht = 'Je bedankt en weigert. Een eerlijke ruimtehandelaar.';
+                }
+                break;
+            }
+
+            case 'brandstoflek': {
+                if (this.brandstof > 20) {
+                    const verlies = Math.floor(this.brandstof / 2);
+                    if (this.verzekering?.actief) {
+                        resultaat.bericht = `Brandstoflek ontdekt! ⛽ −${verlies} l verloren — je verzekering vergoedt het! 🛡️`;
+                    } else {
+                        this.brandstof = Math.ceil(this.brandstof / 2);
+                        resultaat.bericht = `Brandstoflek! De helft van je brandstof is verdampt in de ruimte. ⛽ Resterend: ${this.brandstof} l.`;
+                    }
+                } else {
+                    resultaat.bericht = 'Brandstoffilter geeft alarm, maar de tank was al bijna leeg. Minimale schade.';
+                }
+                break;
+            }
+
+            case 'kosmische_wolk': {
+                const schade = 12;
+                if (this.verzekering?.actief) {
+                    resultaat.bericht = `Corrosieve gaswolk! −${schade} HP rompschade — je verzekering vergoedt de reparatie! 🛡️`;
+                } else {
+                    this.schipHP = Math.max(1, this.schipHP - schade);
+                    resultaat.schade = true;
+                    resultaat.bericht = `Corrosieve gaswolk! Buitenbeplating aangetast. −${schade} HP. Schip: ${this.schipHP} HP.`;
+                }
+                break;
+            }
+
+            case 'ruimtewal': {
+                if (keuzeId === 'repareer') {
+                    const kosten = 500;
+                    const herstel = Math.min(20, (this.schip?.maxHP ?? 40) - this.schipHP);
+                    if (this.verzekering?.actief) {
+                        this.schipHP = Math.min(this.schip?.maxHP ?? 40, this.schipHP + herstel);
+                        resultaat.bericht = `Ruimtepuin raakt de romp! Noodreparatie (${this.formatteerKrediet(kosten)}) gedekt door verzekering. +${herstel} HP 🛡️`;
+                    } else {
+                        const werkelijk = Math.min(kosten, this.speler.krediet);
+                        this.speler.krediet -= werkelijk;
+                        resultaat.kredietDelta = -werkelijk;
+                        this.schipHP = Math.min(this.schip?.maxHP ?? 40, this.schipHP + herstel);
+                        resultaat.bericht = `Ruimtepuin! Noodreparatie voor ${this.formatteerKrediet(werkelijk)}. +${herstel} HP hersteld.`;
+                    }
+                } else {
+                    const schade = 18;
+                    this.schipHP = Math.max(1, this.schipHP - schade);
+                    resultaat.schade = true;
+                    resultaat.bericht = `Ruimtepuin treft de romp! −${schade} HP. Schip: ${this.schipHP} HP. Zorg voor reparaties!`;
+                }
+                break;
+            }
+
+            case 'onderdeel_gevonden': {
+                if (keuzeId === 'meenemen') {
+                    const herstel = Math.min(15, (this.schip?.maxHP ?? 40) - this.schipHP);
+                    this.schipHP = Math.min(this.schip?.maxHP ?? 40, this.schipHP + herstel);
+                    resultaat.bericht = `Bruikbaar onderdeel gevonden en geïnstalleerd. +${herstel} HP hersteld. Schip: ${this.schipHP} HP.`;
+                } else {
+                    resultaat.bericht = 'Je vliegt door. Het onderdeel verdwijnt in de sterrennevels.';
+                }
+                break;
+            }
+
+            case 'vip_passagier': {
+                if (keuzeId === 'meenemen') {
+                    const cap = this.schip?.passagiersCapaciteit || 0;
+                    if (this.passagiers < cap) {
+                        this.passagiers += 1;
+                        const vipPrijs = Math.round((this.passagiersTicketprijs || 200) * 3);
+                        this.passagiersTicketprijs = Math.round(
+                            ((this.passagiersTicketprijs || 0) * (this.passagiers - 1) + vipPrijs) / this.passagiers
+                        );
+                        resultaat.bericht = `VIP aan boord! Betaalt ${this.formatteerKrediet(vipPrijs)} bij aankomst (drievoudig tarief).`;
+                    } else {
+                        resultaat.bericht = 'Je schip heeft geen vrije passagiersplaatsen voor de VIP.';
+                    }
+                } else {
+                    resultaat.bericht = 'Je rijdt door. De zakenman vindt wel een andere lift.';
+                }
+                break;
+            }
+
+            case 'noodoproep_passagier': {
+                if (keuzeId === 'meenemen') {
+                    const cap = this.schip?.passagiersCapaciteit || 0;
+                    const vrij = cap - this.passagiers;
+                    const aantal = Math.min(4, Math.max(1, vrij));
+                    if (aantal > 0) {
+                        this.passagiers += aantal;
+                        if (this.crew) this.crew.happiness = Math.min(100, this.crew.happiness + 15);
+                        this._noodoproepBonus = true;
+                        resultaat.bericht = `${aantal} evacuees aan boord. Crew is blij (+15 happiness). Mogelijk beloont de haven je bij aankomst.`;
+                    } else {
+                        resultaat.bericht = 'Je schip heeft geen ruimte voor de evacuees. Ze roepen je vergeefs na.';
+                    }
+                } else {
+                    resultaat.bericht = 'Je vliegt door. De noodoproep vervaagt.';
+                }
+                break;
+            }
+
+            case 'passagier_wangedrag': {
+                if (this.passagiers > 0) {
+                    const schade = Math.min(300, this.speler.krediet);
+                    this.speler.krediet -= schade;
+                    resultaat.kredietDelta = -schade;
+                    if (this.crew) this.crew.happiness = Math.max(0, this.crew.happiness - 8);
+                    resultaat.bericht = `Dronken passagier vernielt de lounge. Reparatiekosten: ${this.formatteerKrediet(schade)}. Crew chagrijnig (−8 happiness).`;
+                } else {
+                    resultaat.bericht = 'Geen passagiers aan boord — niemand om wangedrag te vertonen.';
+                }
+                break;
+            }
+
+            case 'vakbond_kwijtschelding': {
+                if (this.crew && this.crew.grootte > 0) {
+                    const achterstallig = this.beurt > (this.crew.volgendeBetaalBeurt ?? 0);
+                    if (achterstallig) {
+                        this.crew.volgendeBetaalBeurt = this.beurt + CREW_BETAAL_INTERVAL;
+                        resultaat.bericht = 'Vakbondsakkoord! Achterstallig crewsalaris kwijtgescholden. Betaalschema gereset.';
+                    } else {
+                        this.crew.happiness = Math.min(100, this.crew.happiness + 10);
+                        resultaat.bericht = 'Vakbond stuurt goodwillbericht. Crew is blij (+10 happiness).';
+                    }
+                } else {
+                    resultaat.bericht = 'Vakbond bereikt je, maar je hebt geen bemanning. Irrelevant.';
+                }
+                break;
+            }
+
+            case 'crew_bonus_event': {
+                if (keuzeId === 'geef_bonus') {
+                    const grootte = this.crew?.grootte ?? 0;
+                    const kosten = grootte * 150;
+                    if (this.speler.krediet >= kosten && grootte > 0) {
+                        this.speler.krediet -= kosten;
+                        resultaat.kredietDelta = -kosten;
+                        if (this.crew) this.crew.happiness = Math.min(100, this.crew.happiness + 20);
+                        resultaat.bericht = `Crewbonus uitbetaald: ${this.formatteerKrediet(kosten)}. Crew euforisch (+20 happiness).`;
+                    } else {
+                        resultaat.bericht = grootte === 0 ? 'Geen bemanning om te belonen.' : 'Onvoldoende krediet voor de bonus.';
+                    }
+                } else {
+                    if (this.crew) this.crew.happiness = Math.max(0, this.crew.happiness - 5);
+                    resultaat.bericht = 'Geen bonus. Crew verbergt zijn teleurstelling. Nauwelijks. (−5 happiness)';
+                }
+                break;
+            }
+
+            case 'vakbond_eis': {
+                if (keuzeId === 'betaal') {
+                    const bedrag = Math.min(500, this.speler.krediet);
+                    this.speler.krediet -= bedrag;
+                    resultaat.kredietDelta = -bedrag;
+                    if (this.crew) this.crew.happiness = Math.min(100, this.crew.happiness + 12);
+                    resultaat.bericht = `Eenmalige uitkering betaald: ${this.formatteerKrediet(bedrag)}. Crew tevreden (+12 happiness).`;
+                } else {
+                    if (this.crew) this.crew.happiness = Math.max(0, this.crew.happiness - 18);
+                    resultaat.bericht = 'Je weigert. Crew furieus (−18 happiness).';
+                }
+                break;
+            }
+
+            case 'kredietlimiet_verhoging': {
+                const oud = this.maxSchuld ?? MAX_SCHULD;
+                this.maxSchuld = Math.min(16000, oud + 2000);
+                resultaat.bericht = `De Galactische Bank verhoogt je leenlimiet van ${this.formatteerKrediet(oud)} naar ${this.formatteerKrediet(this.maxSchuld)}.`;
+                break;
+            }
+
+            case 'schuldeiser': {
+                if (this.speler.schuld >= 1000) {
+                    if (keuzeId === 'betaal') {
+                        const af = Math.min(Math.round(this.speler.schuld * 0.25), this.speler.krediet);
+                        this.speler.schuld -= af;
+                        this.speler.krediet -= af;
+                        resultaat.kredietDelta = -af;
+                        resultaat.bericht = `Incassobot gedaan: ${this.formatteerKrediet(af)} afgelost. Restschuld: ${this.formatteerKrediet(this.speler.schuld)}.`;
+                    } else {
+                        const opslag = Math.floor(this.speler.schuld * 0.08);
+                        this.speler.schuld += opslag;
+                        resultaat.bericht = `Je weigert. De incassobot legt een boeteclausule op (+8%): schuld nu ${this.formatteerKrediet(this.speler.schuld)}.`;
+                    }
+                } else {
+                    resultaat.bericht = 'De incassobot controleert je dossier. Schuld te laag — hij rijdt door.';
+                }
+                break;
+            }
+
+            case 'beurs_insider': {
+                const aandelen = typeof AANDELEN !== 'undefined' ? AANDELEN : [];
+                if (aandelen.length > 0) {
+                    const gekozen = aandelen[Math.floor(Math.random() * aandelen.length)];
+                    this._insiderBoost = { aandeelId: gekozen.id, beurten: 10 };
+                    resultaat.bericht = `Insider-tip: ${gekozen.icoon} ${gekozen.naam} zou de komende 10 beurten sterk stijgen. De informant verdwijnt in de schaduw.`;
+                } else {
+                    resultaat.bericht = 'De informant fluistert iets over aandelen, maar het signaal is te zwak.';
+                }
+                break;
+            }
+
+            case 'aandelencrash_event': {
+                if (typeof AANDELEN !== 'undefined') {
+                    AANDELEN.forEach(a => {
+                        this.aandeelKoersen[a.id] = Math.max(
+                            Math.round(a.basisPrijs * 0.25),
+                            Math.round((this.aandeelKoersen[a.id] ?? a.basisPrijs) * 0.80)
+                        );
+                    });
+                    const portWaarde = this.getPortefeuilleWaarde();
+                    resultaat.bericht = `Beurscrash! Alle aandelen −20%. Jouw portefeuille: ${this.formatteerKrediet(portWaarde)}.`;
+                    resultaat.kredietDelta = 0;
+                } else {
+                    resultaat.bericht = 'Beurscrash — maar de koersen zijn onbereikbaar. Geen effect.';
+                }
+                break;
+            }
+
+            case 'concurrent_investering': {
+                const voss = this.concurrenten?.find(c => c.id === 'voss');
+                if (voss) {
+                    const verlies = Math.round(voss.krediet * 0.15);
+                    voss.krediet = Math.max(100, voss.krediet - verlies);
+                    resultaat.bericht = `Makelaar Voss heeft een reeks slechte deals gemaakt. Zijn vermogen krimpt met ${this.formatteerKrediet(verlies)}. Kans!`;
+                } else {
+                    resultaat.bericht = 'Geruchten over Makelaar Voss bereiken je. Hij heeft het moeilijk.';
+                }
+                break;
+            }
+
+            case 'concurrent_sabotage': {
+                const extra = Math.floor(this.brandstof * 0.20);
+                if (this.verzekering?.actief) {
+                    resultaat.bericht = `Brandstoffilters gesaboteerd! Extra verbruik (⛽ −${extra} l) gedekt door verzekering! 🛡️`;
+                } else {
+                    this.brandstof = Math.max(0, this.brandstof - extra);
+                    resultaat.bericht = `Brandstoffilters gesaboteerd door een concurrent! ⛽ −${extra} l extra verlies. Resterend: ${this.brandstof} l.`;
+                }
+                break;
+            }
+
+            case 'spionagedienst': {
+                if (keuzeId === 'inhuren') {
+                    const kosten = Math.min(800, this.speler.krediet);
+                    this.speler.krediet -= kosten;
+                    resultaat.kredietDelta = -kosten;
+                    if (Math.random() < 0.60) {
+                        const doelwit = this.concurrenten?.[Math.floor(Math.random() * (this.concurrenten?.length ?? 0))];
+                        if (doelwit) {
+                            const schade = Math.round(doelwit.krediet * 0.10);
+                            doelwit.krediet = Math.max(100, doelwit.krediet - schade);
+                            resultaat.bericht = `Operatie geslaagd! ${doelwit.naam} verliest ${this.formatteerKrediet(schade)}. Kosten: ${this.formatteerKrediet(kosten)}.`;
+                        } else {
+                            resultaat.bericht = `Spion actief maar geen duidelijk doelwit. Kosten: ${this.formatteerKrediet(kosten)}.`;
+                        }
+                    } else {
+                        const boete = Math.min(600, this.speler.krediet);
+                        this.speler.krediet -= boete;
+                        resultaat.kredietDelta = -(kosten + boete);
+                        resultaat.bericht = `Spion gepakt! Extra boete: ${this.formatteerKrediet(boete)}. Totaal verlies: ${this.formatteerKrediet(kosten + boete)}.`;
+                    }
+                } else {
+                    resultaat.bericht = 'Je weigert het dubieuze aanbod. Een ruimtehandelaar houdt zijn handen schoon.';
+                }
+                break;
+            }
+
+            case 'mond_tot_mond': {
+                const bonusAantal = 15;
+                const naar = this.reisData?.naar;
+                if (naar && this.wachtendePassagiers?.[naar]) {
+                    this.wachtendePassagiers[naar].aantal += bonusAantal;
+                } else if (naar) {
+                    this.wachtendePassagiers[naar] = { aantal: bonusAantal, prijs: 200 };
+                }
+                resultaat.bericht = `Mond-tot-mondreclame werkt! +${bonusAantal} extra passagiers wachten op je bestemming.`;
+                break;
+            }
+
+            case 'marketing_sabotage': {
+                if (this.marketingActief) {
+                    this.marketingActief = null;
+                    resultaat.bericht = 'Marketingsabotage! Je campagne is onderschept en tenietgedaan. Geen restitutie.';
+                } else {
+                    resultaat.bericht = 'Een concurrent probeert je marketingcampagne te saboteren — maar je had er geen. Geen effect.';
+                }
+                break;
+            }
+
+            case 'verzekering_aanbieding': {
+                if (!this.verzekering?.actief) {
+                    this.verzekering = { actief: true };
+                    resultaat.bericht = 'Gratis noodverzekering geactiveerd! Je bent gedekt tot de volgende landing. 🛡️';
+                } else {
+                    resultaat.bericht = 'De verzekeringsagent biedt een gratis polis aan — maar je bent al verzekerd. Beleefd afgewezen.';
+                }
+                break;
+            }
+
+            case 'verzekering_fraude': {
+                if (this.verzekering?.actief) {
+                    this.verzekering = null;
+                    resultaat.bericht = 'Valse verzekeraar! Je verzekering is geannuleerd en je premie verdwenen. Je bent nu ongedekt. 🎭';
+                } else {
+                    resultaat.bericht = 'Een verdachte verzekeringsagent benadert je — maar je was al niet verzekerd. Geen schade.';
+                }
+                break;
+            }
+
             default: {
                 resultaat.bericht = 'De reis verloopt rustig. Sterren en stilte.';
                 break;
@@ -1102,16 +2209,20 @@ class GameState {
         const prijs = this.getPrijs(this.locatie, goedId);
         const effectiefPrijs = this.schip?.spearheadBonus ? Math.round(prijs * 0.92) : prijs;
         const totaal = effectiefPrijs * aantal;
-        const gewicht = goed.gewicht * aantal;
         const vrijeRuimte = this.schip.laadruimte - this.getLadingGewicht();
 
-        if (gewicht > vrijeRuimte) return { succes: false, reden: 'Onvoldoende laadruimte!' };
+        if (aantal > vrijeRuimte) return { succes: false, reden: 'Onvoldoende laadruimte!' };
         if (totaal > this.speler.krediet) return { succes: false, reden: 'Onvoldoende krediet!' };
+        const beschikbaar = this.planetVoorraden?.[this.locatie]?.[goedId] ?? 999;
+        if (aantal > beschikbaar) return { succes: false, reden: 'Onvoldoende voorraad op deze planeet.' };
 
         this.speler.krediet -= totaal;
         this.lading[goedId] = (this.lading[goedId] || 0) + aantal;
+        if (this.planetVoorraden?.[this.locatie]) {
+            this.planetVoorraden[this.locatie][goedId] = Math.max(0, (this.planetVoorraden[this.locatie][goedId] ?? 0) - aantal);
+        }
         this.statistieken.handelstransacties++;
-        this.statistieken.cargoTonVervoerd = (this.statistieken.cargoTonVervoerd ?? 0) + gewicht;
+        this.statistieken.cargoTonVervoerd = (this.statistieken.cargoTonVervoerd ?? 0) + aantal;
 
         // Werk gewogen gemiddelde aankoopprijs bij
         const huidigAant = this.aankoopAantallen[goedId] || 0;
@@ -1123,9 +2234,12 @@ class GameState {
             this.ladingVerdacht[goedId] = (this.ladingVerdacht[goedId] || 0) + aantal;
         }
 
+        // Marktimpact: wordt pas bij vertrek geflusht (voorkomt direct terugverkopen met winst)
+        this._visitMarktSaldo[goedId] = (this._visitMarktSaldo[goedId] ?? 0) + aantal * 0.002;
+
         this.voegBerichtToe(`Gekocht: ${aantal}× ${goed.naam} voor ${this.formatteerKrediet(totaal)}${this.schip?.spearheadBonus ? ' (−8% Spearhead)' : ''}.`, 'info');
         this.controleerAchievements();
-        return { succes: true };
+        return { succes: true, totaal, goed };
     }
 
     verkoopGoed(goedId, aantal) {
@@ -1155,6 +2269,19 @@ class GameState {
         this.statistieken.handelstransacties++;
         this.statistieken.verkopen = (this.statistieken.verkopen ?? 0) + 1;
 
+        // Marktimpact: wordt pas bij vertrek geflusht
+        this._visitMarktSaldo[goedId] = (this._visitMarktSaldo[goedId] ?? 0) - aantal * 0.0025;
+
+        // Verhoog planeetvoorraad bij verkoop
+        if (this.planetVoorraden?.[this.locatie]) {
+            const planeet = PLANETEN.find(p => p.id === this.locatie);
+            const range = planeet?.specialiteit?.includes(goedId) ? VOORRAAD_SPEC
+                        : planeet?.vraag?.includes(goedId)        ? VOORRAAD_VRAAG
+                        : VOORRAAD_BASIS;
+            const huidig = this.planetVoorraden[this.locatie][goedId] ?? 0;
+            this.planetVoorraden[this.locatie][goedId] = Math.min(range.max + 40, huidig + aantal);
+        }
+
         // Werk aankoopregistratie bij
         this.aankoopAantallen[goedId] = Math.max(0, (this.aankoopAantallen[goedId] || 0) - aantal);
         if (this.lading[goedId] === 0) {
@@ -1175,7 +2302,7 @@ class GameState {
     }
 
     getLadingGewicht() {
-        return GOEDEREN.reduce((tot, g) => tot + (this.lading[g.id] || 0) * g.gewicht, 0);
+        return GOEDEREN.reduce((tot, g) => tot + (this.lading[g.id] || 0), 0);
     }
 
     getLadingWaarde() {
@@ -1240,19 +2367,22 @@ class GameState {
         if (nieuwSchip.mark === 4 && this.schip.specialisatie && nieuwSchip.specialisatie !== this.schip.specialisatie)
             return { succes: false, reden: 'Je kunt je specialisatie niet wijzigen.' };
 
-        const verkoopwaarde = Math.round(this.schip.prijs * 0.60);
-        const nettoPrijs = nieuwSchip.prijs - verkoopwaarde;
-
-        if (nettoPrijs > this.speler.krediet)
-            return { succes: false, reden: `Onvoldoende krediet. Inruilwaarde: ${this.formatteerKrediet(verkoopwaarde)}. Netto: ${this.formatteerKrediet(nettoPrijs)}.` };
+        if (nieuwSchip.prijs > this.speler.krediet)
+            return { succes: false, reden: `Onvoldoende krediet. Je hebt ${this.formatteerKrediet(this.speler.krediet)}, dit schip kost ${this.formatteerKrediet(nieuwSchip.prijs)}.` };
 
         this.schip = { ...nieuwSchip };
         this.schipHP = nieuwSchip.maxHP;
-        this.speler.krediet -= nettoPrijs;
+        this.speler.krediet -= nieuwSchip.prijs;
         this.statistieken.schepenGekocht = (this.statistieken.schepenGekocht || 0) + 1;
-        this.voegBerichtToe(`${nieuwSchip.naam} aangeschaft! Nettobetaling: ${this.formatteerKrediet(nettoPrijs)}.`, 'goud');
+        const oudeCrewGrootte = this.crew?.grootte ?? 0;
+        const nieuweCrewGrootte = CREW_PER_SCHIP[schipId] ?? oudeCrewGrootte;
+        if (this.crew) this.crew.grootte = nieuweCrewGrootte;
+        this.voegBerichtToe(`${nieuwSchip.naam} aangeschaft voor ${this.formatteerKrediet(nieuwSchip.prijs)}.`, 'goud');
+        if (nieuweCrewGrootte > oudeCrewGrootte) {
+            this.voegBerichtToe(`👨‍🚀 Je nieuwe schip vereist ${nieuweCrewGrootte} bemanningsleden (was ${oudeCrewGrootte}). Salariskosten stijgen.`, 'info');
+        }
         this.controleerAchievements();
-        return { succes: true, verkoopwaarde, nettoPrijs };
+        return { succes: true };
     }
 
     // =========================================================================
@@ -1282,6 +2412,13 @@ class GameState {
             const basis = a.basisPrijs;
             const huidig = this.aandeelKoersen[a.id];
             factor += (basis - huidig) / basis * 0.05;
+
+            // Insider boost: als dit aandeel een actieve insider-tip heeft
+            if (this._insiderBoost?.aandeelId === a.id && (this._insiderBoost?.beurten ?? 0) > 0) {
+                factor *= 1.06; // Extra opwaartse druk per beurt
+                this._insiderBoost.beurten--;
+                if (this._insiderBoost.beurten <= 0) this._insiderBoost = null;
+            }
 
             let nieuw = Math.round(huidig * factor);
             nieuw = Math.max(Math.round(basis * 0.25), Math.min(Math.round(basis * 4), nieuw));
@@ -1353,7 +2490,7 @@ class GameState {
 
     leenGeld(bedrag) {
         const nieuweSchuld = this.speler.schuld + bedrag;
-        if (nieuweSchuld > MAX_SCHULD) return { succes: false, reden: `Maximum schuld is ${this.formatteerKrediet(MAX_SCHULD)}.` };
+        if (nieuweSchuld > (this.maxSchuld ?? MAX_SCHULD)) return { succes: false, reden: `Maximum schuld is ${this.formatteerKrediet(this.maxSchuld ?? MAX_SCHULD)}.` };
         this.speler.schuld += bedrag;
         this.speler.krediet += bedrag;
         this._oitLeningGehad = true;
@@ -1371,12 +2508,125 @@ class GameState {
         return { succes: true };
     }
 
+    stortenOpBank(bedrag) {
+        if ((this.bankBevroren ?? 0) > 0) return { succes: false, reden: 'Bank is tijdelijk bevroren door politieke onrust.' };
+        bedrag = Math.round(bedrag);
+        if (bedrag <= 0) return { succes: false, reden: 'Ongeldig bedrag.' };
+        if (bedrag > this.speler.krediet) return { succes: false, reden: 'Onvoldoende cash.' };
+        this.speler.krediet -= bedrag;
+        this.bankSaldo = (this.bankSaldo ?? 0) + bedrag;
+        this.voegBerichtToe(`🏦 ${this.formatteerKrediet(bedrag)} gestort op spaarrekening. Saldo: ${this.formatteerKrediet(this.bankSaldo)}`, 'info');
+        this.controleerAchievements();
+        return { succes: true };
+    }
+
+    opnemenVanBank(bedrag) {
+        if ((this.bankBevroren ?? 0) > 0) return { succes: false, reden: 'Bank is tijdelijk bevroren door politieke onrust.' };
+        bedrag = Math.round(bedrag);
+        if (bedrag <= 0) return { succes: false, reden: 'Ongeldig bedrag.' };
+        if (bedrag > (this.bankSaldo ?? 0)) bedrag = this.bankSaldo;
+        this.bankSaldo -= bedrag;
+        this.speler.krediet += bedrag;
+        this.voegBerichtToe(`🏦 ${this.formatteerKrediet(bedrag)} opgenomen van spaarrekening.`, 'info');
+        return { succes: true };
+    }
+
     controleerRente() {
+        // Schuldrente (elke RENTE_INTERVAL beurten)
         if (this.speler.schuld > 0 && this.beurt % RENTE_INTERVAL === 0) {
             const rente = Math.round(this.speler.schuld * RENTE_PERCENTAGE);
             this.speler.schuld += rente;
             this.voegBerichtToe(`Rente bijgeboekt: ${this.formatteerKrediet(rente)}. Totale schuld nu: ${this.formatteerKrediet(this.speler.schuld)}.`, 'waarschuwing');
         }
+        // Spaarrente (elke beurt)
+        if ((this.bankSaldo ?? 0) > 0 && (this.bankRente ?? 0) > 0) {
+            const spaarRente = Math.round(this.bankSaldo * (this.bankRente / 100));
+            if (spaarRente > 0) {
+                this.bankSaldo += spaarRente;
+                this.voegBerichtToe(`🏦 Spaarrente bijgeschreven: +${this.formatteerKrediet(spaarRente)} (${this.bankRente}% per beurt). Saldo: ${this.formatteerKrediet(this.bankSaldo)}`, 'goud');
+                this.controleerAchievements();
+            }
+        }
+        // Bankbevriezing ontdooien
+        if ((this.bankBevroren ?? 0) > 0) this.bankBevroren--;
+    }
+
+    // =========================================================================
+    // CREW BEHEER
+    // =========================================================================
+
+    controleerCrew() {
+        // Tutorial: crew-mechanica uitgeschakeld totdat bemanning is unlocked
+        if (!this.isUnlocked('bemanning')) return;
+        if (!this.crew || this.crew.grootte <= 0) return;
+
+        // Dagelijks verval: happiness daalt elke dag 1 punt (sleet van het reizen)
+        this.crew.happiness = Math.max(0, this.crew.happiness - 1);
+
+        // Betaalcheck: volgendeBetaalBeurt staat vast totdat betaald wordt
+        const dagenAchter = this.beurt - this.crew.volgendeBetaalBeurt;
+
+        if (dagenAchter === 0) {
+            // Eerste dag van gemiste betaling: directe grote straf
+            const weekTotaal = this.crew.grootte * this.crew.salaris * CREW_BETAAL_INTERVAL;
+            this.crew.happiness = Math.max(0, this.crew.happiness - 15);
+            this.voegBerichtToe(`⚠ Crew salaris gemist! −15 happiness. Openstaand: ${this.formatteerKrediet(weekTotaal)}`, 'gevaar');
+        } else if (dagenAchter > 0) {
+            // Elke dag verder achterstallig: −2 extra bovenop het dagelijkse verval
+            this.crew.happiness = Math.max(0, this.crew.happiness - 2);
+            if (dagenAchter % 3 === 0) {
+                this.voegBerichtToe(`😡 Crew is ${dagenAchter} dag(en) zonder salaris — muiterij-risico stijgt!`, 'gevaar');
+            }
+        }
+    }
+
+    betaalCrewSalaris() {
+        if (!this.crew || this.crew.grootte <= 0)
+            return { succes: false, reden: 'Geen bemanning om te betalen.' };
+        const weekTotaal = this.crew.grootte * this.crew.salaris * CREW_BETAAL_INTERVAL;
+        if (this.speler.krediet < weekTotaal)
+            return { succes: false, reden: `Onvoldoende credits. Weekbedrag: ${this.formatteerKrediet(weekTotaal)}` };
+        this.speler.krediet -= weekTotaal;
+        this.crew.volgendeBetaalBeurt = Math.max(this.crew.volgendeBetaalBeurt, this.beurt) + CREW_BETAAL_INTERVAL;
+        this.crew.happiness = Math.min(100, this.crew.happiness + 5);
+        this.voegBerichtToe(`💼 Crew betaald: ${this.formatteerKrediet(weekTotaal)} voor ${this.crew.grootte} man (${this.crew.salaris} cr/pp/dag × ${CREW_BETAAL_INTERVAL} dagen). Volgende betaling over ${CREW_BETAAL_INTERVAL} beurten.`, 'succes');
+        return { succes: true };
+    }
+
+    verhoogCrewSalaris(bedrag = 10) {
+        if (!this.crew) return { succes: false, reden: 'Geen crew.' };
+        this.crew.salaris += bedrag;
+        this.crew.happiness = Math.min(100, this.crew.happiness + 10);
+        const totaalPeriode = this.crew.grootte * this.crew.salaris * CREW_BETAAL_INTERVAL;
+        this.voegBerichtToe(`📈 Salaris verhoogd naar ${this.crew.salaris} cr/pp/dag (+10 happiness). Weekbetaling: ${this.formatteerKrediet(totaalPeriode)}`, 'succes');
+        return { succes: true };
+    }
+
+    verlaagCrewSalaris(bedrag = 10) {
+        if (!this.crew) return { succes: false, reden: 'Geen crew.' };
+        const min = 30;
+        if (this.crew.salaris <= min)
+            return { succes: false, reden: `Minimum salaris is ${min} cr/pp. Verlagen niet mogelijk.` };
+        this.crew.salaris = Math.max(min, this.crew.salaris - bedrag);
+        this.crew.happiness = Math.max(0, this.crew.happiness - 15);
+        const totaalPeriode = this.crew.grootte * this.crew.salaris * CREW_BETAAL_INTERVAL;
+        this.voegBerichtToe(`📉 Salaris verlaagd naar ${this.crew.salaris} cr/pp/dag (−15 happiness). Weekbetaling: ${this.formatteerKrediet(totaalPeriode)}`, 'waarschuwing');
+        return { succes: true };
+    }
+
+    casinoCrewUitje() {
+        if (!this.crew || this.crew.grootte <= 0)
+            return { succes: false, reden: 'Geen bemanning voor een uitje.' };
+        if (this.locatie !== 'luxoria')
+            return { succes: false, reden: 'Casino-uitje alleen mogelijk op Luxoria.' };
+        const cooldown = 15;
+        const sindsLaatst = this.beurt - (this.crew.casinoBeurt ?? -99);
+        if (sindsLaatst < cooldown)
+            return { succes: false, reden: `Crew heeft nog ${cooldown - sindsLaatst} beurten rust nodig voor het volgende uitje.` };
+        this.crew.happiness = Math.min(100, this.crew.happiness + 25);
+        this.crew.casinoBeurt = this.beurt;
+        this.voegBerichtToe(`🎉 Crew geniet van een avondje in Casino Stellaris op Luxoria! +25 happiness.`, 'succes');
+        return { succes: true };
     }
 
     // =========================================================================
@@ -1480,6 +2730,7 @@ class GameState {
                 passagiers: this.passagiers,
                 passagiersTicketprijs: this.passagiersTicketprijs,
                 wachtendePassagiers: this.wachtendePassagiers,
+                ticketNiveau: this.ticketNiveau || 'midden',
                 brandstof: this.brandstof,
                 brandstofPrijzen: this.brandstofPrijzen,
                 eindeReden: this.eindeReden || null,
@@ -1489,6 +2740,19 @@ class GameState {
                 nettoWaardeGeschiedenisSpeler: this.nettoWaardeGeschiedenisSpeler,
                 ladingVerdacht: this.ladingVerdacht,
                 mortexUpgrades: this.mortexUpgrades,
+                planetVoorraden: this.planetVoorraden,
+                bankSaldo: this.bankSaldo ?? 0,
+                bankRente: this.bankRente ?? 2,
+                bankBevroren: this.bankBevroren ?? 0,
+                crew: this.crew,
+                maxSchuld: this.maxSchuld ?? MAX_SCHULD,
+                _insiderBoost: this._insiderBoost ?? null,
+                _noodoproepBonus: this._noodoproepBonus ?? false,
+                // Tutorial systeem
+                tutorialActief: this.tutorialActief,
+                unlockedFeatures: [...(this.unlockedFeatures ?? [])],
+                getoondeTutorialDialogen: [...(this.getoondeTutorialDialogen ?? [])],
+                planeetDienstenIntro: [...(this.planeetDienstenIntro ?? [])],
             };
             localStorage.setItem('gazillionaire_save', JSON.stringify(data));
         } catch(e) {}
@@ -1512,6 +2776,7 @@ class GameState {
             if (Array.isArray(this.passagiers)) this.passagiers = this.passagiers.length;
             if (!this.passagiersTicketprijs) this.passagiersTicketprijs = 0;
             if (!this.wachtendePassagiers) { this.wachtendePassagiers = {}; this.initPassagiers(); }
+            if (!this.ticketNiveau) this.ticketNiveau = 'midden';
             // Migratie: old saves had schipBeschadigd boolean, new system uses schipHP
             delete this.schipBeschadigd;
             if (!this.schipHP || this.schipHP === 0) this.schipHP = this.schip?.maxHP ?? 40;
@@ -1525,6 +2790,53 @@ class GameState {
             if (!this.ladingVerdacht) this.ladingVerdacht = {};
             if (!this.mortexUpgrades) this.mortexUpgrades = { afgeschermd: false };
             if (this.statistieken.mortexGladGestreken === undefined) this.statistieken.mortexGladGestreken = 0;
+            if (data.planetVoorraden) {
+                this.planetVoorraden = data.planetVoorraden;
+            } else {
+                this._initPlanetVoorraden(); // oude saves: initialiseer opnieuw
+            }
+            if (this.bankSaldo === undefined) this.bankSaldo = 0;
+            if (this.bankRente === undefined) this.bankRente = 2;
+            if (this.bankBevroren === undefined) this.bankBevroren = 0;
+            this.maxSchuld = data.maxSchuld ?? MAX_SCHULD;
+            this._insiderBoost = data._insiderBoost ?? null;
+            this._noodoproepBonus = data._noodoproepBonus ?? false;
+            // Tutorial systeem: migratie van oude saves (tutorialActief ontbreekt → uitschakelen)
+            if (data.tutorialActief !== undefined) {
+                this.tutorialActief = data.tutorialActief;
+                this.unlockedFeatures = new Set(data.unlockedFeatures || ['basis']);
+                this.getoondeTutorialDialogen = new Set(data.getoondeTutorialDialogen || []);
+                this.planeetDienstenIntro = new Set(data.planeetDienstenIntro || []);
+            } else {
+                // Oude save: tutorial uitschakelen, alles direct beschikbaar
+                this.tutorialActief = false;
+                this.unlockedFeatures = new Set(
+                    typeof TUTORIAL_STAPPEN !== 'undefined' ? TUTORIAL_STAPPEN.map(s => s.feature) : []
+                );
+                this.getoondeTutorialDialogen = new Set(this.unlockedFeatures);
+                this.planeetDienstenIntro = new Set();
+            }
+            this._pendingTutorialDialogen = [];
+            // Migratie: crew ontbrak in oude saves — herstel en bereken happiness retroactief
+            if (!this.crew || !this.crew.grootte) {
+                const schipId = this.schip?.id;
+                this.crew = {
+                    grootte: CREW_PER_SCHIP[schipId] ?? 3,
+                    salaris: 100,
+                    happiness: 75,
+                    volgendeBetaalBeurt: this.beurt + CREW_BETAAL_INTERVAL,
+                };
+            }
+            // Retroactief happiness corrigeren als achterstallig maar happiness onrealistisch hoog
+            if (this.crew && this.crew.grootte > 0) {
+                const dagenAchter = this.beurt - (this.crew.volgendeBetaalBeurt ?? CREW_BETAAL_INTERVAL);
+                if (dagenAchter > 0) {
+                    const verwacht = Math.max(0, (this.crew.happiness ?? 75) - dagenAchter * 3 - 15);
+                    if ((this.crew.happiness ?? 75) > verwacht + 10) {
+                        this.crew.happiness = verwacht;
+                    }
+                }
+            }
             return true;
         } catch(e) {
             return false;

@@ -134,10 +134,19 @@ const App = {
     },
 
     selecteerSchip(schipId) {
+        // Tutorial: sla skip-voorkeur op in localStorage vóór init() die het leest
+        const skipEl = document.getElementById('skip-tutorial');
+        if (skipEl?.checked) {
+            localStorage.setItem('gazillionaire_tutorial', 'skip');
+        } else {
+            localStorage.removeItem('gazillionaire_tutorial');
+        }
         state.init(state.speler.naam, schipId);
         if (typeof DB !== 'undefined') DB.initSessie();
+        state.checkTutorialUnlocks(); // Trigger beurt 0 dialogen (welkomstbericht)
         UI.toonScherm('spel-scherm');
         UI.renderSpel();
+        this._verwerkTutorialDialogen(() => {});
     },
 
     // =========================================================================
@@ -149,12 +158,14 @@ const App = {
         state.geselecteerdePlaneet = planeetId;
         UI.renderBestemmingPaneel();
         UI.renderKaart();
+        if (state.activeTab === 'handel') UI.renderHandelTab();
     },
 
     selecteerBestemming(planeetId) {
         state.geselecteerdePlaneet = planeetId || null;
         UI.renderBestemmingPaneel();
         UI.renderKaart();
+        if (state.activeTab === 'handel') UI.renderHandelTab();
     },
 
     switchTab(naam) {
@@ -211,9 +222,9 @@ const App = {
                     UI.renderSpel();
                     if (state.fase === 'einde') {
                         UI.toonEindeScherm();
-                    } else if (state.huidigAankomstEvent) {
-                        UI.toonAankomstPopup(state.huidigAankomstEvent);
-                        state.huidigAankomstEvent = null;
+                    } else {
+                        // Tutorial: dialogen eerst, daán aankomst events
+                        this._verwerkTutorialDialogen(() => this._toonAankomstEventQueue());
                     }
                 }, 1100);
             });
@@ -268,9 +279,9 @@ const App = {
                     UI.renderSpel();
                     if (state.fase === 'einde') {
                         UI.toonEindeScherm();
-                    } else if (state.huidigAankomstEvent) {
-                        UI.toonAankomstPopup(state.huidigAankomstEvent);
-                        state.huidigAankomstEvent = null;
+                    } else {
+                        // Tutorial: dialogen eerst, daán aankomst events
+                        this._verwerkTutorialDialogen(() => this._toonAankomstEventQueue());
                     }
                 }, 1100);
             });
@@ -283,6 +294,43 @@ const App = {
         if (!el) return;
         el.textContent = tekst;
         el.className = 'reis-status ' + (klasse || '');
+    },
+
+    // Tutorial: verwerk wachtrij van tutorial-dialogen, roep callback aan als klaar
+    _verwerkTutorialDialogen(callback) {
+        const wachtrij = [...(state._pendingTutorialDialogen ?? [])];
+        state._pendingTutorialDialogen = [];
+        this._verwerkDialogWachtrij(wachtrij, callback);
+    },
+
+    _verwerkDialogWachtrij(wachtrij, callback) {
+        if (!wachtrij.length) { if (callback) callback(); return; }
+        const stap = wachtrij.shift();
+        UI.toonTutorialDialog(stap, () => {
+            UI.renderSpel(); // re-render na sluiten (nieuwe features zichtbaar)
+            this._verwerkDialogWachtrij(wachtrij, callback);
+        });
+    },
+
+    _toonAankomstEventQueue() {
+        if (state.aankomstConcurrentEvents?.length > 0) {
+            const evt = state.aankomstConcurrentEvents.shift();
+            UI.toonConcurrentAankomstPopup(evt, () => this._toonAankomstEventQueue());
+        } else if (state.huidigAankomstEvent) {
+            const ev = state.huidigAankomstEvent;
+            state.huidigAankomstEvent = null;
+            UI.toonAankomstPopup(ev, () => this._toonNaAankomstEvents());
+        } else {
+            this._toonNaAankomstEvents();
+        }
+    },
+
+    _toonNaAankomstEvents() {
+        if (state._pendingMarketingSummary) {
+            const s = state._pendingMarketingSummary;
+            state._pendingMarketingSummary = null;
+            UI.toonMarketingSummary(s);
+        }
     },
 
     // =========================================================================
@@ -327,6 +375,41 @@ const App = {
             UI.toonTransactieToast({ icoon: res.goed?.icoon ?? '📦', titel: `${n}× ${res.goed?.naam ?? goedId} verkocht`, totaal: res.totaal, winst: res.winst });
         }
         UI.renderSpel();
+    },
+
+    koopN(goedId, n, evt) {
+        const prijs = state.getPrijs(state.locatie, goedId);
+        const vrij = state.schip.laadruimte - state.getLadingGewicht();
+        const planeetVoorraad = state.planetVoorraden?.[state.locatie]?.[goedId] ?? 999;
+        const maxN = Math.min(vrij, Math.floor(state.speler.krediet / prijs), planeetVoorraad);
+        const aantal = (n === 'max') ? maxN : Math.min(n, maxN);
+        if (aantal <= 0) return;
+        const res = state.koopGoed(goedId, aantal);
+        if (!res.succes) this._fout(res.reden);
+        else {
+            Audio.koop();
+            if (evt?.target) UI.toonKoopToast(evt.target, res.totaal);
+            UI.renderSpel();
+        }
+    },
+
+    verkoopN(goedId, n, evt) {
+        const inLading = state.lading[goedId] || 0;
+        const aantal = (n === 'alles') ? inLading : Math.min(n, inLading);
+        if (aantal <= 0) return;
+        const res = state.verkoopGoed(goedId, aantal);
+        if (!res.succes) this._fout(res.reden);
+        else {
+            Audio.verkoop();
+            if (evt?.target) UI.toonVerkoopToast(evt.target, res.totaal, res.winst);
+            UI.renderSpel();
+        }
+    },
+
+    accepteerMissie(missieId) {
+        const res = state.accepteerMissie(missieId);
+        if (!res.succes) this._fout(res.reden);
+        else { Audio.koop(); UI.renderSpel(); }
     },
 
     // =========================================================================
@@ -400,32 +483,60 @@ const App = {
         if (!res.succes) this._fout(res.reden); else UI.renderSpel();
     },
 
+    betaalCrewSalaris() {
+        const res = state.betaalCrewSalaris();
+        if (!res.succes) this._fout(res.reden); else UI.renderSpel();
+    },
+
+    verhoogCrewSalaris() {
+        const res = state.verhoogCrewSalaris();
+        if (!res.succes) this._fout(res.reden); else UI.renderSpel();
+    },
+
+    verlaagCrewSalaris() {
+        const res = state.verlaagCrewSalaris();
+        if (!res.succes) this._fout(res.reden); else UI.renderSpel();
+    },
+
+    casinoCrewUitje() {
+        const res = state.casinoCrewUitje();
+        if (!res.succes) this._fout(res.reden); else UI.renderSpel();
+    },
+
     koopSchip(schipId) {
         const nieuw = SCHEPEN.find(s => s.id === schipId);
         if (!nieuw) return;
-        const verkoopwaarde = Math.round(state.schip.prijs * 0.60);
-        const netto = nieuw.prijs - verkoopwaarde;
-        const betalingTekst = netto >= 0
-            ? `Netto betaling: ${state.formatteerKrediet(netto)}`
-            : `Je ontvangt: ${state.formatteerKrediet(-netto)} retour`;
         const label = nieuw.mark === 3 ? 'specialiseren naar' : 'upgraden naar';
-        if (!confirm(`${state.schip.naam} inruilen en ${label} ${nieuw.naam}?\n${betalingTekst}`)) return;
+        if (!confirm(`${label} ${nieuw.naam}?\nPrijs: ${state.formatteerKrediet(nieuw.prijs)}`)) return;
         const res = state.koopSchip(schipId);
         if (!res.succes) this._fout(res.reden); else { Audio.upgrade(); UI.renderSpel(); }
     },
 
     repareerSchip() {
+        const hpPctVoor = state.schip?.maxHP > 0 ? Math.round((state.schipHP ?? 0) / state.schip.maxHP * 100) : 0;
         const res = state.repareerSchip();
-        if (!res.succes) this._fout(res.reden); else UI.renderSpel();
+        if (!res.succes) this._fout(res.reden); else { UI._animeerHP = true; UI._hpPctVoor = hpPctVoor; UI.renderSpel(); }
     },
 
     // =========================================================================
     // PASSAGIERS
     // =========================================================================
 
-    koopMarketing(planeetId) {
-        const res = state.koopMarketing(planeetId);
+    koopMarketing() {
+        const res = state.koopMarketing();
         if (!res.succes) this._fout(res.reden); else UI.renderSpel();
+    },
+
+    setTicketNiveau(niveau) {
+        state.setTicketNiveau(niveau);
+        UI.renderSpel();
+    },
+
+    setTicketPrijs() {
+        const prijs = parseInt(document.getElementById('ticket-prijs-invoer')?.value) || 0;
+        if (prijs <= 0) return;
+        state.setTicketPrijs(prijs);
+        UI.renderSpel();
     },
 
     // =========================================================================
@@ -483,6 +594,28 @@ const App = {
         const input = document.getElementById('leen-bedrag');
         const n = Math.min(parseInt(input?.value) || 1000, state.speler.schuld);
         const res = state.betaalLening(n);
+        if (!res.succes) this._fout(res.reden); else UI.renderSpel();
+    },
+
+    stortenOpBank() {
+        const n = parseInt(document.getElementById('bank-bedrag')?.value) || 0;
+        const res = state.stortenOpBank(n);
+        if (!res.succes) this._fout(res.reden); else UI.renderSpel();
+    },
+
+    opnemenVanBank() {
+        const n = parseInt(document.getElementById('bank-bedrag')?.value) || 0;
+        const res = state.opnemenVanBank(n);
+        if (!res.succes) this._fout(res.reden); else UI.renderSpel();
+    },
+
+    stortenAlles() {
+        const res = state.stortenOpBank(state.speler.krediet);
+        if (!res.succes) this._fout(res.reden); else UI.renderSpel();
+    },
+
+    opnemenAlles() {
+        const res = state.opnemenVanBank(state.bankSaldo ?? 0);
         if (!res.succes) this._fout(res.reden); else UI.renderSpel();
     },
 

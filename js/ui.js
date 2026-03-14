@@ -2,6 +2,8 @@
 // GAZILLIONAIRE: STER DER HANDEL - UI Rendering
 // =============================================================================
 
+const FUEL_IMG = '<img src="assets/fuel.png" class="icoon-brandstof" alt="brandstof">';
+
 const UI = {
 
     // =========================================================================
@@ -49,6 +51,7 @@ const UI = {
                     <div class="schip-stat"><span>Brandstoftank</span><span class="waarde">${schip.brandstofTank} l</span></div>
                     <div class="schip-stat"><span>Passagiers</span><span class="waarde">${schip.passagiersCapaciteit > 0 ? schip.passagiersCapaciteit : '—'}</span></div>
                     <div class="schip-stat"><span>Schild</span><span class="waarde">${schip.schild}</span></div>
+                    <div class="schip-stat"><span>Bemanning</span><span class="waarde">${CREW_PER_SCHIP[schip.id] ?? '?'} pers.</span></div>
                     <div class="schip-stat"><span>Startkapitaal</span><span class="waarde ${resterend < 2000 ? 'kleur-rood' : 'kleur-groen'}">${state.formatteerKrediet(resterend)}</span></div>
                 </div>
                 <button class="knop primair schip-kies-knop" onclick="App.selecteerSchip('${schip.id}')">Dit schip kiezen</button>
@@ -61,12 +64,45 @@ const UI = {
     // HOOFD RENDER — roept alles aan
     // =========================================================================
 
+    // =========================================================================
+    // TUTORIAL DIALOG
+    // =========================================================================
+
+    toonTutorialDialog(stap, callback) {
+        const overlay = document.getElementById('tutorial-overlay');
+        if (!overlay || !stap?.dialoog) { if (callback) callback(); return; }
+        document.getElementById('tutorial-titel').textContent = stap.dialoog.titel;
+        document.getElementById('tutorial-tekst').textContent = stap.dialoog.tekst;
+        overlay.classList.remove('verborgen');
+        const sluitKnop = document.getElementById('tutorial-sluit');
+        const handler = () => {
+            overlay.classList.add('verborgen');
+            sluitKnop.removeEventListener('click', handler);
+            if (callback) callback();
+        };
+        sluitKnop.addEventListener('click', handler);
+    },
+
     renderSpel() {
         this.updateTopBalk();
         this.renderPlaneetInfo();
         this.renderKaart();
         this.renderBestemmingPaneel();
         this.updateBerichten();
+
+        // Tutorial: verberg/toon tabs op basis van unlock status
+        const havenHasContent = state.isUnlocked('brandstof') || state.isUnlocked('passagiers')
+            || state.isUnlocked('onderhoud') || state.isUnlocked('marketing');
+        const havenTabKnop = document.querySelector('.tab[data-tab="haven"]');
+        const financienTabKnop = document.querySelector('.tab[data-tab="financien"]');
+        const missiesTabKnop = document.querySelector('.tab[data-tab="missies"]');
+        if (havenTabKnop) havenTabKnop.style.display = havenHasContent ? '' : 'none';
+        if (financienTabKnop) financienTabKnop.style.display = state.isUnlocked('leningen') ? '' : 'none';
+        if (missiesTabKnop) missiesTabKnop.style.display = state.isUnlocked('missies') ? '' : 'none';
+        // Vergrendelde actieve tab → terug naar handel
+        if (state.activeTab === 'haven' && !havenHasContent) state.activeTab = 'handel';
+        if (state.activeTab === 'financien' && !state.isUnlocked('leningen')) state.activeTab = 'handel';
+        if (state.activeTab === 'missies' && !state.isUnlocked('missies')) state.activeTab = 'handel';
 
         // Render actieve tab-inhoud
         if (state.activeTab === 'beurs') state.activeTab = 'financien'; // migreer oude saves
@@ -78,6 +114,7 @@ const UI = {
             case 'ranglijst':    this.renderRanglijstTab();    break;
             case 'achievements': this.renderAchievementsTab(); break;
             case 'planeet':      this.renderPlaneetTab();      break;
+            case 'missies':      this.renderMissieTab();       break;
         }
 
         // *** KRITIEKE FIX: toggle tab-panelen ÉN tab-knoppen ***
@@ -86,6 +123,31 @@ const UI = {
         document.querySelectorAll('.tab').forEach(tab => {
             tab.classList.toggle('actief', tab.dataset.tab === state.activeTab);
         });
+
+        // "Ga naar planeet" knop: planeet-specifiek label + verbergen op planeten zonder speciale functie
+        const planeetGaKnop = document.getElementById('planeet-ga-naar-knop');
+        if (planeetGaKnop) {
+            const planeetLabels = {
+                nexoria: '🌌 Galactische Beurs',
+                techton: '🛸 Geavanceerde Scheepswerf',
+                luxoria: '🎰 Casino Stellaris',
+                agria:   '🔨 Oogstveiling',
+                mortex:  '💀 Zwarte Markt',
+                ferrum:  '⛏ Ertsverwerkingsfaciliteit',
+            };
+            const planeetLabel = planeetLabels[state.locatie];
+            // Tutorial: planeet-tab verbergen tot de juiste feature unlocked is
+            const planeetTabUnlocked = state.locatie === 'nexoria'
+                ? state.isUnlocked('beurs')
+                : state.isUnlocked('planeet_diensten');
+            if (planeetLabel && planeetTabUnlocked) {
+                planeetGaKnop.textContent = planeetLabel;
+                planeetGaKnop.style.display = '';
+            } else {
+                planeetGaKnop.style.display = 'none';
+            }
+            planeetGaKnop.classList.toggle('actief', state.activeTab === 'planeet');
+        }
 
         // Handel-tab label: Zwarte Markt op Mortex
         const handelTabKnop = document.querySelector('.tab[data-tab="handel"]');
@@ -98,54 +160,63 @@ const UI = {
         });
     },
 
+    _getPlaneetServiceTags(planeet) {
+        const tags = [];
+        // Tutorial: toon alleen tags van unlocked planeetdiensten
+        if (planeet.id === 'nexoria' && state.isUnlocked('beurs')) tags.push('🌌 Galactische Beurs');
+        if (planeet.id === 'techton' && state.isUnlocked('planeet_diensten')) tags.push('🛸 Scheepswerf');
+        if (planeet.id === 'luxoria' && state.isUnlocked('planeet_diensten')) tags.push('🎰 Casino');
+        if (planeet.id === 'agria'   && state.isUnlocked('planeet_diensten')) tags.push('🏺 Veiling');
+        if (planeet.id === 'mortex'  && state.isUnlocked('planeet_diensten')) tags.push('💀 Zwarte Markt');
+        if (planeet.id === 'pyroflux' && state.isUnlocked('brandstof')) tags.push(`${FUEL_IMG} Speciale brandstof`);
+        return tags;
+    },
+
     renderBestemmingPaneel() {
         const container = document.getElementById('bestemming-paneel-container');
         if (!container) return;
 
-        // Geen bestemming geselecteerd: toon dropdown
-        if (!state.geselecteerdePlaneet) {
-            const opties = PLANETEN
-                .filter(p => p.id !== state.locatie)
-                .map(p => `<option value="${p.id}">${p.naam}${p.isGevaarlijk ? ' ⚠' : ''}</option>`)
-                .join('');
-            container.innerHTML = `<div class="bestemming-paneel">
-                <div class="bestemming-label">Bestemming</div>
-                <select class="bestemming-dropdown" onchange="App.selecteerBestemming(this.value)">
-                    <option value="">— Kies je bestemming —</option>
-                    ${opties}
-                </select>
-            </div>`;
-            return;
-        }
+        const dest = state.geselecteerdePlaneet
+            ? PLANETEN.find(p => p.id === state.geselecteerdePlaneet)
+            : null;
 
-        const dest = PLANETEN.find(p => p.id === state.geselecteerdePlaneet);
-        if (!dest) { container.innerHTML = ''; return; }
+        const brandstofNodig = dest ? state.berekenBrandstofVerbruik(state.locatie, dest.id) : 0;
+        const heeftGenoeg   = dest ? state.brandstof >= brandstofNodig : false;
+        const afstand        = dest ? Math.round(state.berekenAfstand(state.locatie, dest.id)) : 0;
+        const services       = dest ? this._getPlaneetServiceTags(dest) : [];
+        const servicesHtml   = services.length
+            ? `<div class="bestemming-services">${services.map(s => `<span class="planeet-tag">${s}</span>`).join('')}</div>`
+            : '<div class="bestemming-services"></div>';
 
-        const brandstofNodig = state.berekenBrandstofVerbruik(state.locatie, dest.id);
-        const heeftGenoeg = state.brandstof >= brandstofNodig;
-        const afstand = Math.round(state.berekenAfstand(state.locatie, dest.id));
+        // Inhoud altijd renderen maar verbergen als er geen bestemming is (behoudt hoogte)
+        const verbergStijl = dest ? '' : 'visibility:hidden';
+
         container.innerHTML = `<div class="bestemming-paneel">
-            <div class="bestemming-label">Bestemming
-                <button class="bestemming-wijzig" onclick="App.selecteerBestemming('')">✕ Wijzig</button>
-            </div>
-            <div class="bestemming-paneel-naam">
-                <span class="planeet-bol" style="background:${dest.kleur};width:13px;height:13px"></span>
-                <strong>${dest.naam}</strong>
-                ${dest.isGevaarlijk ? '<span class="kleur-rood" style="font-size:0.78em">⚠ Gevaarlijk</span>' : ''}
-            </div>
-            <div class="kleur-dimmed" style="font-size:0.82em;margin:6px 0 8px">${dest.beschrijving}</div>
-            <div class="bestemming-meta-rij">
-                <span>Afstand</span><span>${afstand} lj</span>
-            </div>
-            <div class="brandstof-vereist ${heeftGenoeg ? '' : 'brandstof-tekort'}" style="margin-top:6px">
-                <span class="bestemming-sub-label">Brandstofkosten</span>
-                <div>⛽ ${brandstofNodig} l
-                ${heeftGenoeg
-                    ? `<span class="kleur-groen">✓</span>`
-                    : `<span class="kleur-rood">✗ tekort: ${brandstofNodig - state.brandstof} l</span>`}
+            <div class="bestemming-inhoud" style="${verbergStijl}">
+                <div class="bestemming-paneel-naam">
+                    <span class="planeet-bol" style="background:${dest?.kleur ?? 'transparent'};width:13px;height:13px"></span>
+                    <strong>${dest?.naam ?? '—'}</strong>
+                    ${dest?.isGevaarlijk ? '<span class="kleur-rood" style="font-size:0.78em">⚠ Gevaarlijk</span>' : ''}
                 </div>
+                <div class="kleur-dimmed" style="font-size:0.82em;margin:4px 0 6px">${dest?.beschrijving ?? '—'}</div>
+                ${servicesHtml}
+                <div class="bestemming-meta-rij" style="margin-top:8px">
+                    <span>Afstand</span><span>${afstand} lj</span>
+                </div>
+                ${state.isUnlocked('brandstof') ? `<div class="brandstof-vereist ${heeftGenoeg ? '' : 'brandstof-tekort'}" style="margin-top:6px">
+                    <span class="bestemming-sub-label">Brandstofkosten</span>
+                    <div>${FUEL_IMG} ${brandstofNodig} l
+                    ${heeftGenoeg
+                        ? `<span class="kleur-groen">✓</span>`
+                        : dest ? `<span class="kleur-rood">✗ tekort: ${brandstofNodig - state.brandstof} l</span>` : ''}
+                    </div>
+                </div>` : ''}
             </div>
-            <button class="knop ${heeftGenoeg ? 'primair' : 'gevaar'}" style="width:100%;padding:10px 0;margin-top:8px" onclick="App.reisNaar('${dest.id}')">🚀 Reis naar ${dest.naam} →</button>
+            <button class="knop ${dest && heeftGenoeg ? 'primair' : dest ? 'gevaar' : 'dimmed'}"
+                    style="width:100%;padding:10px 0;margin-top:8px"
+                    ${dest ? `onclick="App.reisNaar('${dest.id}')"` : 'disabled'}>
+                ${dest ? `🚀 Reis naar ${dest.naam} →` : 'Selecteer bestemming'}
+            </button>
         </div>`;
     },
 
@@ -155,6 +226,8 @@ const UI = {
 
     updateTopBalk() {
         document.body.dataset.planeet = state.locatie;
+        const planeetObj = PLANETEN.find(p => p.id === state.locatie);
+        document.body.style.setProperty('--planeet-knop-kleur', planeetObj?.kleur ?? 'var(--accent)');
 
         const el = id => document.getElementById(id);
         el('kapitein-display').textContent = `👤 ${state.speler?.naam ?? '---'}`;
@@ -163,23 +236,56 @@ const UI = {
         const hpPct = maxHP > 0 ? hp / maxHP : 1;
         const hpKleur = hpPct >= 0.8 ? 'var(--groen)' : hpPct >= 0.5 ? 'var(--oranje)' : 'var(--rood)';
         const schipEl = el('schip-naam-display');
-        schipEl.innerHTML = `🚀 ${state.schip?.naam ?? '---'} <span style="color:${hpKleur};font-size:0.9em">❤ ${hp}/${maxHP}</span>`;
+        if (state.isUnlocked('onderhoud')) {
+            schipEl.innerHTML = `🚀 ${state.schip?.naam ?? '---'} <span style="color:${hpKleur};font-size:0.9em">❤ ${hp}/${maxHP}</span>`;
+        } else {
+            schipEl.innerHTML = `🚀 ${state.schip?.naam ?? '---'}`;
+        }
 
         const geladen = state.getLadingGewicht?.() ?? 0;
         const maxLading = state.schip?.laadruimte ?? 0;
-        el('cargo-display').textContent = `📦 ${geladen}/${maxLading} ton`;
+        const cargoEl = el('cargo-display');
+        cargoEl.textContent = `📦 ${geladen}/${maxLading} ton`;
+        cargoEl.style.cursor = 'pointer';
+        cargoEl.onclick = () => App.switchTab('handel');
 
         const pax = state.passagiers ?? 0;
         const maxPax = state.schip?.passagiersCapaciteit ?? 0;
-        el('passagiers-display').textContent = `🧳 ${pax}/${maxPax}`;
+        const paxDisplay = el('passagiers-display');
+        const paxSep = el('passagiers-sep');
+        if (maxPax > 0 && state.isUnlocked('passagiers')) {
+            paxDisplay.textContent = `🧳 ${pax}/${maxPax}`;
+            paxDisplay.style.display = '';
+            paxDisplay.style.cursor = 'pointer';
+            paxDisplay.onclick = () => App.switchTab('haven');
+            if (paxSep) paxSep.style.display = '';
+        } else {
+            paxDisplay.style.display = 'none';
+            paxDisplay.onclick = null;
+            if (paxSep) paxSep.style.display = 'none';
+        }
 
         const brandstof = state.brandstof ?? 0;
         const maxBrandstof = state.schip?.brandstofTank ?? 0;
-        el('brandstof-display').textContent = `⛽ ${brandstof}/${maxBrandstof} l`;
+        const brandstofEl = el('brandstof-display');
+        const brandstofSep = el('brandstof-sep');
+        if (state.isUnlocked('brandstof')) {
+            brandstofEl.innerHTML = `${FUEL_IMG} ${brandstof}/${maxBrandstof} l`;
+            brandstofEl.style.display = '';
+            brandstofEl.style.cursor = 'pointer';
+            brandstofEl.onclick = () => App.switchTab('haven');
+            if (brandstofSep) brandstofSep.style.display = '';
+        } else {
+            brandstofEl.style.display = 'none';
+            brandstofEl.onclick = null;
+            if (brandstofSep) brandstofSep.style.display = 'none';
+        }
 
         const kredietEl = el('krediet-display');
         kredietEl.textContent = `💰 ${state.formatteerKrediet(state.speler.krediet)}`;
         kredietEl.classList.toggle('krediet-negatief', state.speler.krediet < 0);
+        kredietEl.style.cursor = 'pointer';
+        kredietEl.onclick = () => App.switchTab('financien');
 
         const rest = MAX_BEURTEN - state.beurt;
         const beurtEl = el('beurt-display');
@@ -195,7 +301,8 @@ const UI = {
         const tooltip = document.getElementById('top-tooltip');
 
         // Top balk hover items
-        const ids = ['schip-naam-display', 'cargo-display', 'passagiers-display', 'brandstof-display', 'krediet-display'];
+        const ids = ['schip-naam-display', 'cargo-display', 'passagiers-display', 'brandstof-display', 'krediet-display',
+                     'nav-logboek', 'nav-ranglijst', 'nav-achievements', 'nav-instellingen'];
         ids.forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
@@ -258,12 +365,17 @@ const UI = {
                     <div class="tt-rij"><span>Wachtend hier</span><span class="tt-prijs">${wachtend}</span></div>`;
             }
             case 'brandstof-display': {
-                const prijs = state.brandstofPrijzen?.[state.locatie] ?? '?';
+                const prijsBasis = state.brandstofPrijzen?.[state.locatie] ?? '?';
+                const prijsEff = state._effectieveBrandstofPrijs?.() ?? prijsBasis;
+                const isKorting = state.locatie === 'pyroflux';
                 const pct = Math.round(state.brandstof / state.schip.brandstofTank * 100);
                 const kleur = state.brandstof < 20 ? 'var(--rood)' : state.brandstof < 40 ? 'var(--oranje)' : 'var(--groen)';
+                const prijsTekst = isKorting
+                    ? `<s>${prijsBasis} cr/l</s> <span style="color:var(--goud)">${prijsEff} cr/l</span>`
+                    : `${prijsEff} cr/l`;
                 return `<div class="tt-label">Brandstof</div>
                     <div class="tt-rij"><span>Niveau</span><span style="color:${kleur}">${state.brandstof}/${state.schip.brandstofTank} l (${pct}%)</span></div>
-                    <div class="tt-rij"><span>Prijs hier</span><span class="tt-prijs">${prijs} cr/l</span></div>`;
+                    <div class="tt-rij"><span>Prijs hier</span><span class="tt-prijs">${prijsTekst}</span></div>`;
             }
             case 'krediet-display': {
                 const schuld = state.speler?.schuld ?? 0;
@@ -274,6 +386,14 @@ const UI = {
                     <div class="tt-rij"><span>Rente</span><span style="color:var(--oranje)">${(RENTE_PERCENTAGE * 100).toFixed(0)}% per ${RENTE_INTERVAL} beurten</span></div>
                     ` : ''}`;
             }
+            case 'nav-logboek':
+                return `<div class="tt-label">📋 Reislogboek</div><div class="tt-beschr">Alle gebeurtenissen en berichten van deze reis.</div>`;
+            case 'nav-ranglijst':
+                return `<div class="tt-label">🏅 Ranglijst</div><div class="tt-beschr">De rijkste handelaars in de sector — jij versus de NPC-concurrenten.</div>`;
+            case 'nav-achievements':
+                return `<div class="tt-label">🏆 Prestaties</div><div class="tt-beschr">Behaalde en vergrendelde achievements. Bonuscredits bij voltooiing.</div>`;
+            case 'nav-instellingen':
+                return `<div class="tt-label">⚙ Instellingen</div><div class="tt-beschr">Geluid, weergave-opties en speldata beheren.</div>`;
         }
         return null;
     },
@@ -295,11 +415,7 @@ const UI = {
         if (!planeet) { container.innerHTML = ''; return; }
 
         const imgSrc = `assets/planet-${planeet.id}.png`;
-        const tags = [];
-        if (planeet.heeftBank)          tags.push('<span class="planeet-tag" data-tip="Hier kun je geld lenen of een bestaande lening (gedeeltelijk) aflossen.">💳 Bank</span>');
-        if (planeet.id === 'techton')    tags.push('<span class="planeet-tag" data-tip="Op Techton kun je een nieuw schip kopen via de Geavanceerde Scheepswerf.">🛸 Scheepswerf</span>');
-        if (planeet.specialiteit?.length) tags.push('<span class="planeet-tag kleur-groen" data-tip="Deze planeet produceert bepaalde goederen — die zijn hier goedkoper te koop.">↓ Goedkoop</span>');
-        if (planeet.vraag?.length)        tags.push('<span class="planeet-tag kleur-oranje" data-tip="Bepaalde goederen zijn hier erg gewild en worden voor een hogere prijs opgekocht.">↑ Gevraagd</span>');
+        const tags = this._getPlaneetServiceTags(planeet).map(s => `<span class="planeet-tag">${s}</span>`);
 
         container.innerHTML = `
             <div class="planeet-info-kaart" style="background-image:url('${imgSrc}');--planeet-kleur:${planeet.kleur}">
@@ -446,7 +562,7 @@ const UI = {
             </div>
             ${(s.passagiersCapaciteit || 0) > 0 ? `<div class="stat-rij"><span class="stat-naam">Passagiers</span><span class="stat-waarde">${state.passagiers || 0}/${s.passagiersCapaciteit}</span></div>` : ''}
             <div class="stat-rij">
-                <span class="stat-naam">⛽ Brandstof</span>
+                <span class="stat-naam">${FUEL_IMG} Brandstof</span>
                 <span class="stat-waarde ${state.brandstof < 20 ? 'kleur-rood' : state.brandstof < 40 ? 'kleur-oranje' : ''}">${state.brandstof}/${s.brandstofTank} l</span>
             </div>
             <div class="lading-balk-container">
@@ -495,132 +611,135 @@ const UI = {
         }
 
         // === LOKALE MARKT / ZWARTE MARKT ===
-        if (state.locatie === 'mortex') {
-            html += `<div class="sectie-header zwarte-markt-header">💀 Zwarte Markt — ${planeet.naam}</div>
-                     <div class="info-balk zwarte-markt-banner">⚠️ Goederen gekocht op Mortex worden gemarkeerd als <strong>verdachte lading</strong>. Bij landing op andere planeten: 25% kans op douanecontrole en boete.</div>`;
-        } else {
-            html += `<div class="sectie-header">Lokale Markt — ${planeet.naam}</div>
-                     <p class="kleur-dimmed" style="font-size:0.82em;margin:0 0 10px">${planeet.beschrijving}</p>`;
-        }
+        const isZwart = state.locatie === 'mortex';
+        const marktTitel = isZwart ? `💀 Zwarte Markt — ${planeet.naam}` : `Lokale Markt — ${planeet.naam}`;
+        const marktKlasse = isZwart ? 'haven-blok-header zwarte-markt-header' : 'haven-blok-header';
 
-        html += `<table class="handel-tabel"><thead><tr>
+        html += `<div class="haven-blok handel-blok-vol">`;
+        html += `<div class="${marktKlasse}">${marktTitel}</div>`;
+        if (isZwart) {
+            html += `<div class="handel-banner-zwart">⚠️ Goederen gekocht op Mortex worden gemarkeerd als <strong>verdachte lading</strong>. Bij landing op andere planeten: 25% kans op douanecontrole en boete.</div>`;
+        }
+        html += `<div class="handel-tabel-wrap"><table class="handel-tabel"><thead><tr>
             <th>Goed</th>
-            <th>Prijs hier</th>
-            <th>In lading</th>
-            <th colspan="2">Kopen</th>
-            <th colspan="2">Verkopen</th>
+            <th class="handel-col-sec">Voorraad</th>
+            <th>Aan boord</th>
+            <th class="handel-col-sec">Prijs betaald</th>
+            <th>Marktprijs</th>
+            <th class="handel-col-sec">Prijsrange</th>
+            <th>Kopen</th>
+            <th>Verkopen</th>
         </tr></thead><tbody>`;
 
-        const gesorteerdeGoederen = [...GOEDEREN].sort((a, b) =>
-            state.getPrijs(state.locatie, a.id) - state.getPrijs(state.locatie, b.id)
-        );
+        const gesorteerdeGoederen = [...GOEDEREN].sort((a, b) => a.basisPrijs - b.basisPrijs);
 
         gesorteerdeGoederen.forEach(goed => {
             const prijs     = state.getPrijs(state.locatie, goed.id);
             const inLading  = state.lading[goed.id] || 0;
             const vrij      = state.schip.laadruimte - state.getLadingGewicht();
-            const maxKoop   = Math.min(Math.floor(vrij / goed.gewicht), Math.floor(state.speler.krediet / prijs));
+            const planeetVoorraadMax = state.planetVoorraden?.[state.locatie]?.[goed.id] ?? 999;
+            const maxKoop   = Math.min(vrij, Math.floor(state.speler.krediet / prijs), planeetVoorraadMax);
             const allePrijzen = PLANETEN.map(p => state.getPrijs(p.id, goed.id));
             const minPrijs  = Math.min(...allePrijzen);
             const maxPrijs  = Math.max(...allePrijzen);
             const prijsKlas = prijs === minPrijs ? 'kleur-groen' : prijs === maxPrijs ? 'kleur-rood' : '';
-            const tipMin    = Math.max(5, Math.round(goed.basisPrijs * 0.25));
-            const tipMax    = Math.round(goed.basisPrijs * 2.2);
-            const tipHtml   = `<span class="goed-tip">${goed.beschrijving}<br><span class="goed-tip-prijs">Bereik: ${tipMin}–${tipMax} credits &nbsp;·&nbsp; basis ${goed.basisPrijs} credits</span></span>`;
+            const tipHtml   = `<span class="goed-tip">${goed.beschrijving}<br><span class="goed-tip-prijs">Galactisch bereik nu: ${minPrijs}–${maxPrijs} cr &nbsp;·&nbsp; basis ${goed.basisPrijs} cr</span></span>`;
 
             let marktLabelHtml = '';
             if (planeet.specialiteit?.includes(goed.id)) {
-                marktLabelHtml = '<span class="markt-label label-specialiteit">🏭 Lokale productie</span>';
+                marktLabelHtml = '<span class="markt-label label-specialiteit">🏭</span>';
             } else if (planeet.vraag?.includes(goed.id)) {
-                marktLabelHtml = '<span class="markt-label label-vraag">📈 Hoge vraag</span>';
+                marktLabelHtml = '<span class="markt-label label-vraag">📈</span>';
             }
 
-            // Lading info (in cargo column)
+            // Planeetvoorraad
+            const planeetVoorraad = state.planetVoorraden?.[state.locatie]?.[goed.id] ?? 0;
+            const voorraadTd = planeetVoorraad > 0
+                ? `<span style="font-family:var(--font-data)">${planeetVoorraad} ton</span>`
+                : `<span class="kleur-dimmed">0 ton</span>`;
+
+            // Aan boord
             const aankoopPrijs = state.aankoopPrijzen[goed.id];
             const verdacht = state.ladingVerdacht?.[goed.id] || 0;
-            let ladingTd = '—';
+            let aanBoordTd = '—';
             if (inLading > 0) {
-                ladingTd = `<strong>${inLading}</strong>`;
-                if (verdacht > 0) ladingTd += ` <span class="verdacht-icoon" title="${verdacht} ton verdachte lading">⚠️</span>`;
-                if (aankoopPrijs) {
-                    ladingTd += `<div class="aankoopprijs-info">gem. ${aankoopPrijs} credits</div>`;
-                }
+                aanBoordTd = `<strong>${inLading} ton</strong>`;
+                if (verdacht > 0) aanBoordTd += ` <span class="verdacht-icoon" title="${verdacht} ton verdachte lading">⚠️</span>`;
+            }
+            // Prijs betaald
+            let prijsBetaaldTd = '—';
+            if (inLading > 0 && aankoopPrijs) {
+                prijsBetaaldTd = `<span style="font-family:var(--font-data)">${Math.round(aankoopPrijs)} cr</span>`;
             }
 
-            // Verkoop preview: opbrengst + P&L voor alle stuks in lading
-            let verkInfoHtml = '';
-            if (inLading > 0) {
-                const totaalOpbrengst = prijs * inLading;
-                verkInfoHtml = `<div class="verkoop-preview"><span class="kleur-dimmed">Alles: ${state.formatteerKrediet(totaalOpbrengst)}</span>`;
-                if (aankoopPrijs) {
-                    const totaalWinst = (prijs - aankoopPrijs) * inLading;
-                    const wKlas = totaalWinst >= 0 ? 'winst-positief' : 'winst-negatief';
-                    const wTeken = totaalWinst >= 0 ? '+' : '';
-                    verkInfoHtml += ` <span class="${wKlas}">(${wTeken}${state.formatteerKrediet(totaalWinst)})</span>`;
-                }
-                verkInfoHtml += '</div>';
-            }
+            // Marktdruk
+            const mod = state.marktModifiers?.[state.locatie]?.[goed.id] ?? 1.0;
+            let modHtml = '';
+            if (mod > 1.03) modHtml = `<span class="markt-mod markt-mod-op" title="Prijs gestegen door vraag">▲</span>`;
+            else if (mod < 0.97) modHtml = `<span class="markt-mod markt-mod-neer" title="Prijs gedaald door aanbod">▼</span>`;
 
             html += `<tr>
                 <td><span class="goed-icoon">${goed.icoon}</span><span class="goed-tip-wrap">${goed.naam}${marktLabelHtml}${tipHtml}</span></td>
-                <td class="${prijsKlas}" style="font-family:var(--font-data)">${state.formatteerKrediet(prijs)}</td>
-                <td style="font-family:var(--font-data)">${ladingTd}</td>
+                <td class="handel-col-sec">${voorraadTd}</td>
+                <td style="font-family:var(--font-data)">${aanBoordTd}</td>
+                <td class="handel-col-sec" style="font-family:var(--font-data)">${prijsBetaaldTd}</td>
+                <td class="${prijsKlas}" style="font-family:var(--font-data)">${state.formatteerKrediet(prijs)}${modHtml}</td>
+                <td class="handel-col-sec" style="font-family:var(--font-data)">${minPrijs}–${maxPrijs}</td>
                 <td>
                     <div class="actie-rij">
-                        <input class="aantal-invoer" type="number" min="1" max="${Math.max(1,maxKoop)}" value="1" id="koop-${goed.id}">
-                        <button class="knop succes klein" onclick="App.koopGoed('${goed.id}')" ${maxKoop<=0?'disabled':''}>Koop</button>
-                        <button class="knop dimmed klein" onclick="App.koopMax('${goed.id}')" ${maxKoop<=0?'disabled':''}>Max(${maxKoop})</button>
+                        <button class="knop primair klein" onclick="App.koopN('${goed.id}', 1, event)" ${maxKoop<=0?'disabled':''}>+1</button>
+                        <button class="knop primair klein" onclick="App.koopN('${goed.id}', 10, event)" ${maxKoop<10?'disabled':''}>+10</button>
+                        <button class="knop primair klein" onclick="App.koopN('${goed.id}', 'max', event)" ${maxKoop<=0?'disabled':''}>max</button>
                     </div>
                 </td>
                 <td>
                     <div class="actie-rij">
-                        <input class="aantal-invoer" type="number" min="1" max="${Math.max(1,inLading)}" value="1" id="verkoop-${goed.id}">
-                        <button class="knop gevaar klein" onclick="App.verkoopGoed('${goed.id}')" ${inLading<=0?'disabled':''}>Verkoop</button>
-                        <button class="knop dimmed klein" onclick="App.verkoopAlles('${goed.id}')" ${inLading<=0?'disabled':''}>Alles</button>
+                        <button class="knop primair klein" onclick="App.verkoopN('${goed.id}', 1, event)" ${inLading<=0?'disabled':''}>−1</button>
+                        <button class="knop primair klein" onclick="App.verkoopN('${goed.id}', 10, event)" ${inLading<10?'disabled':''}>−10</button>
+                        <button class="knop primair klein" onclick="App.verkoopN('${goed.id}', 'alles', event)" ${inLading<=0?'disabled':''}>alles</button>
                     </div>
-                    ${verkInfoHtml}
                 </td>
             </tr>`;
         });
 
-        html += '</tbody></table>';
+        html += '</tbody></table></div></div>';
 
         // === GALACTISCHE MARKT ===
-        html += '<div class="sectie-header" style="margin-top:22px">🌌 Galactische Markt — Prijsvergelijking</div>';
-        html += '<p class="kleur-dimmed" style="font-size:0.78em;margin:0 0 8px">Prijzen worden bijgewerkt na elke reis. <span class="badge-groen">■ Goedkoop</span> = koop hier &nbsp; <span class="badge-rood">■ Duur</span> = verkoop hier. Klik een planeetkolom om als bestemming te selecteren.</p>';
         html += this._renderGalactischeMarkt();
 
         container.innerHTML = html;
+        this._initGalactTooltips(container);
     },
 
     _renderGalactischeMarkt() {
         const bestemming = state.geselecteerdePlaneet;
-        let html = '<div class="galact-wrap"><table class="galact-tabel"><thead><tr>';
+        let html = `<div class="haven-blok handel-blok-vol" style="margin-top:16px"><div class="haven-blok-header">🌌 Galactische Markt — Prijsvergelijking</div>`;
+        html += '<div class="galact-wrap"><table class="galact-tabel"><thead><tr>';
         html += '<th class="galact-goed-col">Goed</th>';
+        html += '<th class="galact-prijsrange">Prijsrange</th>';
 
         PLANETEN.forEach(p => {
             const isHier = p.id === state.locatie;
             const isBest = p.id === bestemming;
-            let thKlas = isHier ? 'galact-huidig-th' : isBest ? 'galact-bestemming-th' : '';
-            const raket = isBest ? ' 🚀' : '';
+            const thKlas = isHier ? 'galact-huidig-th' : isBest ? 'galact-bestemming-th' : '';
+            const tipAttr = isHier ? '' : `data-galact-tip="${p.naam}"`;
             const clickAttr = isHier ? '' : `onclick="App.selecteerBestemming('${p.id}')" style="cursor:pointer"`;
-            html += `<th class="${thKlas}" style="color:${p.kleur}" ${clickAttr}>${p.naam.replace(' Station','')}${raket}</th>`;
+            html += `<th class="${thKlas}" style="color:${p.kleur}" ${tipAttr} ${clickAttr}>${p.naam.replace(' Station','')}</th>`;
         });
         html += '</tr></thead><tbody>';
 
-        const gesorteerdeGoederen = [...GOEDEREN].sort((a, b) =>
-            state.getPrijs(state.locatie, a.id) - state.getPrijs(state.locatie, b.id)
-        );
+        const gesorteerdeGoederen = [...GOEDEREN].sort((a, b) => a.basisPrijs - b.basisPrijs);
 
         gesorteerdeGoederen.forEach(goed => {
             const allePrijzen = PLANETEN.map(p => state.getPrijs(p.id, goed.id));
             const minPrijs = Math.min(...allePrijzen);
             const maxPrijs = Math.max(...allePrijzen);
-            const tipMin2 = Math.max(5, Math.round(goed.basisPrijs * 0.25));
-            const tipMax2 = Math.round(goed.basisPrijs * 2.2);
-            const tipHtml2 = `<span class="goed-tip">${goed.beschrijving}<br><span class="goed-tip-prijs">Bereik: ${tipMin2}–${tipMax2} credits &nbsp;·&nbsp; basis ${goed.basisPrijs} credits</span></span>`;
+            const tipMin = Math.max(5, Math.round(goed.basisPrijs * 0.25));
+            const tipMax = Math.round(goed.basisPrijs * 2.2);
+            const tipHtml2 = `<span class="goed-tip">${goed.beschrijving}<br><span class="goed-tip-prijs">Bereik: ${tipMin}–${tipMax} cr</span></span>`;
 
             html += `<tr><td class="galact-goed-col"><span>${goed.icoon}</span><span class="goed-tip-wrap"> ${goed.naam}${tipHtml2}</span></td>`;
+            html += `<td class="galact-prijsrange">${tipMin}–${tipMax}</td>`;
 
             PLANETEN.forEach(p => {
                 const prijs = state.getPrijs(p.id, goed.id);
@@ -631,17 +750,27 @@ const UI = {
                 if (prijs === minPrijs) klasse += ' galact-goedkoop';
                 else if (prijs === maxPrijs) klasse += ' galact-duur';
 
-                const inLading = state.lading[goed.id] || 0;
-                const ladingMark = (isHier && inLading > 0) ? `<sup title="${inLading} aan boord">●</sup>` : '';
-
-                html += `<td class="${klasse}">${prijs}${ladingMark}</td>`;
+                html += `<td class="${klasse}">${prijs}</td>`;
             });
 
             html += '</tr>';
         });
 
-        html += '</tbody></table></div>';
+        html += '</tbody></table></div></div>';
         return html;
+    },
+
+    _initGalactTooltips(container) {
+        const tooltip = document.getElementById('top-tooltip');
+        if (!tooltip) return;
+        container.querySelectorAll('.galact-tabel thead th[data-galact-tip]').forEach(th => {
+            th.addEventListener('mouseenter', () => {
+                tooltip.innerHTML = `Kies bestemming`;
+                tooltip.classList.remove('verborgen');
+                this._positioneerTooltip(tooltip, th);
+            });
+            th.addEventListener('mouseleave', () => tooltip.classList.add('verborgen'));
+        });
     },
 
     // =========================================================================
@@ -653,8 +782,8 @@ const UI = {
         const planeet = PLANETEN.find(p => p.id === state.locatie);
         let html = '<div class="haven-raster">';
 
-        // === REPARATIE (volle breedte, altijd zichtbaar) ===
-        {
+        // === REPARATIE (tutorial: alleen als onderhoud unlocked) ===
+        if (state.isUnlocked('onderhoud')) {
             const hp = state.schipHP ?? 0;
             const maxHP = state.schip?.maxHP ?? 0;
             const hpPct = maxHP > 0 ? Math.round(hp / maxHP * 100) : 100;
@@ -662,9 +791,11 @@ const UI = {
             const repKosten = state.berekenReparatieKosten();
             const isTechton = state.locatie === 'techton';
             const kanBetalen = state.speler.krediet >= repKosten;
+            const hpAnimeer = this._animeerHP;
+            const hpStartPct = hpAnimeer ? (this._hpPctVoor ?? 0) : hpPct;
             let repHtml = `<div style="display:flex;align-items:center;gap:14px;margin-bottom:8px">
                 <span style="font-size:1.1em;color:${hpKleur};font-weight:bold">❤ ${hp}/${maxHP}</span>
-                <div class="lading-balk-container" style="flex:1;margin:0"><div class="lading-balk" style="width:${hpPct}%;background:${hpKleur}"></div></div>
+                <div class="lading-balk-container" style="flex:1;margin:0"><div id="hp-balk" class="lading-balk${hpAnimeer ? ' animeer' : ''}" style="width:${hpStartPct}%;background:${hpKleur}" data-target="${hpPct}"></div></div>
                 <span class="kleur-dimmed" style="font-size:0.82em">${hpPct}%</span>
             </div>`;
             if (repKosten === 0) {
@@ -676,9 +807,10 @@ const UI = {
                 if (!kanBetalen) repHtml += `<div class="kleur-rood" style="font-size:0.8em;margin-top:5px">Onvoldoende credits</div>`;
             }
             html += `<div class="haven-blok haven-blok-reparatie"><div class="haven-blok-header">🔧 Scheepsconditie</div><div class="haven-blok-inhoud">${repHtml}</div></div>`;
-        }
+        } // einde onderhoud-check
 
-        // === PASSAGIERS ===
+        // === PASSAGIERS (tutorial: alleen als passagiers unlocked) ===
+        if (state.isUnlocked('passagiers')) {
         const maxPax = state.schip?.passagiersCapaciteit || 0;
         const aanBoord = state.passagiers ?? 0;
         const wachtendObj = state.wachtendePassagiers?.[state.locatie] || { aantal: 0, prijs: 0 };
@@ -689,36 +821,49 @@ const UI = {
             const verwacht = aanBoord > 0 ? aanBoord * (state.passagiersTicketprijs || 0) : null;
             const kanInstappen = wachtendObj.aantal > 0 && aanBoord < maxPax;
             const instappers = Math.min(wachtendObj.aantal, maxPax - aanBoord);
-            paxHtml = `<div class="pax-info-raster">
-                <div class="pax-info-rij"><span class="kleur-dimmed">Aan boord</span><strong>${aanBoord}/${maxPax}</strong></div>
+            const isPaxSchip = state.schip?.type === 'pax';
+
+            paxHtml = `
+            <div class="pax-sectie-label">Passagiers</div>
+            <div class="pax-info-raster" style="margin-bottom:10px">
                 <div class="pax-info-rij"><span class="kleur-dimmed">Wachtend</span><strong>${wachtendObj.aantal}</strong></div>
-                <div class="pax-info-rij"><span class="kleur-dimmed">Ticketprijs</span><strong class="kleur-groen">${state.formatteerKrediet(wachtendObj.prijs)}/pp</strong></div>
+                <div class="pax-info-rij"><span class="kleur-dimmed">Aan boord</span><strong>${aanBoord} / ${maxPax}</strong></div>
                 ${verwacht !== null ? `<div class="pax-info-rij"><span class="kleur-dimmed">Bij aankomst</span><strong class="kleur-goud">+${state.formatteerKrediet(verwacht)}</strong></div>` : ''}
+                ${isPaxSchip ? `<div class="pax-info-rij" style="grid-column:1/-1"><span class="kleur-accent" style="font-size:0.78em">🛳️ Passagiersschip — trekt van nature meer reizigers</span></div>` : ''}
             </div>
-            ${kanInstappen ? `<button class="knop succes klein" style="margin-top:10px" onclick="App.boardPassagiers()">Neem ${instappers} passagier${instappers > 1 ? 's' : ''} aan boord</button>` : ''}`;
+            ${kanInstappen ? `<button class="knop succes klein" style="margin-bottom:12px" onclick="App.boardPassagiers()">Neem ${instappers} passagier${instappers > 1 ? 's' : ''} aan boord</button>` : ''}
+            <div class="pax-sectie-label">Ticketprijs</div>
+            <div class="pax-info-raster" style="margin-bottom:8px">
+                <div class="pax-info-rij"><span class="kleur-dimmed">Huidige prijs</span><strong class="kleur-groen">${state.formatteerKrediet(wachtendObj.prijs)}/pp</strong></div>
+            </div>
+            <div class="kleur-dimmed" style="font-size:0.78em;margin-bottom:6px">Wijzigen <span style="opacity:0.6">(geldt direct)</span></div>
+            <div style="display:flex;gap:6px;align-items:center">
+                <input type="number" id="ticket-prijs-invoer" class="aantal-invoer" min="50" max="2000" value="${wachtendObj.prijs}" style="width:80px">
+                <button class="knop primair klein" onclick="App.setTicketPrijs()">Stel in</button>
+            </div>`;
         }
         html += `<div class="haven-blok haven-blok-passagiers"><div class="haven-blok-header">🧳 Passagiers</div><div class="haven-blok-inhoud">${paxHtml}</div></div>`;
+        } // einde passagiers-check
 
-        // === MARKETING (alleen als passagiersschip + bestemming geselecteerd) ===
-        const selP = state.geselecteerdePlaneet;
-        if (maxPax > 0 && selP && selP !== state.locatie) {
-            const mKosten = state.berekenMarketingKosten(selP);
-            const selPNaam = PLANETEN.find(p => p.id === selP)?.naam ?? selP;
-            const isActief = state.marketingActief?.planeet === selP;
-            const heeftAndereCampagne = state.marketingActief && state.marketingActief.planeet !== selP;
+        // === MARKETING (tutorial: alleen als marketing unlocked én schip passagiersruimte heeft) ===
+        if (state.isUnlocked('marketing') && (state.schip?.passagiersCapaciteit || 0) > 0) {
+            const mKosten = state.berekenMarketingKosten();
+            const kanBetalen = state.speler.krediet >= mKosten;
             let mktHtml = '';
-            if (isActief) {
-                mktHtml = `<div class="kleur-groen" style="font-size:0.88em">✓ Campagne actief voor <strong>${selPNaam}</strong> — extra passagiers wachten bij aankomst.</div>`;
+            if (state.marketingActief) {
+                const campNaam = state.marketingActief.planeet
+                    ? PLANETEN.find(p => p.id === state.marketingActief.planeet)?.naam ?? state.marketingActief.planeet
+                    : 'volgende bestemming';
+                mktHtml = `<div class="kleur-groen" style="font-size:0.88em">✓ Campagne actief voor <strong>${campNaam}</strong> — extra passagiers en resources wachten bij aankomst.</div>`;
             } else {
-                const kanBetalen = state.speler.krediet >= mKosten;
-                mktHtml = `<div style="font-size:0.85em;margin-bottom:8px">Reclamecampagne voor <strong>${selPNaam}</strong>. Bij aankomst wachten meer passagiers op je, tegen een iets hogere ticketprijs.</div>
-                    <button class="knop primair klein" onclick="App.koopMarketing('${selP}')" ${(!kanBetalen || heeftAndereCampagne) ? 'disabled' : ''}>Start campagne (${state.formatteerKrediet(mKosten)})</button>
-                    ${heeftAndereCampagne ? `<div class="kleur-dimmed" style="font-size:0.8em;margin-top:6px">⚠ Al een actieve campagne.</div>` : ''}`;
+                mktHtml = `<div style="font-size:0.85em;margin-bottom:8px">Een marketingcampagne verhoogt de beschikbare goederen en passagiers op je volgende bestemming.</div>
+                    <button class="knop primair klein" onclick="App.koopMarketing()" ${!kanBetalen ? 'disabled' : ''}>Start campagne (${state.formatteerKrediet(mKosten)})</button>`;
             }
             html += `<div class="haven-blok"><div class="haven-blok-header">📢 Marketing</div><div class="haven-blok-inhoud">${mktHtml}</div></div>`;
-        }
+        } // einde marketing-check
 
-        // === BRANDSTOF ===
+        // === BRANDSTOF (tutorial: alleen als brandstof unlocked) ===
+        if (state.isUnlocked('brandstof')) {
         const bPrijsBasis = state.brandstofPrijzen[state.locatie] || 12;
         const bPrijs = state._effectieveBrandstofPrijs();
         const bIsKorting = state.locatie === 'pyroflux';
@@ -731,32 +876,17 @@ const UI = {
         const prijsHtml = bIsKorting
             ? `<s>${bPrijsBasis} cr/l</s> <strong class="kleur-goud">${bPrijs} cr/l</strong> <span class="markt-label label-specialiteit">−40% Energiedepot</span>`
             : `<strong class="kleur-goud">${bPrijs} cr/l</strong>`;
-        html += `<div class="haven-blok haven-blok-brandstof"><div class="haven-blok-header">⛽ Brandstof</div><div class="haven-blok-inhoud">
-            <div class="brandstof-info-rij"><span>Voorraad: <strong class="${bTekstKlasse}">${state.brandstof}/${tank} l</strong></span><span>Prijs: ${prijsHtml}</span></div>
-            <div class="lading-balk-container" style="margin:6px 0"><div id="brandstof-balk" class="lading-balk${this._animeerBrandstof ? ' animeer' : ''}" style="width:${this._animeerBrandstof ? (this._brandstofPctVoor ?? 0) : brandstofPct}%;background:${bKleur}" data-target="${brandstofPct}"></div></div>
+        html += `<div class="haven-blok haven-blok-brandstof"><div class="haven-blok-header">${FUEL_IMG} Brandstof</div><div class="haven-blok-inhoud">
+            <div style="margin-bottom:4px"><strong class="${bTekstKlasse}">${state.brandstof} / ${tank} liter</strong></div>
+            <div class="lading-balk-container" style="margin:0 0 8px"><div id="brandstof-balk" class="lading-balk${this._animeerBrandstof ? ' animeer' : ''}" style="width:${this._animeerBrandstof ? (this._brandstofPctVoor ?? 0) : brandstofPct}%;background:${bKleur}" data-target="${brandstofPct}"></div></div>
+            <div style="font-size:0.87em;margin-bottom:8px">Brandstofprijs: ${prijsHtml}</div>
             <div class="brandstof-acties">
-                <input type="number" id="brandstof-aantal" class="hoeveelheid-input" min="1" max="${vrij}" value="${Math.min(10, vrij)}" style="width:65px" ${vrij <= 0 ? 'disabled' : ''}>
+                <input type="number" id="brandstof-aantal" class="aantal-invoer" min="1" max="${vrij}" value="${Math.min(10, vrij)}" ${vrij <= 0 ? 'disabled' : ''}>
                 <button class="knop primair klein" onclick="App.koopBrandstof()" ${vrij <= 0 ? 'disabled' : ''}>Koop</button>
-                <button class="knop dimmed klein" onclick="App.koopMaxBrandstof()" ${vrij <= 0 ? 'disabled' : ''}>Koop max (${state.formatteerKrediet(koopMaxKosten)})</button>
+                <button class="knop primair klein" onclick="App.koopMaxBrandstof()" ${vrij <= 0 ? 'disabled' : ''}>Koop max (${state.formatteerKrediet(koopMaxKosten)})</button>
             </div>
         </div></div>`;
-
-        // === VERZEKERING ===
-        const verzPrijs = state._berekenVerzekeringsPrijs();
-        const verzActief = state.verzekering?.actief;
-        let verzHtml = '';
-        if (verzActief) {
-            verzHtml = `<div class="kleur-groen" style="font-size:0.88em">✓ Verzekering actief — je bent gedekt voor de komende reis.</div>`;
-        } else {
-            const kanVerz = state.speler.krediet >= verzPrijs;
-            const cap = state.schip?.laadruimte ?? 0;
-            const paxCap = state.schip?.passagiersCapaciteit ?? 0;
-            verzHtml = `<div style="font-size:0.85em;margin-bottom:8px">Dekt verliezen door piraten, storms, lekken en douaneboetes. Vervalt bij aankomst.</div>
-                <div class="upgrade-prijs">${state.formatteerKrediet(verzPrijs)}</div>
-                <div class="kleur-dimmed" style="font-size:0.78em;margin-bottom:8px">Basisprijs + ${cap} ton laadruimte${paxCap > 0 ? ` + ${paxCap} passagiersplaatsen` : ''}</div>
-                <button class="knop primair klein" ${!kanVerz ? 'disabled' : ''} onclick="App.koopVerzekering()">${kanVerz ? 'Sluit af' : 'Onvoldoende credits'}</button>`;
-        }
-        html += `<div class="haven-blok haven-blok-verzekering"><div class="haven-blok-header">🛡️ Reisverzekering</div><div class="haven-blok-inhoud">${verzHtml}</div></div>`;
+        } // einde brandstof-check
 
         html += '</div>'; // sluit haven-raster
         container.innerHTML = html;
@@ -766,6 +896,15 @@ const UI = {
             this._animeerBrandstof = false;
             requestAnimationFrame(() => {
                 const balk = document.getElementById('brandstof-balk');
+                if (balk) balk.style.width = balk.dataset.target + '%';
+            });
+        }
+
+        // Animeer HP-balk na render (alleen als vlag gezet)
+        if (this._animeerHP) {
+            this._animeerHP = false;
+            requestAnimationFrame(() => {
+                const balk = document.getElementById('hp-balk');
                 if (balk) balk.style.width = balk.dataset.target + '%';
             });
         }
@@ -922,6 +1061,9 @@ const UI = {
             const benodigdGewicht = veiling.hoeveelheid * veiling.goedGewicht;
             const vrijeRuimte     = state.schip.laadruimte - state.getLadingGewicht();
             const ruimteWaarschuwing = vrijeRuimte < benodigdGewicht;
+            const marktprijsPerStuk  = state.getPrijs('agria', veiling.goedId);
+            const totaleMarktwaarde  = marktprijsPerStuk * veiling.hoeveelheid;
+            const minPerStuk         = Math.round(veiling.minimumprijs / veiling.hoeveelheid);
 
             html += `<p class="kleur-dimmed" style="font-size:0.83em;margin:4px 0 12px">
                 Gesloten bod — iedereen biedt éénmalig tegelijk. Hoogste bieder wint het lot.
@@ -933,7 +1075,13 @@ const UI = {
             </div>
             <div class="planeet-dienst-rij">
                 <span class="label">🏷 Minimumprijs</span>
-                <span class="waarde kleur-goud">${state.formatteerKrediet(veiling.minimumprijs)}</span>
+                <span class="waarde kleur-goud">${state.formatteerKrediet(veiling.minimumprijs)}
+                    <span class="kleur-dimmed" style="font-size:0.85em">(${state.formatteerKrediet(minPerStuk)}/stuk)</span></span>
+            </div>
+            <div class="planeet-dienst-rij">
+                <span class="label">📊 Marktwaarde</span>
+                <span class="waarde">${state.formatteerKrediet(totaleMarktwaarde)}
+                    <span class="kleur-dimmed" style="font-size:0.85em">(${state.formatteerKrediet(marktprijsPerStuk)}/stuk)</span></span>
             </div>
             <div class="planeet-dienst-rij">
                 <span class="label">💰 Jouw credits</span>
@@ -1010,14 +1158,12 @@ const UI = {
 
     _renderTechton() {
         const huidig = state.schip;
-        const verkoopwaarde = Math.round(huidig.prijs * 0.60);
         const volgendMark = huidig.mark + 1;
 
         let html = `<div class="planeet-dienst-blok planeet-blok-vol-breed">
             <div class="sectie-header">🛸 Geavanceerde Scheepswerf</div>
             <p class="kleur-dimmed" style="font-size:0.83em;margin:4px 0 12px">
-                Inruilwaarde <strong>${huidig.naam}</strong>:
-                <strong class="kleur-goud">${state.formatteerKrediet(verkoopwaarde)}</strong>
+                Huidig schip: <strong>${huidig.naam}</strong>
                 ${huidig.mark >= 4 ? '<br><span style="color:var(--groen)">Je hebt het hoogste Mark bereikt voor dit scheepstype.</span>' : ''}
             </p>`;
 
@@ -1045,8 +1191,7 @@ const UI = {
         html += `<div class="upgrade-raster">`;
 
         opties.forEach(schip => {
-            const netto = schip.prijs - verkoopwaarde;
-            const kan   = state.speler.krediet >= netto;
+            const kan = state.speler.krediet >= schip.prijs;
             const specials = [];
             if (schip.immuunPiraten) specials.push('🛡️ Immuun voor piraten');
             if (schip.immuunMortexConfiscatie) specials.push('🔒 Mortex-lading beschermd');
@@ -1066,8 +1211,7 @@ const UI = {
                 <div class="schip-stat"><span>Schild</span><span class="waarde">${schip.schild}</span></div>
                 ${specials.length > 0 ? `<div style="margin:6px 0;font-size:0.78em;color:var(--accent)">${specials.join('<br>')}</div>` : ''}
                 <div class="upgrade-prijs" style="margin-top:8px">
-                    Netto: <strong>${state.formatteerKrediet(Math.max(0, netto))}</strong>
-                    ${netto < 0 ? `<span class="kleur-groen"> (+${state.formatteerKrediet(-netto)} retour)</span>` : ''}
+                    Prijs: <strong>${state.formatteerKrediet(schip.prijs)}</strong>
                 </div>
                 <button class="knop primair klein" ${!kan ? 'disabled' : ''} onclick="App.koopSchip('${schip.id}')">
                     ${kan ? (volgendMark === 3 ? 'Specialiseer →' : 'Upgrade →') : 'Onvoldoende credits'}
@@ -1152,6 +1296,31 @@ const UI = {
         }
 
         html += '</div>';
+
+        // === CREW CASINO-UITJE ===
+        {
+            const crew = state.crew;
+            if (crew && crew.grootte > 0) {
+                const sindsLaatst = state.beurt - (crew.casinoBeurt ?? -99);
+                const beschikbaar = sindsLaatst >= 15;
+                const happinessKleur = crew.happiness >= 70 ? 'var(--groen)' : crew.happiness >= 40 ? 'var(--oranje)' : 'var(--rood)';
+                html += `<div class="planeet-dienst-blok" style="margin-top:12px">
+                    <div class="sectie-header">🎉 Crew Uitje</div>
+                    <p class="kleur-dimmed" style="font-size:0.83em;margin:4px 0 10px">
+                        Laat je bemanning een avondje los in Casino Stellaris. +25 happiness — gratis!
+                    </p>
+                    <div class="stat-rij" style="margin-bottom:8px">
+                        <span class="kleur-dimmed">Crew happiness</span>
+                        <span style="color:${happinessKleur};font-weight:bold">${crew.happiness}/100</span>
+                    </div>
+                    ${beschikbaar
+                        ? `<button class="knop succes klein" onclick="App.casinoCrewUitje()">🎉 Stuur crew naar casino (+25 happiness)</button>`
+                        : `<button class="knop dimmed klein" disabled>Crew heeft nog rust nodig — nog ${15 - sindsLaatst} beurten</button>`
+                    }
+                </div>`;
+            }
+        }
+
         return html;
     },
 
@@ -1198,36 +1367,109 @@ const UI = {
         const planeet = PLANETEN.find(p => p.id === state.locatie);
         let html = '<div class="haven-raster">';
 
-        // === BANK TEGEL ===
-        if (planeet?.heeftBank) {
-            html += `<div class="haven-blok"><div class="haven-blok-header">💳 Galactische Bank</div><div class="haven-blok-inhoud">
-                <div class="stat-rij"><span class="stat-naam">Schuld</span><span class="stat-waarde kleur-oranje">${state.formatteerKrediet(state.speler.schuld)}</span></div>
+        // === CREW MANAGEMENT (tutorial: alleen als bemanning unlocked) ===
+        if (state.isUnlocked('bemanning')) {
+            const crew = state.crew;
+            if (crew && crew.grootte > 0) {
+                const weekTotaal = crew.grootte * crew.salaris * 7;
+                const beurtenTot = crew.volgendeBetaalBeurt - state.beurt;
+                const isAchterstallig = beurtenTot <= 0;
+                const dagenAchter = isAchterstallig ? state.beurt - crew.volgendeBetaalBeurt : 0;
+                const happinessKleur = crew.happiness >= 70 ? 'var(--groen)' : crew.happiness >= 40 ? 'var(--oranje)' : 'var(--rood)';
+                const happinessLabel = crew.happiness >= 80 ? '😄 Uitstekend' : crew.happiness >= 60 ? '😊 Goed' : crew.happiness >= 40 ? '😐 Matig' : crew.happiness >= 20 ? '😠 Ontevreden' : '😡 Muiterij dreigt!';
+                const kanBetalen = state.speler.krediet >= weekTotaal;
+
+                html += `<div class="haven-blok"><div class="haven-blok-header">👨‍🚀 Bemanning</div><div class="haven-blok-inhoud">
+                    <div class="stat-rij"><span class="stat-naam">Bemanningsleden</span><span class="stat-waarde">${crew.grootte} personen</span></div>
+                    <div class="stat-rij"><span class="stat-naam">Happiness</span><span class="stat-waarde" style="color:${happinessKleur}">${happinessLabel}</span></div>
+                    <div class="lading-balk-container" style="margin:2px 0 10px"><div class="lading-balk" style="width:${crew.happiness}%;background:${happinessKleur}"></div></div>
+                    <div class="stat-rij"><span class="stat-naam">Dagloon</span><span class="stat-waarde">${crew.salaris} cr/pp/dag</span></div>
+                    <div class="stat-rij"><span class="stat-naam">Weekbetaling</span><span class="stat-waarde">${state.formatteerKrediet(weekTotaal)}</span></div>
+                    <div class="stat-rij"><span class="stat-naam">Volgende betaling</span><span class="stat-waarde ${isAchterstallig ? 'kleur-rood' : beurtenTot <= 3 ? 'kleur-oranje' : ''}">${isAchterstallig ? `⚠ ${dagenAchter} dag${dagenAchter === 1 ? '' : 'en'} achterstallig!` : `over ${beurtenTot} dag${beurtenTot === 1 ? '' : 'en'}`}</span></div>
+                    <div class="actie-rij" style="margin-top:12px;gap:8px;flex-wrap:wrap">
+                        <button class="knop ${isAchterstallig ? 'gevaar' : 'primair'} klein" onclick="App.betaalCrewSalaris()" ${!kanBetalen ? 'disabled' : ''}>Betaal salaris (${state.formatteerKrediet(weekTotaal)})</button>
+                        <button class="knop succes klein" onclick="App.verhoogCrewSalaris()">▲ +10 cr/dag</button>
+                        <button class="knop gevaar klein" onclick="App.verlaagCrewSalaris()" ${crew.salaris <= 30 ? 'disabled' : ''}>▼ −10 cr/dag</button>
+                    </div>
+                </div></div>`;
+            }
+        } // einde bemanning-check
+
+        // === VERZEKERING (tutorial: alleen als verzekering unlocked) ===
+        if (state.isUnlocked('verzekering')) {
+            const verzPrijs = state._berekenVerzekeringsPrijs();
+            const verzActief = state.verzekering?.actief;
+            let verzHtml = '';
+            if (verzActief) {
+                verzHtml = `<div class="kleur-groen" style="font-size:0.88em">✓ Verzekering actief — je bent gedekt voor de komende reis.</div>`;
+            } else {
+                const kanVerz = state.speler.krediet >= verzPrijs;
+                const cap = state.schip?.laadruimte ?? 0;
+                const paxCap = state.schip?.passagiersCapaciteit ?? 0;
+                verzHtml = `<div style="font-size:0.85em;margin-bottom:8px">Dekt verliezen door piraten, storms, lekken en douaneboetes. Vervalt bij aankomst.</div>
+                    <div class="upgrade-prijs">${state.formatteerKrediet(verzPrijs)}</div>
+                    <div class="kleur-dimmed" style="font-size:0.78em;margin-bottom:8px">Basisprijs + ${cap} ton laadruimte${paxCap > 0 ? ` + ${paxCap} passagiersplaatsen` : ''}</div>
+                    <button class="knop primair klein" ${!kanVerz ? 'disabled' : ''} onclick="App.koopVerzekering()">${kanVerz ? 'Sluit af' : 'Onvoldoende credits'}</button>`;
+            }
+            html += `<div class="haven-blok haven-blok-verzekering"><div class="haven-blok-header">🛡️ Reisverzekering</div><div class="haven-blok-inhoud">${verzHtml}</div></div>`;
+        } // einde verzekering-check
+
+        // === BANK TEGEL (tutorial: alleen als leningen of meer unlocked) ===
+        if (state.isUnlocked('leningen')) {
+            const bankSaldo = state.bankSaldo ?? 0;
+            const bankRente = state.bankRente ?? 2;
+            const bankBevroren = state.bankBevroren ?? 0;
+            const maxStorten = state.speler.krediet;
+            const renteKleur = bankRente >= 3 ? 'var(--groen)' : bankRente >= 1 ? 'var(--accent)' : 'var(--rood)';
+
+            let bankHtml = '';
+
+            // Spaarrekening: tutorial: alleen als bank-feature unlocked is
+            if (state.isUnlocked('bank')) {
+                bankHtml += `<div class="pax-sectie-label">Spaarrekening</div>`;
+                if (bankBevroren > 0) {
+                    bankHtml += `<div class="kleur-rood" style="font-size:0.82em;margin-bottom:8px">🔒 Bank bevroren — transacties nog ${bankBevroren} beurt${bankBevroren > 1 ? 'en' : ''} geblokkeerd</div>`;
+                }
+                bankHtml += `
+                    <div class="stat-rij"><span class="stat-naam">Saldo</span><span class="stat-waarde kleur-goud">${state.formatteerKrediet(bankSaldo)}</span></div>
+                    <div class="stat-rij"><span class="stat-naam">Rente</span><span class="stat-waarde" style="color:${renteKleur}">${bankRente}% per beurt</span></div>
+                    <div style="display:flex;gap:6px;align-items:center;margin:8px 0 4px">
+                        <input class="aantal-invoer" type="number" min="1" max="${Math.max(1, Math.max(maxStorten, bankSaldo))}" step="100" value="${Math.max(1, Math.floor(state.speler.krediet / 2))}" id="bank-bedrag" style="width:80px">
+                        <button class="knop succes klein" onclick="App.stortenOpBank()" ${bankBevroren > 0 || maxStorten <= 0 ? 'disabled' : ''}>Storten</button>
+                        <button class="knop primair klein" onclick="App.opnemenVanBank()" ${bankBevroren > 0 || bankSaldo <= 0 ? 'disabled' : ''}>Opnemen</button>
+                    </div>
+                    <div style="display:flex;gap:6px;margin-bottom:14px">
+                        <button class="knop dimmed klein" onclick="App.stortenAlles()" ${bankBevroren > 0 || maxStorten <= 0 ? 'disabled' : ''}>Alles storten</button>
+                        <button class="knop dimmed klein" onclick="App.opnemenAlles()" ${bankBevroren > 0 || bankSaldo <= 0 ? 'disabled' : ''}>Alles opnemen</button>
+                    </div>`;
+            }
+
+            bankHtml += `<div class="pax-sectie-label">Lening</div>
+                <div class="stat-rij"><span class="stat-naam">Schuld</span><span class="stat-waarde ${state.speler.schuld > 0 ? 'kleur-oranje' : ''}">${state.formatteerKrediet(state.speler.schuld)}</span></div>
                 <div class="stat-rij"><span class="stat-naam">Limiet</span><span class="stat-waarde">${state.formatteerKrediet(MAX_SCHULD)}</span></div>
                 <div class="stat-rij"><span class="stat-naam">Rente</span><span class="stat-waarde">${RENTE_PERCENTAGE*100}% per ${RENTE_INTERVAL} beurten</span></div>
-                <div class="actie-rij" style="margin-top:12px;gap:8px;flex-wrap:wrap">
-                    <input class="aantal-invoer" type="number" min="100" max="${Math.max(100,MAX_SCHULD-state.speler.schuld)}" step="100" value="1000" id="leen-bedrag" style="width:90px">
-                    <button class="knop primair klein" onclick="App.leenGeld()">Leen credits</button>
+                <div class="actie-rij" style="margin-top:8px;gap:8px;flex-wrap:wrap">
+                    <input class="aantal-invoer" type="number" min="100" max="${Math.max(100,MAX_SCHULD-state.speler.schuld)}" step="100" value="1000" id="leen-bedrag" style="width:80px">
+                    <button class="knop primair klein" onclick="App.leenGeld()">Leen</button>
                     <button class="knop gevaar klein" onclick="App.betaalLening()" ${state.speler.schuld<=0?'disabled':''}>Betaal af</button>
-                </div>
-            </div></div>`;
-        } else {
-            html += `<div class="haven-blok"><div class="haven-blok-header">💳 Galactische Bank</div><div class="haven-blok-inhoud">
-                <div class="kleur-dimmed" style="font-size:0.88em">Geen bank op deze planeet. Bezoek <strong>Nexoria</strong> of <strong>Techton</strong> om geld te lenen of af te lossen.</div>
-                ${state.speler.schuld > 0 ? `<div class="kleur-oranje" style="font-size:0.85em;margin-top:8px">Openstaande schuld: <strong>${state.formatteerKrediet(state.speler.schuld)}</strong></div>` : ''}
-            </div></div>`;
-        }
+                </div>`;
 
-        // === PORTFOLIO TEGEL (full-width) ===
-        const portWaarde = state.getPortefeuilleWaarde();
+            html += `<div class="haven-blok"><div class="haven-blok-header">💳 Galactische Bank</div><div class="haven-blok-inhoud">${bankHtml}</div></div>`;
+        } // einde leningen-check
+
+        // === PORTFOLIO TEGEL (tutorial: alleen als beurs unlocked) ===
+        if (state.isUnlocked('beurs')) {
         html += `<div class="haven-blok haven-blok-vol-breed"><div class="haven-blok-header">📊 Aandelenportfolio</div><div class="haven-blok-inhoud">
-            <div style="margin-bottom:12px;font-size:0.88em">
-                Portefeuillewaarde: <strong class="kleur-goud">${state.formatteerKrediet(portWaarde)}</strong>
-                &nbsp;|&nbsp; Beschikbaar: <strong>${state.formatteerKrediet(state.speler.krediet)}</strong>
-                &nbsp;|&nbsp; <span class="kleur-dimmed" style="font-size:0.9em">Koersen bijgewerkt per reis</span>
-                ${state.locatie !== 'nexoria' ? `&nbsp;|&nbsp; <span class="kleur-dimmed" style="font-size:0.9em">🔒 Handel alleen op Nexoria (via 🪐 Planeet-tab)</span>` : `&nbsp;|&nbsp; <span class="kleur-accent" style="font-size:0.9em">📈 Handel via 🪐 Planeet-tab</span>`}
+            <div style="margin-bottom:10px;font-size:0.82em;color:var(--tekst-dim)">
+                Koersen bijgewerkt per reis &nbsp;·&nbsp;
+                ${state.locatie !== 'nexoria' ? '🔒 Handel alleen op Nexoria (via 🪐 Planeet-tab)' : '<span class="kleur-accent">📈 Handel via 🪐 Planeet-tab</span>'}
             </div>
-            ${this._renderAandelenKaarten(false)}
+            <div class="portfolio-layout">
+                ${this._renderPortfolioGrafiek()}
+                ${this._renderPortfolioTabel()}
+            </div>
         </div></div>`;
+        } // einde beurs-check
 
         html += '</div>';
         container.innerHTML = html;
@@ -1360,6 +1602,117 @@ const UI = {
     },
 
     // =========================================================================
+    // PORTFOLIO GRAFIEK + TABEL
+    // =========================================================================
+
+    _renderPortfolioGrafiek() {
+        const KLEUREN = {
+            nexcorp: '#5ba4ff', aquatech: '#00d4ff', pyroenergie: '#ff8c42',
+            luxtrading: '#ffd700', techstar: '#39ff14', biomed: '#ff6eb4',
+        };
+        const W = 360, H = 150;
+        const padL = 32, padR = 10, padT = 10, padB = 18;
+        const cW = W - padL - padR, cH = H - padT - padB;
+
+        const allPrices = AANDELEN.flatMap(a => state.aandeelGeschiedenis[a.id] ?? []);
+        if (allPrices.length < 2) return `<div class="portfolio-grafiek-wrap"><div class="sparkline-leeg" style="height:${H}px">Nog geen koersdata — reis eerst een paar keer.</div></div>`;
+
+        const globalMin = Math.min(...allPrices) * 0.94;
+        const globalMax = Math.max(...allPrices) * 1.06;
+        const range = globalMax - globalMin || 1;
+        const toX = (i, len) => padL + (i / Math.max(len - 1, 1)) * cW;
+        const toY = v => padT + cH - ((v - globalMin) / range) * cH;
+
+        let gridHtml = '';
+        for (let i = 0; i <= 4; i++) {
+            const v = globalMin + (range / 4) * i;
+            const y = toY(v);
+            gridHtml += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>`;
+            gridHtml += `<text x="${padL - 3}" y="${(y + 3.5).toFixed(1)}" fill="rgba(255,255,255,0.3)" font-size="8" text-anchor="end" font-family="monospace">${Math.round(v)}</text>`;
+        }
+
+        let lijnenHtml = '';
+        AANDELEN.forEach(a => {
+            const data = state.aandeelGeschiedenis[a.id] ?? [];
+            if (data.length < 2) return;
+            const kleur = KLEUREN[a.id] ?? '#888';
+            const bezit = (state.aandelenPortefeuille[a.id] || 0) > 0;
+            const punten = data.map((p, i) => `${toX(i, data.length).toFixed(1)},${toY(p).toFixed(1)}`).join(' ');
+            lijnenHtml += `<polyline points="${punten}" fill="none" stroke="${kleur}" stroke-width="${bezit ? 2 : 1.2}" opacity="${bezit ? 1 : 0.45}" stroke-linejoin="round"/>`;
+            const lastX = toX(data.length - 1, data.length);
+            const lastY = toY(data[data.length - 1]);
+            lijnenHtml += `<circle cx="${lastX.toFixed(1)}" cy="${lastY.toFixed(1)}" r="${bezit ? 3.5 : 2}" fill="${kleur}" opacity="${bezit ? 1 : 0.55}"/>`;
+        });
+
+        const assenHtml = `<line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT + cH}" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+            <line x1="${padL}" y1="${padT + cH}" x2="${W - padR}" y2="${padT + cH}" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>`;
+
+        const legendaHtml = AANDELEN.map(a => {
+            const kleur = KLEUREN[a.id] ?? '#888';
+            const bezit = (state.aandelenPortefeuille[a.id] || 0) > 0;
+            return `<span class="grafiek-legenda-item" style="opacity:${bezit ? 1 : 0.45}"><span class="grafiek-kleur-balk" style="background:${kleur}"></span><span>${a.icoon} ${a.naam}</span></span>`;
+        }).join('');
+
+        return `<div class="portfolio-grafiek-wrap">
+            <svg viewBox="0 0 ${W} ${H}" style="display:block;width:100%;max-width:${W}px;height:auto">
+                ${gridHtml}${assenHtml}${lijnenHtml}
+            </svg>
+            <div class="grafiek-legenda" style="margin-top:6px;flex-wrap:wrap;gap:4px 10px;font-size:0.78em">${legendaHtml}</div>
+        </div>`;
+    },
+
+    _renderPortfolioTabel() {
+        const gehouden = AANDELEN.filter(a => (state.aandelenPortefeuille[a.id] || 0) > 0);
+
+        if (gehouden.length === 0) {
+            return `<div class="portfolio-tabel-wrap">
+                <div class="kleur-dimmed" style="font-size:0.85em;padding:8px 0 12px">Geen aandelen in portfolio.</div>
+                <div class="portfolio-totalen">
+                    <div class="stat-rij"><span class="stat-naam">Portefeuillewaarde</span><span class="stat-waarde kleur-goud">${state.formatteerKrediet(0)}</span></div>
+                    <div class="stat-rij"><span class="stat-naam">Beschikbaar</span><span class="stat-waarde">${state.formatteerKrediet(state.speler.krediet)}</span></div>
+                </div>
+            </div>`;
+        }
+
+        let totaleWaarde = 0, totaleKosten = 0;
+        const rijen = gehouden.map(a => {
+            const bezit = state.aandelenPortefeuille[a.id];
+            const koers = state.aandeelKoersen[a.id];
+            const gemAank = state.aandeelAankoopPrijzen?.[a.id] ?? koers;
+            const waarde = bezit * koers;
+            const kosten = bezit * gemAank;
+            const rend = waarde - kosten;
+            const rendPct = kosten > 0 ? (rend / kosten * 100).toFixed(1) : '0.0';
+            const rendKlas = rend > 0 ? 'kleur-groen' : rend < 0 ? 'kleur-rood' : 'kleur-dimmed';
+            totaleWaarde += waarde;
+            totaleKosten += kosten;
+            return `<tr>
+                <td>${a.icoon} ${a.naam}</td>
+                <td class="pt-r">${bezit} stuks</td>
+                <td class="pt-r">${gemAank} credits</td>
+                <td class="pt-r">${koers} credits</td>
+                <td class="pt-r ${rendKlas}">${rend >= 0 ? '+' : ''}${state.formatteerKrediet(rend)}<br><span style="font-size:0.85em">${rend >= 0 ? '+' : ''}${rendPct}%</span></td>
+            </tr>`;
+        });
+
+        const totRend = totaleWaarde - totaleKosten;
+        const totPct = totaleKosten > 0 ? (totRend / totaleKosten * 100).toFixed(1) : '0.0';
+        const totKlas = totRend > 0 ? 'kleur-groen' : totRend < 0 ? 'kleur-rood' : 'kleur-dimmed';
+
+        return `<div class="portfolio-tabel-wrap">
+            <table class="portfolio-tabel">
+                <thead><tr><th>Asset</th><th class="pt-r">Aantal</th><th class="pt-r">Gemiddelde aankoopprijs</th><th class="pt-r">Koers</th><th class="pt-r">Rendement</th></tr></thead>
+                <tbody>${rijen.join('')}</tbody>
+            </table>
+            <div class="portfolio-totalen">
+                <div class="stat-rij"><span class="stat-naam">Totale waarde</span><span class="stat-waarde kleur-goud">${state.formatteerKrediet(totaleWaarde)}</span></div>
+                <div class="stat-rij"><span class="stat-naam">Totaal rendement</span><span class="stat-waarde ${totKlas}">${totRend >= 0 ? '+' : ''}${state.formatteerKrediet(totRend)} (${totRend >= 0 ? '+' : ''}${totPct}%)</span></div>
+                <div class="stat-rij"><span class="stat-naam">Beschikbaar</span><span class="stat-waarde">${state.formatteerKrediet(state.speler.krediet)}</span></div>
+            </div>
+        </div>`;
+    },
+
+    // =========================================================================
     // LOGBOEK TAB
     // =========================================================================
 
@@ -1387,13 +1740,20 @@ const UI = {
         const container = document.getElementById('achievements-tab');
         if (!container) return;
 
-        const categorieen = [
+        // Tutorial: filter achievement-categorieën op basis van unlock status
+        const alleCat = [
             { id: 'deals', naam: '⚖ Handel & Deals' },
             { id: 'nettowaarde', naam: '💰 Nettowaarde' },
             { id: 'beurs', naam: '📈 Beurs' },
             { id: 'schip', naam: '🚀 Schip' },
             { id: 'events', naam: '⭐ Reizen & Events' },
+            { id: 'financien', naam: '💳 Financiën' },
         ];
+        const categorieen = alleCat.filter(cat => {
+            if (typeof ACHIEVEMENT_CATEGORIE_FEATURE === 'undefined') return true;
+            const benodigdeFeature = ACHIEVEMENT_CATEGORIE_FEATURE[cat.id] ?? 'basis';
+            return state.isUnlocked(benodigdeFeature);
+        });
 
         const unlocked = state.achievements.size;
         const totaal = ACHIEVEMENTS.length;
@@ -1598,10 +1958,39 @@ const UI = {
             let keuzes = event.keuzes;
             if (event.id === 'piraten') {
                 const bedrag = Math.min(Math.round(Math.max(0, state.speler.krediet) * 0.25 + 100), 800);
+                const snelheid = state.schip?.snelheid ?? 1;
+                const schild = state.schip?.schild ?? 1;
+                const vluchtKans = Math.min(0.95, 0.25 + snelheid * 0.08 + schild * 0.05);
+                const vluchtPct = Math.round(vluchtKans * 100);
+                const heeftVerzekering = state.verzekering?.actief;
+                document.getElementById('event-beschrijving').innerHTML =
+                    `Een piratengroep onderschept je schip en blokkeert je route. Ze eisen tol voor veilige doorgang.<br><br>` +
+                    `<span style="font-size:0.88em;color:var(--tekst-dim)">` +
+                    `⚡ Snelheid: <strong>${snelheid}</strong> &nbsp;|&nbsp; 🛡️ Schild: <strong>${schild}</strong><br>` +
+                    `Vlucht slagingskans: <strong style="color:${vluchtPct >= 60 ? 'var(--groen)' : vluchtPct >= 40 ? 'var(--oranje)' : 'var(--rood)'}">${vluchtPct}%</strong>` +
+                    (heeftVerzekering ? ` &nbsp;|&nbsp; <strong style="color:var(--groen)">🛡️ Verzekering actief</strong> — losgeld en ladingverlies worden vergoed` : '') +
+                    `</span>`;
                 keuzes = event.keuzes.map(k => {
-                    if (k.id === 'betaal') {
-                        return { ...k, tekst: `Betaal het losgeld (${state.formatteerKrediet(bedrag)})` };
-                    }
+                    if (k.id === 'betaal') return { ...k, tekst: `Betaal losgeld (${state.formatteerKrediet(bedrag)})` };
+                    if (k.id === 'vlucht') return { ...k, tekst: `Probeer te ontsnappen (${vluchtPct}% kans)` };
+                    return k;
+                });
+            }
+
+            if (event.id === 'crew_opstand' && state.crew) {
+                const totaal = state.crew.grootte * state.crew.salaris;
+                const dubbel = totaal * 2;
+                const kanBetalen = state.speler.krediet >= dubbel;
+                document.getElementById('event-beschrijving').innerHTML =
+                    `Je bemanning heeft het gehad en dreigt de boel stil te leggen!<br><br>` +
+                    `<span style="font-size:0.88em;color:var(--tekst-dim)">` +
+                    `👨‍🚀 Crew: <strong>${state.crew.grootte}</strong> &nbsp;|&nbsp; ` +
+                    `Happiness: <strong style="color:var(--rood)">${state.crew.happiness}/100</strong><br>` +
+                    `Eis: dubbel salaris = <strong style="color:var(--rood)">${state.formatteerKrediet(dubbel)}</strong>` +
+                    (kanBetalen ? '' : `<br><span style="color:var(--oranje)">⚠ Onvoldoende credits — onderhandelen is je enige optie.</span>`) +
+                    `</span>`;
+                keuzes = event.keuzes.map(k => {
+                    if (k.id === 'betaal') return { ...k, tekst: `Betaal dubbel salaris (${state.formatteerKrediet(dubbel)})`, stijl: kanBetalen ? 'gevaar' : 'dimmed' };
                     return k;
                 });
             }
@@ -1654,7 +2043,11 @@ const UI = {
             btn.onclick = () => {
                 this.verbergEventPopup();
                 if (state.fase === 'einde') { UI.toonEindeScherm(); return; }
-                state.aankomst();
+                const aankomstResult = state.aankomst();
+                if (aankomstResult?.passagiersInfo) {
+                    const pi = aankomstResult.passagiersInfo;
+                    UI.toonTransactieToast({ icoon: '🧳', titel: `${pi.aantal} passagier${pi.aantal > 1 ? 's' : ''} afgeleverd`, totaal: pi.totaal });
+                }
                 if (state.fase === 'einde') { state.wisSave(); } else { state.slaOp(); }
                 const planNaam = PLANETEN.find(p => p.id === state.locatie)?.naam ?? '';
                 App._startFase2(() => {
@@ -1665,9 +2058,8 @@ const UI = {
                         UI.renderSpel();
                         if (state.fase === 'einde') {
                             UI.toonEindeScherm();
-                        } else if (state.huidigAankomstEvent) {
-                            UI.toonAankomstPopup(state.huidigAankomstEvent);
-                            state.huidigAankomstEvent = null;
+                        } else {
+                            App._toonAankomstEventQueue();
                         }
                     }, 1100);
                 });
@@ -1681,7 +2073,7 @@ const UI = {
         document.getElementById('event-gevolg').textContent = '';
     },
 
-    toonAankomstPopup(event) {
+    toonAankomstPopup(event, callback) {
         if (event.type === 'gevaar') Audio.negatief(); else Audio.eventPositief();
         const popup = document.getElementById('aankomst-popup');
         if (!popup) return;
@@ -1695,6 +2087,56 @@ const UI = {
             gestolenDiv.style.display = 'block';
         } else {
             gestolenDiv.style.display = 'none';
+        }
+
+        // Zorg dat de knop de standaard sluitactie heeft
+        const btn = popup.querySelector('.knop.primair');
+        if (btn) btn.onclick = () => { UI.verbergAankomstPopup(); callback?.(); };
+
+        popup.classList.remove('verborgen');
+    },
+
+    toonMarketingSummary(summary) {
+        Audio.eventPositief();
+        const popup = document.getElementById('marketing-summary-popup');
+        if (!popup) return;
+        document.getElementById('marketing-summary-passagiers').textContent = summary.extraPassagiers;
+        document.getElementById('marketing-summary-resources').textContent = summary.extraResources;
+        popup.classList.remove('verborgen');
+    },
+
+    verbergMarketingSummary() {
+        document.getElementById('marketing-summary-popup')?.classList.add('verborgen');
+    },
+
+    toonConcurrentAankomstPopup(evt, callback) {
+        Audio.negatief();
+        const popup = document.getElementById('aankomst-popup');
+        if (!popup) { callback?.(); return; }
+
+        const npc = evt.npc;
+        const aankoopTekst = evt.aankopen.map(a => {
+            const goed = GOEDEREN.find(g => g.id === a.goed.id) || a.goed;
+            return `${a.hoeveelheid} ton ${goed.icoon} ${goed.naam}`;
+        }).join(' en ');
+
+        document.getElementById('aankomst-event-icoon').textContent = npc.icoon;
+        document.getElementById('aankomst-event-naam').textContent = `${npc.naam} was eerder!`;
+        document.getElementById('aankomst-event-beschrijving').textContent =
+            `${npc.naam} arriveerde eerder op ${evt.planeetNaam} en kocht ${aankoopTekst} voor een scherpe prijs.`;
+
+        const gestolenDiv = document.getElementById('aankomst-event-gestolen');
+        gestolenDiv.textContent = '⚠️ Marktprijzen zijn gestegen.';
+        gestolenDiv.className = 'event-gevolg kleur-oranje';
+        gestolenDiv.style.display = 'block';
+
+        const btn = popup.querySelector('.knop.primair');
+        if (btn) {
+            btn.onclick = () => {
+                popup.classList.add('verborgen');
+                gestolenDiv.className = 'event-gevolg';
+                callback?.();
+            };
         }
 
         popup.classList.remove('verborgen');
@@ -1733,6 +2175,36 @@ const UI = {
         this._toastTimer = setTimeout(() => toast.classList.remove('zichtbaar'), 4000);
     },
 
+    toonKoopToast(btn, bedrag) {
+        const fmt = n => new Intl.NumberFormat('nl-NL').format(Math.round(n));
+        const rect = btn.getBoundingClientRect();
+        const el = document.createElement('div');
+        el.className = 'floating-toast floating-toast-koop';
+        el.textContent = `−${fmt(bedrag)} cr`;
+        el.style.left = (rect.left + rect.width / 2) + 'px';
+        el.style.top = rect.top + 'px';
+        document.body.appendChild(el);
+        requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('actief')));
+        setTimeout(() => el.remove(), 1200);
+    },
+
+    toonVerkoopToast(btn, totaal, winst) {
+        const fmt = n => new Intl.NumberFormat('nl-NL').format(Math.round(n));
+        const rect = btn.getBoundingClientRect();
+        const el = document.createElement('div');
+        const positief = winst === null || winst >= 0;
+        el.className = `floating-toast ${positief ? 'floating-toast-winst' : 'floating-toast-verlies'}`;
+        const winstTekst = winst !== null
+            ? ` (${winst >= 0 ? '+' : ''}${fmt(winst)} cr ${winst >= 0 ? 'winst' : 'verlies'})`
+            : '';
+        el.innerHTML = `+${fmt(totaal)} cr${winstTekst ? `<br><small>${winstTekst}</small>` : ''}`;
+        el.style.left = (rect.left + rect.width / 2) + 'px';
+        el.style.top = rect.top + 'px';
+        document.body.appendChild(el);
+        requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('actief')));
+        setTimeout(() => el.remove(), 1200);
+    },
+
     toonTransactieToast(config) {
         const toast = document.getElementById('transactie-toast');
         if (!toast) return;
@@ -1750,9 +2222,13 @@ const UI = {
         if (config.winst !== undefined && config.winst !== null && config.winst < 0) {
             toast.classList.add('verlies');
         }
+        toast.classList.remove('verdwijnt');
         toast.classList.add('zichtbaar');
         clearTimeout(this._transactieToastTimer);
-        this._transactieToastTimer = setTimeout(() => toast.classList.remove('zichtbaar'), 3500);
+        this._transactieToastTimer = setTimeout(() => {
+            toast.classList.add('verdwijnt');
+            setTimeout(() => toast.classList.remove('zichtbaar', 'verdwijnt'), 1000);
+        }, 5000);
     },
 
     // =========================================================================
@@ -1833,4 +2309,92 @@ const UI = {
             <div class="stat-einde"><span class="naam">Achievements</span><span class="waarde kleur-goud">${state.achievements.size}/${ACHIEVEMENTS.length}</span></div>
         `;
     },
+
+    // =========================================================================
+    // MISSIES TAB
+    // =========================================================================
+
+    renderMissieTab() {
+        const container = document.getElementById('missies-tab');
+        if (!container) return;
+
+        const beurt = state.beurt;
+        const actief = state.missies ?? [];
+        const beschikbaar = state.beschikbareMissies ?? [];
+        const maxActief = 3;
+
+        let html = '<div class="sectie-header">🎯 Missies</div>';
+        html += `<p class="kleur-dimmed" style="font-size:0.82em;margin:0 0 12px">Accepteer missies voor bonusbeloningen. Max ${maxActief} actieve missies tegelijk. Cargo-missies: koop zelf de lading en lever af bij bestemming.</p>`;
+
+        // Actieve missies
+        if (actief.length > 0) {
+            html += '<div class="missie-sectie-titel">Actieve missies</div>';
+            actief.forEach(m => {
+                const resterend = m.deadline - beurt;
+                const urgentie = resterend <= 5 ? 'kleur-rood' : resterend <= 10 ? 'kleur-oranje' : 'kleur-dimmed';
+                if (m.type === 'cargo') {
+                    const inHold = state.lading[m.goedId] || 0;
+                    const heeftGenoeg = inHold >= m.hoeveelheid;
+                    const voortgang = heeftGenoeg
+                        ? `<span class="kleur-groen">✓ Lading aan boord</span>`
+                        : `<span class="kleur-rood">${inHold}/${m.hoeveelheid} ton aan boord</span>`;
+                    html += `<div class="missie-kaart missie-actief">
+                        <div class="missie-type-icoon">📦</div>
+                        <div class="missie-info">
+                            <div class="missie-titel">${m.goedIcoon} Lever ${m.hoeveelheid}t ${m.goedNaam} af op <strong>${m.bestemmingNaam}</strong></div>
+                            <div class="missie-meta">${voortgang} &nbsp;·&nbsp; <span class="${urgentie}">Deadline: beurt ${m.deadline} (nog ${resterend})</span></div>
+                        </div>
+                        <div class="missie-beloning">+${state.formatteerKrediet(m.beloning)}<br><span class="kleur-dimmed" style="font-size:0.78em">bonus</span></div>
+                    </div>`;
+                } else {
+                    html += `<div class="missie-kaart missie-actief">
+                        <div class="missie-type-icoon">👤</div>
+                        <div class="missie-info">
+                            <div class="missie-titel">VIP-transport naar <strong>${m.bestemmingNaam}</strong></div>
+                            <div class="missie-meta"><span class="kleur-accent">VIP aan boord</span> &nbsp;·&nbsp; <span class="${urgentie}">Deadline: beurt ${m.deadline} (nog ${resterend})</span></div>
+                        </div>
+                        <div class="missie-beloning">+${state.formatteerKrediet(m.beloning)}</div>
+                    </div>`;
+                }
+            });
+        }
+
+        // Beschikbare missies
+        if (beschikbaar.length > 0) {
+            html += '<div class="missie-sectie-titel" style="margin-top:16px">Beschikbare missies</div>';
+            const kanMeer = actief.length < maxActief;
+            beschikbaar.forEach(m => {
+                const resterend = m.deadline - beurt;
+                if (m.type === 'cargo') {
+                    html += `<div class="missie-kaart">
+                        <div class="missie-type-icoon">📦</div>
+                        <div class="missie-info">
+                            <div class="missie-titel">${m.goedIcoon} Lever ${m.hoeveelheid}t ${m.goedNaam} af op <strong>${m.bestemmingNaam}</strong></div>
+                            <div class="missie-meta kleur-dimmed">Deadline: beurt ${m.deadline} (nog ${resterend} beurten)</div>
+                        </div>
+                        <div class="missie-beloning">+${state.formatteerKrediet(m.beloning)}<br><span class="kleur-dimmed" style="font-size:0.78em">bonus</span></div>
+                        <button class="knop primair klein missie-knop" onclick="App.accepteerMissie(${m.id})" ${kanMeer ? '' : 'disabled'}>Accepteer</button>
+                    </div>`;
+                } else {
+                    const capOk = (state.schip?.passagiersCapaciteit || 0) > 0 && state.passagiers < (state.schip?.passagiersCapaciteit || 0);
+                    html += `<div class="missie-kaart">
+                        <div class="missie-type-icoon">👤</div>
+                        <div class="missie-info">
+                            <div class="missie-titel">VIP-transport naar <strong>${m.bestemmingNaam}</strong></div>
+                            <div class="missie-meta kleur-dimmed">Behoeft vrije passagiersplaats &nbsp;·&nbsp; Deadline: beurt ${m.deadline} (nog ${resterend} beurten)</div>
+                        </div>
+                        <div class="missie-beloning">+${state.formatteerKrediet(m.beloning)}</div>
+                        <button class="knop primair klein missie-knop" onclick="App.accepteerMissie(${m.id})" ${kanMeer && capOk ? '' : 'disabled'}>Accepteer</button>
+                    </div>`;
+                }
+            });
+        }
+
+        if (actief.length === 0 && beschikbaar.length === 0) {
+            html += '<div class="kleur-dimmed" style="text-align:center;padding:24px 0">Geen missies beschikbaar. Land op een planeet voor nieuwe missies.</div>';
+        }
+
+        container.innerHTML = html;
+    },
+
 };

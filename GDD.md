@@ -20,7 +20,7 @@
 
 **Locatie:** Een naamloze sector van de melkweg die bruist van handel en gevaar. Acht werelden zijn met elkaar verbonden via handelsroutes.
 
-**De speler:** Een beginnend ruimtehandelaar die met 10.000 credits en een tweedehands schip zijn fortuin probeert te maken. Geen achtergrondverhaal — de speler schrijft zijn eigen verhaal via zijn handelsbeslissingen.
+**De speler:** Een beginnend ruimtehandelaar die met 25.000 credits en een tweedehands schip zijn fortuin probeert te maken. Geen achtergrondverhaal — de speler schrijft zijn eigen verhaal via zijn handelsbeslissingen.
 
 **Galactische context:**
 - De **Galactische Handelsgilde** reguleert (of probeert te reguleren) de handel
@@ -48,7 +48,7 @@
 - **Gazillionair-drempel:** speler die tijdens de run ≥ 25.000.000 credits netto waarde bereikt, haalt de prestigetitel "Gazillionair" (ongeacht eindscore)
 - Nettowaarde = credits + aandelenwaarde + ladingwaarde − schulden
 
-**Schipkeuze:** De speler koopt bij aanvang een schip (Mark I). De resterende credits (25.000 − scheepsprijs) zijn het startkapitaal voor handel.
+**Schipkeuze:** De speler kiest bij aanvang een scheepstype (vracht/passagiers/snel) en koopt een Mark I. De resterende credits (25.000 − scheepsprijs) zijn het startkapitaal voor handel.
 
 **Economische schaal:** De Gazillionair-drempel is ~1.000× het startkapitaal — dezelfde ratio als in het originele Gazillionaire (1994). Dit is een prestigemijlpaal, geen verwachte uitkomst voor een gemiddelde run.
 
@@ -95,79 +95,74 @@ Aqueron (25,75)               Techton (82,72)
 | Quantumchips | 💾 | 375 cr | 1 ton | Geavanceerde processors, topwaarde |
 | Luxuriet | 👑 | 440 cr | 1 ton | Luxeartikelen, duurste goed |
 
-**Prijsmechanisme:**
-- Specialiteitsplaneten verkopen 40–55% onder basisprijs
-- Vraagplaneten betalen 165–200% van basisprijs
-- Prijzen fluctueren elke beurt via een volatiliteitsmodel
-- Mortex Station hanteert een basiskorting van 35% op alle goederen (zwarte markt), bovenop eventuele specialiteitskorting
+**Prijsmechanisme (stapeling, in volgorde):**
+1. **Basisprijs** — specialiteitsplaneten: 40–55% korting; vraagplaneten: 165–200% opslag
+2. **MarktModifiers** — kumulatief effect van koop/verkoop in vorige bezoeken; vervalt 12%/beurt terug naar 1.0; wordt pas toegepast bij vertrek (niet tijdens verblijf, voorkomt arbitrage)
+3. **Voorraadfactor** — lage voorraad (+30% bij minimum), hoge voorraad (−25% bij maximum), neutraal bij het midden van de range
+4. **Scheepsbonus** — Spearhead −8% aankoopkorting, alleen bij kopen
+5. **Mortex-korting** — 35% basiskorting op alle goederen (zwarte markt)
+
+**Voorraadesysteem:**
+- Elke planeet heeft een reële voorraad per goed die schommelt elke reisbeurt (delta −4 tot +8)
+- Ranges: basis 25–80 ton, specialiteit 60–150 ton, hoge vraag 8–30 ton
+- Kopen verlaagt de planeetvoorraad; verkopen verhoogt die (max range+40)
+- Marketing-bonus bij aankomst: +15 ton op alle goederen op die planeet
+- Max-aankoop is min(betaalbaar, ruimte in ruim, beschikbare planeetvoorraad)
 
 ---
 
 ## 6. Schepen
 
-### Startschipkeuze
+### Mark-systeem
 
-Bij aanvang kiest de speler één van drie scheepstypen. Deze keuze bepaalt de **strategische identiteit voor de hele run** — je kunt later wel een betere versie van hetzelfde type kopen, maar niet switchen naar een ander type.
+Schepen zijn ingedeeld in **3 types** met elk **4 Marks** (upgradeniveaus). Bij Mark III kies je een permanente **specialisatie** (a of b); bij Mark IV ga je door op die specialisatie. Upgraden kan alleen op Techton, stap voor stap (Mark I → II → III → IV), en alleen binnen hetzelfde type.
 
-| Type | Focus | Snelheid | Laadruimte | Passagiers | Startprijs |
-|---|---|---|---|---|---|
-| **Vrachtschip** | Cargo | Laag | Hoog | Minimaal | ~3.000 cr |
-| **Passagiersschip** | Passagiers | Middel | Laag | Hoog | ~4.500 cr |
-| **Snel Schip** | Snelheid | Hoog | Laag | Laag | ~5.000 cr |
-
----
-
-### Mark-systeem: schip verbeteren
-
-Elk scheepstype heeft vier generaties: **Mark I → II → III → IV**. Hogere Marks zijn duurder maar significant beter in de kernstats van dat type. Het oude schip levert 60% inruilwaarde op.
-
-Er zijn **geen losse stat-upgrades** meer — het schip zelf is de progressie.
-
-**Beschikbaarheid:**
-- Alle planeten hebben een **basiswerf** voor reparaties
-- Scheepsaankoop (alle Marks): **uitsluitend op Techton** (Geavanceerde Scheepswerf)
-
-**Richtprijzen en progressie:**
-
-| Mark | Richtprijs | Netto na 60% inruil | Bereikbaar rond beurt |
-|---|---|---|---|
-| **Mark I** | 15.000–20.000 cr | — (startaankoop) | 0 |
-| **Mark II** | 60.000–80.000 cr | ~48.000–56.000 cr | 40–60 |
-| **Mark III** | 200.000–250.000 cr | ~150.000–185.000 cr | 80–100 |
-| **Mark IV** | 600.000–800.000 cr | ~450.000–600.000 cr | 120–140 |
-
-*(Exacte getallen worden bepaald bij implementatie na calibratie van de handelseconomie.)*
+**Upgrade-regels:**
+- Huidig schip ingeleverd voor 60% van de oorspronkelijke aankoopprijs
+- Alleen upgraden naar het volgende Mark (niet overslaan)
+- Scheepstype is permanent — niet wisselen van vracht naar pax e.d.
+- Mark IV is het maximum; scheepswerf toont dit in de UI
 
 ---
 
-### Specialisatie bij Mark III
+### Vrachtschip 🚛
 
-Bij de aankoop van Mark III kiest de speler een **specialisatietak**. Dit is een onomkeerbare keuze die de speelstijl verder scherp stelt. Mark IV bestaat binnen de gekozen tak.
-
-#### Vrachtschip
-
-| Tak | Naam | Karakter | Planeet-synergie |
-|---|---|---|---|
-| **A** | **Tanker** 🛢️ | Geoptimaliseerd voor vloeibare resources (Pyrogel, Aquapure, Bioplasma). Hoge capaciteit voor die categorie, laag voor bulk. | Bonus op Pyroflux, Aqueron |
-| **B** | **Secure Hauler** 🔒 | Vervoert luxe en waardevolle goederen. Gepantserd vrachtruim — immuun voor piraterij en confiscatie. | Bonus op Luxoria; waardevol via Mortex |
-
-#### Passagiersschip
-
-| Tak | Naam | Karakter | Planeet-synergie |
-|---|---|---|---|
-| **A** | **Luxury Liner** 🥂 | Trekt high-end passagiers aan die hogere ticketprijzen betalen. Lagere capaciteit, hogere opbrengst per passagier. | Bonus op Luxoria, Nexoria |
-| **B** | **Space Bus** 🚌 | Maximale passagierscapaciteit, lagere ticketprijs per hoofd maar grote volumes. | Bonus op drukke hubs (Nexoria, Techton) |
-
-#### Snel Schip
-
-| Tak | Naam | Karakter | Planeet-synergie |
-|---|---|---|---|
-| **A** | **Spearhead** ⚡ | Altijd het snelste schip in de sector — arriveert als eerste op planeten en pakt een kleine marktkorting mee voordat prijzen bewegen. Kan tijdgevoelige bezorgmissies accepteren (persoon of item zo snel mogelijk van A naar B). | Bonus op alle markten bij early arrival |
-| **B** | **Shadow** 🌑 | Smokkelschip. Betere bescherming tegen cargo-scans (lagere douanekans). Immuun voor piraten — ze laten de Shadow ongemoeid. Ideaal voor Mortex-routes. | Bonus bij Mortex, Zwarte Markt runs |
+| Mark | Naam | Prijs | Snelheid | Laadruimte | Brandstof | Schild | HP | Specials |
+|---|---|---|---|---|---|---|---|---|
+| I | Vrachtschip Mark I | 16.000 | 1 | 60 ton | 100 L | 2 | 50 | — |
+| II | Vrachtschip Mark II | 65.000 | 1 | 100 ton | 120 L | 3 | 70 | — |
+| III-a | Tanker Mark III 🛢️ | 210.000 | 1 | 220 ton | 150 L | 3 | 90 | — |
+| III-b | Secure Hauler Mark III 🔒 | 210.000 | 2 | 130 ton | 150 L | 5 | 90 | 🛡️ Piratenimmuun, 🔒 Mortex-lading nooit geconfisqueerd |
+| IV-a | Tanker Mark IV 🛢️ | 680.000 | 2 | 350 ton | 180 L | 4 | 120 | — |
+| IV-b | Secure Hauler Mark IV 🔒 | 680.000 | 2 | 170 ton | 180 L | 5 | 120 | 🛡️ Piratenimmuun, 🔒 Mortex-lading nooit geconfisqueerd |
 
 ---
 
-### HP-systeem
+### Passagiersschip 🛳️
+
+| Mark | Naam | Prijs | Snelheid | Passagiers | Brandstof | Schild | HP | Specials |
+|---|---|---|---|---|---|---|---|---|
+| I | Passagiersschip Mark I | 18.000 | 2 | 10 | 90 L | 2 | 50 | — |
+| II | Passagiersschip Mark II | 70.000 | 2 | 20 | 110 L | 2 | 65 | — |
+| III-a | Luxury Liner Mark III 🥂 | 220.000 | 3 | 10 | 130 L | 3 | 85 | 🥂 Tickets ×3 |
+| III-b | Space Bus Mark III 🚌 | 220.000 | 2 | 40 | 130 L | 2 | 85 | 🚌 Tickets ×0,5 (volume) |
+| IV-a | Luxury Liner Mark IV 🥂 | 700.000 | 3 | 12 | 150 L | 4 | 110 | 🥂 Tickets ×3 |
+| IV-b | Space Bus Mark IV 🚌 | 700.000 | 2 | 60 | 150 L | 2 | 110 | 🚌 Tickets ×0,5 (volume) |
+
+---
+
+### Snel Schip ✈️
+
+| Mark | Naam | Prijs | Snelheid | Laadruimte | Brandstof | Schild | HP | Specials |
+|---|---|---|---|---|---|---|---|---|
+| I | Snel Schip Mark I | 19.000 | 3 | 20 ton | 70 L | 1 | 45 | — |
+| II | Snel Schip Mark II | 75.000 | 5 | 30 ton | 85 L | 1 | 60 | — |
+| III-a | Spearhead Mark III ⚡ | 235.000 | 8 | 40 ton | 100 L | 2 | 75 | ⚡ −8% aankoopprijzen |
+| III-b | Shadow Mark III 🌑 | 235.000 | 7 | 45 ton | 95 L | 1 | 75 | 🛡️ Piratenimmuun, 🕵️ Douanekans 5% |
+| IV-a | Spearhead Mark IV ⚡ | 740.000 | 10 | 50 ton | 115 L | 3 | 100 | ⚡ −8% aankoopprijzen |
+| IV-b | Shadow Mark IV 🌑 | 740.000 | 9 | 60 ton | 110 L | 1 | 100 | 🛡️ Piratenimmuun, 🕵️ Douanekans 5% |
+
+---
 
 - HP daalt alleen bij event-schade (defect, asteroïden, etc.)
 - HP herstelt volledig via reparatie bij een haven
@@ -177,25 +172,68 @@ Bij de aankoop van Mark III kiest de speler een **specialisatietak**. Dit is een
 
 ## 7. Upgrades
 
-Het losse upgrade-systeem (motor, vrachtruim, brandstoftank, passagiers, schild) is **vervangen door het Mark-systeem** (zie §6). Schip-progressie loopt nu volledig via het kopen van betere generaties van hetzelfde scheepstype.
+*(Oneindige upgrade-niveaus (motor/ruim/tank/passagiers/schild) zijn verwijderd in v5.0.0 — schipstats komen nu uitsluitend van het Mark-systeem. Zie §6.)*
 
-**Uitzondering — eenmalige uitrusting:**
-Sommige planeetdiensten bieden nog steeds eenmalige aanpassingen die niet schiptype-gebonden zijn:
-- **Afgeschermd Vrachtruim** (Mortex, 8.000 cr) — verlaagt douanekans van 25% naar 5% *(zie §8b)*
+Reparatie (bij haven) en verzekering zijn nog steeds beschikbaar als diensten. De Afgeschermd Vrachtruim-upgrade op Mortex bestaat nog steeds voor schepen die dit niet ingebouwd hebben (zie §8b).
 
 ---
 
-## 8. Passagiers
+## 8. Passagiers & Marketing
 
+### Passagiers
 - Beschikbaar als het schip passagierscapaciteit heeft
 - Op elke planeet wachten een wisselend aantal passagiers met een ticketprijs
 - Passagiers betalen bij aankomst op de volgende planeet
-- Marketing-campagne (koopbaar in haven) verhoogt het aantal wachtende passagiers bij de bestemming
 - Lifter-event tijdens reis: extra passagier die je meeneemt
+
+### Marketing-campagne
+- Koopbaar in de haven-tegel, kosten 500 credits
+- De campagne richt zich altijd op de **geselecteerde reisbestemming** (zichtbaar in de knoptekst)
+- Effect: +15 wachtende passagiers bij aankomst op de bestemmingsplaneet
+- De campagne vervalt bij **elke aankomst** — ongeacht of je op de bestemmingsplaneet landt
+- Bonus wordt alleen uitbetaald als je aankomt op de correcte bestemmingsplaneet
+- Slechts één actieve campagne tegelijk mogelijk
 
 ---
 
-## 8b. Planeet-specifieke Diensten
+## 8b. Bemanning (Crew)
+
+Elk schip heeft een vaste bemanning afhankelijk van het type en Mark. De bemanning heeft dagelijks salaris nodig en een gelukswaarde die de sfeer aan boord weergeeft.
+
+### Bemanningsgrootte per schip
+
+| Scheepstype | Mark I | Mark II | Mark III | Mark IV |
+|---|---|---|---|---|
+| Vrachtschip | 3 | 4 | 5 | 6 |
+| Passagiersschip | 4 | 5 | 6 | 7 |
+| Snel Schip | 2 | 3 | 4 | 5 |
+
+### Salaris & Betaling
+- **Dagloon:** 100 credits per bemanningslid per dag (beurt)
+- **Betaalinterval:** elke 7 beurten (wekelijks)
+- **Weekbetaling:** `bemanningsgrootte × 100 × 7` credits
+- De speler kan het dagloon aanpassen (±10 cr/dag per klik)
+- Bij betaling worden credits automatisch afgetrokken van de beurs
+
+### Gelukswaarde (0–100)
+- Start op 80 bij aanvang of na een bemanningswissel
+- Daalt passief met 1 punt per beurt
+- Daalt met 15 punten bij een gemiste betaling
+- Daalt met 2 punten voor elke extra dag na een gemiste betaling
+- Bonus: +10 bij een extra beloning (optioneel, te activeren in de haven)
+- Casino-uitje op Luxoria: +15 geluk voor de bemanning
+
+### Consequenties van laag geluk
+- Geluk < 30: risico op muiterij-event (sabotage, vertraging)
+- Geluk 0: muiterij gegarandeerd bij de volgende beurt
+
+### UI
+- Financiën-tabblad toont: Dagloon (cr/pp/dag), Weekbetaling (totaal), volgende betaaldatum, huidige gelukswaarde
+- Knoppen ▲/▼ om dagloon aan te passen (+/−10 cr/dag)
+
+---
+
+## 8c. Planeet-specifieke Diensten
 
 ### Luxoria — 🎰 Casino Stellaris
 
@@ -236,6 +274,12 @@ Alle goederen zijn 35% goedkoper dan normaal (basiskorting op `_getPlanetGoedDoe
 Brandstof is hier de goedkoopste van alle planeten dankzij vulkanische energiereserves. Elke aankoop telt mee voor het achievement.
 
 **Achievement:** Energieboer (10× getankt op Pyroflux, +600 cr)
+
+---
+
+### Techton — 🛸 Geavanceerde Scheepswerf
+
+Schip upgraden naar het volgende Mark (zie §6). Alleen op Techton beschikbaar — niet meer op Nexoria.
 
 ---
 
@@ -310,8 +354,10 @@ Achievements worden ontgrendeld bij het bereiken van mijlpalen en leveren een kr
 | Categorie | Voorbeelden |
 |---|---|
 | **Deals** | Eerste Deal, Actieve Handelaar (10 tx), Handelsmagnaat (50 tx), Winstmaker (1k/deal), Superdeal (5k/deal) |
-| **Nettowaarde** | Rijkaard (10k), Groot Handelaar (100k), Galactische Millionair (1M), Schuldenvrij |
-| **Schip** | Motorfanaat/Veteraan/Lichtsnelheid (lvl 10/25/50), idem voor vrachtruim, tank, passagiers |
+| **Nettowaarde** | Rijkaard (10k), Groot Handelaar (100k), Galactische Millionair (1M), Schuldenvrij, Gazillionair (25M, +100k) |
+| **Schip — Vracht** | Zware Vrachter (Mark II), Vloeibare Goudader (Tanker III), Onaantastbaar (Secure III), Galactisch Tankschip (Tanker IV), Fort Knox (Secure IV) |
+| **Schip — Passagiers** | Ruimtevervoer (Mark II), Ruimte-elite (Luxury III), Ruimtetaxi (Bus III), Galactische Luxe (Luxury IV), Galactische Bus (Bus IV) |
+| **Schip — Snel** | Ruimteraket (Mark II), Altijd Als Eerste (Spearhead III), Schaduwhandelaar (Shadow III), Snelste van de Sector (Spearhead IV), Ongrijpbaar (Shadow IV) |
 | **Beurs** | Beursgoeroe (4 aandelen), Beurswinst (1k/deal), Beursmagnaat (10k/deal), Galactisch Belegger (250k totaal) |
 | **Reizen & Events** | Wereldreiziger (alle 8 planeten), Ruimtereiziger (10 reizen), Piratenontkomer, Op de Rand (aankomst <10L), Taxiservice |
 | **Casino** | Huisvoordeel (3 wins op rij, +1.200 cr), Jackpot (win ≥10.000 cr in één gokbeurt, +2.500 cr) |
@@ -387,9 +433,18 @@ js/main.js        — App object, event handlers, init
 | Logboek/Ranglijst/Prestaties naar topbalk (v4.0.0) | Vermindering tabbladen-rommel; deze schermen zijn secundair t.o.v. Handel/Haven/Planeet |
 | Planeet-tab als tegellayout (v4.0.0) | Consistentie met Ruimtehaven; elke dienst krijgt zijn eigen afgebakende tile |
 | Galactische markt: klikbare planeetkolommen (v4.0.0) | Snellere bestemming selecteren rechtstreeks vanuit de prijsoverzichtstabel |
-| Losse stat-upgrades vervangen door Mark-systeem (ontwerp v5.0.0) | Upgrades en schepen deden hetzelfde (stats ophogen), waardoor schip kopen nooit aantrekkelijk was. Mark-systeem koppelt progressie aan scheepsidentiteit: je wordt beter *in jouw type*, niet generiek beter. Specialisatie bij Mark III geeft replayability en dwingt strategische keuzes. |
-| Startkapitaal 10.000 → 25.000 credits (ontwerp v5.0.0) | Nieuwe Mark I-schepen kosten 15.000–20.000 cr; het oude startkapitaal liet onvoldoende handelsfloat over. 25.000 geeft ~30% handelsfloat na aankoop. |
-| Gazillionair-drempel 25.000.000 credits (ontwerp v5.0.0) | Prestige-einddoel gebaseerd op 1.000× startkapitaal — dezelfde ratio als het originele Gazillionaire (1994). Geen vervanging voor de beurtenlimiet, maar een extra laag voor ambitieuze spelers. |
+| Oneindige upgrades verwijderd (v5.0.0) | Schipstats komen nu puur van het Mark-systeem — eenvoudiger, beter leesbaar, minder sluipende balansbreuk door gestapelde upgrades |
+| Startkrediet 10.000 → 25.000 (v5.0.0) | Mark I-schepen kosten 16.000–19.000; met 10k was er nauwelijks startkapitaal over voor handel |
+| Mark III = specialisatiekeuze (v5.0.0) | Dwingt een strategische beslissing op het moment dat je echt investeert; versterkt identiteit van elke route-stijl |
+| Scheepswerf exclusief op Techton (v5.0.0) | Nexoria en Techton hadden te overlappende rollen; Techton is nu de enige werf, Nexoria behoudt bank + beurs |
+| Scheepstype permanent (v5.0.0) | Voorkomt dat spelers vroeg switchen om het beste van alle types te combineren; versterkt commitment aan strategie |
+| Marketing koppelt aan geselecteerde bestemming (v5.1.x) | Verwijdert de extra stap van aparte bestemmingskeuze — campagne volgt de reisbestemming die al gekozen is |
+| Marketing vervalt bij elke aankomst (v5.1.x) | Voorkomt dat campagnes ophopen; houdt de mechaniek simpel en dwingt gerichte keuzes |
+| Uitgesteld markteffect bij kopen/verkopen (v5.2.x) | Accumuleer marktimpact tijdens bezoek, flush bij vertrek — voorkomt arbitrage waarbij direct terugverkopen winst oplevert dankzij de eigen aankoop |
+| Voorraadesysteem per planeet (v5.2.x) | Elke planeet heeft een reële voorraad die medebepalend is voor de prijs; geeft koopbeslissingen meer diepgang en maakt planeten-routing relevanter |
+| Handel-tab als lokale markttabel (v5.2.x) | Aparte tabel voor lokale markt (met knoppen +1/+10/max en −1/−10/alles) maakt kopen/verkopen sneller en overzichtelijker dan invoervelden |
+| Tooltips altijd gestijld via #top-tooltip (v5.2.x) | Gebruik nooit het `title=`-attribuut — browser-native tooltips zijn niet te stijlen; consistente `#top-tooltip`-aanpak geeft volledige controle over positie en opmaak |
+| Gazillionair-drempel 25.000.000 credits (v5.0.0) | Prestige-einddoel gebaseerd op 1.000× startkapitaal — dezelfde ratio als het originele Gazillionaire (1994). Geen vervanging voor de beurtenlimiet, maar een extra laag voor ambitieuze spelers. |
 
 ---
 
@@ -408,4 +463,4 @@ js/main.js        — App object, event handlers, init
 
 ---
 
-*Laatste update: v4.0.0 (scheepsontwerp: design v5.0.0 concept)*
+*Laatste update: v5.3.1*

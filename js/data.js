@@ -6,13 +6,11 @@ const PLANETEN = [
     {
         id: 'nexoria',
         naam: 'Nexoria',
-        beschrijving: 'De grootste handelshub van de sector. Ideale startplek voor handelaars, met de Galactische Bank en de aandelenbeurs.',
+        beschrijving: 'De grootste handelshub van de sector. Ideale startplek voor handelaars, met de aandelenbeurs en een volledig uitgeruste bank.',
         kleur: '#4a9eff',
         x: 50, y: 50,
         specialiteit: [],
         vraag: [],
-        heeftBank: true,
-
     },
     {
         id: 'ferrum',
@@ -22,8 +20,6 @@ const PLANETEN = [
         x: 18, y: 28,
         specialiteit: ['ferroiet', 'lunasteen'],
         vraag: ['nebulakorrels', 'aquapure'],
-        heeftBank: false,
-
     },
     {
         id: 'agria',
@@ -33,8 +29,6 @@ const PLANETEN = [
         x: 80, y: 22,
         specialiteit: ['nebulakorrels', 'aquapure'],
         vraag: ['technoware', 'quantumchips'],
-        heeftBank: false,
-
     },
     {
         id: 'techton',
@@ -44,8 +38,6 @@ const PLANETEN = [
         x: 82, y: 72,
         specialiteit: ['technoware', 'quantumchips'],
         vraag: ['pyrogel', 'ferroiet'],
-        heeftBank: true,
-
     },
     {
         id: 'aqueron',
@@ -55,8 +47,6 @@ const PLANETEN = [
         x: 25, y: 75,
         specialiteit: ['bioplasma', 'aquapure'],
         vraag: ['luxuriet', 'lunasteen'],
-        heeftBank: false,
-
     },
     {
         id: 'pyroflux',
@@ -66,8 +56,6 @@ const PLANETEN = [
         x: 12, y: 60,
         specialiteit: ['pyrogel', 'kristalliet'],
         vraag: ['nebulakorrels', 'bioplasma'],
-        heeftBank: false,
-
     },
     {
         id: 'luxoria',
@@ -77,8 +65,6 @@ const PLANETEN = [
         x: 65, y: 88,
         specialiteit: ['luxuriet', 'lunasteen'],
         vraag: ['ferroiet', 'pyrogel'],
-        heeftBank: true,
-
     },
     {
         id: 'mortex',
@@ -88,23 +74,21 @@ const PLANETEN = [
         x: 48, y: 12,
         specialiteit: [],
         vraag: [],
-        heeftBank: false,
-
         isGevaarlijk: true,
     },
 ];
 
 const GOEDEREN = [
-    { id: 'ferroiet',     naam: 'Ferroiet',     icoon: '🔩', basisPrijs: 50,  gewicht: 1, beschrijving: 'Basismetaal voor bouw en productie' },
-    { id: 'kristalliet',  naam: 'Kristalliet',  icoon: '💠', basisPrijs: 115, gewicht: 1, beschrijving: 'Energiekristallen voor reactoren en shields' },
-    { id: 'nebulakorrels',naam: 'Nebulakorrels',icoon: '🌾', basisPrijs: 32,  gewicht: 2, beschrijving: 'Voedzame graankorrels; basisvoedsel voor kolonies' },
-    { id: 'bioplasma',    naam: 'Bioplasma',    icoon: '💉', basisPrijs: 175, gewicht: 1, beschrijving: 'Medische basistof voor behandelingen' },
-    { id: 'technoware',   naam: 'Technoware',   icoon: '🔌', basisPrijs: 145, gewicht: 1, beschrijving: 'Elektronische componenten en modules' },
-    { id: 'quantumchips', naam: 'Quantumchips', icoon: '💾', basisPrijs: 375, gewicht: 1, beschrijving: 'Geavanceerde kwantumprocessors' },
-    { id: 'aquapure',     naam: 'Aquapure',     icoon: '💧', basisPrijs: 42,  gewicht: 3, beschrijving: 'Gezuiverd water voor menselijke kolonies' },
-    { id: 'pyrogel',      naam: 'Pyrogel',      icoon: '⛽', basisPrijs: 82,  gewicht: 2, beschrijving: 'Hoogenergetische ruimtebrandstof' },
-    { id: 'luxuriet',     naam: 'Luxuriet',     icoon: '👑', basisPrijs: 440, gewicht: 1, beschrijving: 'Allerhande luxe artikelen en statussymbolen' },
-    { id: 'lunasteen',    naam: 'Lunasteen',    icoon: '💎', basisPrijs: 310, gewicht: 1, beschrijving: 'Zeldzame edelstenen van buitenste manen' },
+    { id: 'ferroiet',     naam: 'Ferroiet',     icoon: '🔩', basisPrijs: 50,  beschrijving: 'Basismetaal voor bouw en productie' },
+    { id: 'kristalliet',  naam: 'Kristalliet',  icoon: '💠', basisPrijs: 115, beschrijving: 'Energiekristallen voor reactoren en shields' },
+    { id: 'nebulakorrels',naam: 'Nebulakorrels',icoon: '🌾', basisPrijs: 32,  beschrijving: 'Voedzame graankorrels; basisvoedsel voor kolonies' },
+    { id: 'bioplasma',    naam: 'Bioplasma',    icoon: '💉', basisPrijs: 175, beschrijving: 'Medische basistof voor behandelingen' },
+    { id: 'technoware',   naam: 'Technoware',   icoon: '🔌', basisPrijs: 145, beschrijving: 'Elektronische componenten en modules' },
+    { id: 'quantumchips', naam: 'Quantumchips', icoon: '💾', basisPrijs: 375, beschrijving: 'Geavanceerde kwantumprocessors' },
+    { id: 'aquapure',     naam: 'Aquapure',     icoon: '💧', basisPrijs: 42,  beschrijving: 'Gezuiverd water voor menselijke kolonies' },
+    { id: 'pyrogel',      naam: 'Pyrogel',      icoon: '⛽', basisPrijs: 82,  beschrijving: 'Hoogenergetische ruimtebrandstof' },
+    { id: 'luxuriet',     naam: 'Luxuriet',     icoon: '👑', basisPrijs: 440, beschrijving: 'Allerhande luxe artikelen en statussymbolen' },
+    { id: 'lunasteen',    naam: 'Lunasteen',    icoon: '💎', basisPrijs: 310, beschrijving: 'Zeldzame edelstenen van buitenste manen' },
 ];
 
 const SCHEPEN = [
@@ -122,7 +106,7 @@ const SCHEPEN = [
         laadruimte: 60,
         schild: 2,
         kleur: '#8B6914',
-        passagiersCapaciteit: 0,
+        passagiersCapaciteit: 2,
         brandstofTank: 100,
         maxHP: 50,
         immuunPiraten: false,
@@ -144,7 +128,7 @@ const SCHEPEN = [
         laadruimte: 100,
         schild: 3,
         kleur: '#A07820',
-        passagiersCapaciteit: 0,
+        passagiersCapaciteit: 3,
         brandstofTank: 120,
         maxHP: 70,
         immuunPiraten: false,
@@ -166,7 +150,7 @@ const SCHEPEN = [
         laadruimte: 220,
         schild: 3,
         kleur: '#6B8E23',
-        passagiersCapaciteit: 0,
+        passagiersCapaciteit: 2,
         brandstofTank: 150,
         maxHP: 90,
         immuunPiraten: false,
@@ -188,7 +172,7 @@ const SCHEPEN = [
         laadruimte: 130,
         schild: 5,
         kleur: '#4169E1',
-        passagiersCapaciteit: 0,
+        passagiersCapaciteit: 2,
         brandstofTank: 150,
         maxHP: 90,
         immuunPiraten: true,
@@ -210,7 +194,7 @@ const SCHEPEN = [
         laadruimte: 350,
         schild: 4,
         kleur: '#7BAA2A',
-        passagiersCapaciteit: 0,
+        passagiersCapaciteit: 3,
         brandstofTank: 180,
         maxHP: 120,
         immuunPiraten: false,
@@ -232,7 +216,7 @@ const SCHEPEN = [
         laadruimte: 170,
         schild: 5,
         kleur: '#4A79F1',
-        passagiersCapaciteit: 0,
+        passagiersCapaciteit: 3,
         brandstofTank: 180,
         maxHP: 120,
         immuunPiraten: true,
@@ -255,7 +239,7 @@ const SCHEPEN = [
         laadruimte: 15,
         schild: 2,
         kleur: '#1E90FF',
-        passagiersCapaciteit: 10,
+        passagiersCapaciteit: 20,
         brandstofTank: 90,
         maxHP: 50,
         immuunPiraten: false,
@@ -277,7 +261,7 @@ const SCHEPEN = [
         laadruimte: 20,
         schild: 2,
         kleur: '#2EA0FF',
-        passagiersCapaciteit: 20,
+        passagiersCapaciteit: 40,
         brandstofTank: 110,
         maxHP: 65,
         immuunPiraten: false,
@@ -299,7 +283,7 @@ const SCHEPEN = [
         laadruimte: 20,
         schild: 3,
         kleur: '#FFD700',
-        passagiersCapaciteit: 10,
+        passagiersCapaciteit: 20,
         brandstofTank: 130,
         maxHP: 85,
         immuunPiraten: false,
@@ -321,7 +305,7 @@ const SCHEPEN = [
         laadruimte: 20,
         schild: 2,
         kleur: '#FF8C00',
-        passagiersCapaciteit: 40,
+        passagiersCapaciteit: 80,
         brandstofTank: 130,
         maxHP: 85,
         immuunPiraten: false,
@@ -343,7 +327,7 @@ const SCHEPEN = [
         laadruimte: 25,
         schild: 4,
         kleur: '#FFE030',
-        passagiersCapaciteit: 12,
+        passagiersCapaciteit: 24,
         brandstofTank: 150,
         maxHP: 110,
         immuunPiraten: false,
@@ -365,7 +349,7 @@ const SCHEPEN = [
         laadruimte: 25,
         schild: 2,
         kleur: '#FFA020',
-        passagiersCapaciteit: 60,
+        passagiersCapaciteit: 120,
         brandstofTank: 150,
         maxHP: 110,
         immuunPiraten: false,
@@ -510,6 +494,13 @@ const SCHEPEN = [
 ];
 
 const UPGRADES = [];
+
+// Crew-grootte per schip (bemanning vereist voor bediening)
+const CREW_PER_SCHIP = {
+    vracht_1: 3,  vracht_2: 5,  vracht_3a: 8,  vracht_3b: 7,  vracht_4a: 12, vracht_4b: 10,
+    pax_1:    4,  pax_2:    6,  pax_3a:   10,  pax_3b:    7,  pax_4a:   14,  pax_4b:   10,
+    snel_1:   2,  snel_2:   3,  snel_3a:   5,  snel_3b:    4,  snel_4a:   7,  snel_4b:    6,
+};
 
 // Kansen optellen naar 1.0
 const EVENTS = [
@@ -704,6 +695,147 @@ const EVENTS = [
         beschrijving: 'De reis verloopt vlekkeloos. Sterrenbeelden passeren, je koers is recht, en alles is in orde.',
         heeftKeuze: false,
     },
+    {
+        id: 'crew_opstand',
+        naam: 'Crew Opstand!',
+        icoon: '✊',
+        type: 'gevaar',
+        kans: 0,   // Alleen getriggerd door geluk-check; nooit via normale pool
+        beschrijving: 'Je bemanning is tot het uiterste gedreven. Ze eisen onmiddellijke betaling, anders leggen ze het werk neer.',
+        heeftKeuze: true,
+        keuzes: [
+            { id: 'betaal', tekst: 'Betaal dubbel salaris', stijl: 'gevaar' },
+            { id: 'praten', tekst: 'Onderhandel (50% kans)', stijl: 'knop' },
+        ],
+    },
+    // === BANK EVENTS ===
+    {
+        id: 'bank_rente_omhoog',
+        naam: 'Galactische Monetaire Unie verhoogt basisrente',
+        icoon: '🏦',
+        type: 'positief',
+        kans: 0.04,
+        beschrijving: 'De Galactische Monetaire Unie heeft de basisrente verhoogd. Je spaarrente stijgt met 0.5%.',
+        heeftKeuze: false,
+    },
+    {
+        id: 'bank_hoogconjunctuur',
+        naam: 'Economische Hoogconjunctuur',
+        icoon: '📈',
+        type: 'positief',
+        kans: 0.03,
+        beschrijving: 'Een periode van economische bloei. Alle banken verhogen hun rente tijdelijk met 1%.',
+        heeftKeuze: false,
+    },
+    {
+        id: 'bank_kredietexpansie',
+        naam: 'Kredietexpansie in de Buitenste Ring',
+        icoon: '💹',
+        type: 'positief',
+        kans: 0.04,
+        beschrijving: 'Een nieuwe kredietlijn wordt opengesteld door de Galactische Handelsbank. Spaarrente stijgt met 0.5%.',
+        heeftKeuze: false,
+    },
+    {
+        id: 'bank_recessie',
+        naam: 'Intergalactische Recessie Dreigt',
+        icoon: '📉',
+        type: 'gevaar',
+        kans: 0.04,
+        beschrijving: 'Economische onzekerheid trekt door de melkweg. Bankrentes dalen met 0.5%.',
+        heeftKeuze: false,
+    },
+    {
+        id: 'bank_nulrente',
+        naam: 'Centrale Bank Voert Nulrentebeleid In',
+        icoon: '🏛️',
+        type: 'gevaar',
+        kans: 0.02,
+        beschrijving: 'De Galactische Centrale Bank verlaagt de rente naar nul. Je spaargeld groeit tijdelijk niet meer.',
+        heeftKeuze: false,
+    },
+    {
+        id: 'bank_crisis',
+        naam: 'Bankcrisis op Nexoria',
+        icoon: '⚠️',
+        type: 'gevaar',
+        kans: 0.02,
+        beschrijving: 'Een bankcrisis heeft de sector geschokt. Spaarrentes worden met 1% verlaagd.',
+        heeftKeuze: false,
+    },
+    {
+        id: 'bank_belasting',
+        naam: 'Vermogensbelasting Galacticus',
+        icoon: '💸',
+        type: 'gevaar',
+        kans: 0.03,
+        beschrijving: 'De Belastingdienst Galacticus vordert 3% van je banksaldo als vermogensbelasting.',
+        heeftKeuze: false,
+    },
+    {
+        id: 'bank_bonus',
+        naam: 'Spaarbonus-actie',
+        icoon: '🎁',
+        type: 'positief',
+        kans: 0.03,
+        beschrijving: 'Als trouwe rekeninghouder ontvang je een eenmalige spaarbonus van 500 credits.',
+        heeftKeuze: false,
+    },
+    {
+        id: 'bank_bevriezing',
+        naam: 'Bankbevriezing door Politieke Onrust',
+        icoon: '🔒',
+        type: 'gevaar',
+        kans: 0.02,
+        beschrijving: 'Politieke onrust heeft alle banktransacties tijdelijk geblokkeerd. Storten en opnemen is de komende beurt niet mogelijk.',
+        heeftKeuze: false,
+    },
+
+    // GELD / GELUK
+    { id: 'erfenis', naam: 'Verre Erfenis', icoon: '📜', type: 'kans', kans: 0.04, beschrijving: 'Een galactische notaris bereikt je via de noodfrequentie. Een ver familielid heeft je credits nagelaten.', heeftKeuze: false },
+    { id: 'loterij', naam: 'Galactische Loterij', icoon: '🎟️', type: 'kans', kans: 0.03, beschrijving: 'Het loterijticket dat je maanden geleden kocht, blijkt een prijs te hebben opgeleverd!', heeftKeuze: false },
+    { id: 'keizerlijke_donatie', naam: 'Galactische Smeekbede', icoon: '👑', type: 'gevaar', kans: 0.04, beschrijving: 'De Galactische Kanselier vraagt — in niet mis te verstane bewoordingen — om een "vrijwillige bijdrage" aan het Galactisch Welvaartsfonds. Weigeren heeft gevolgen.', heeftKeuze: true, keuzes: [{ id: 'doneer', tekst: 'Doneer 700 credits', stijl: 'gevaar' }, { id: 'weiger', tekst: 'Weiger vriendelijk', stijl: 'knop' }] },
+    { id: 'speculant_bod', naam: 'Ruimtespeculant', icoon: '🤑', type: 'kans', kans: 0.05, beschrijving: 'Een zwevende koopman onderschept je signaal. Hij biedt 115% van de marktwaarde voor al je lading — contant, geen vragen gesteld.', heeftKeuze: true, keuzes: [{ id: 'verkoop', tekst: 'Verkoop alles (115% waarde)', stijl: 'succes' }, { id: 'weiger', tekst: 'Bedankt, maar nee', stijl: 'knop' }] },
+    { id: 'belastingboete', naam: 'Galactische Naheffing', icoon: '🧾', type: 'gevaar', kans: 0.05, beschrijving: 'De Galactische Belastingdienst ontdekte een administratieve fout — in hun voordeel. Je ontvangt een naheffingsaanslag van 3% van je credits.', heeftKeuze: false },
+
+    // CARGO
+    { id: 'geheime_lading', naam: 'Mysterieus Pakket', icoon: '📦', type: 'kans', kans: 0.04, beschrijving: 'Een naamloze drone koppelt aan je luik en laat een verzegeld krat achter. Geen afzender.', heeftKeuze: true, keuzes: [{ id: 'open', tekst: 'Open het krat', stijl: 'succes' }, { id: 'dump', tekst: 'Dump het de ruimte in', stijl: 'knop' }] },
+    { id: 'slechte_kwaliteit', naam: 'Bedorven Lading', icoon: '🤢', type: 'gevaar', kans: 0.05, beschrijving: 'Een bemanningslid ontdekt dat een deel van je organische lading al beschimmeld is bij de bron. Je hebt geen keuze — het overboord ermee.', heeftKeuze: false },
+    { id: 'cargo_volledig_verloren', naam: 'Lading Volledig Vernietigd', icoon: '💥', type: 'gevaar', kans: 0.03, beschrijving: 'Door een kortsluiting in de drukregeling overkookt je vrachtruim. Alles wat erin zat is onbruikbaar geworden.', heeftKeuze: false },
+    { id: 'smokkelaar_ruil', naam: 'Ruilaanbod van een Smokkelaar', icoon: '🤫', type: 'kans', kans: 0.04, beschrijving: 'Een bekende tussenpersoon biedt een ruilhandel aan: al je lading inleveren voor een kleinere partij hoogwaardige Luxuriet én 500 credits toe.', heeftKeuze: true, keuzes: [{ id: 'ruil', tekst: 'Accepteer de ruil', stijl: 'succes' }, { id: 'weiger', tekst: 'Weiger', stijl: 'knop' }] },
+    { id: 'brandstoflek', naam: 'Brandstoflek', icoon: '⛽', type: 'gevaar', kans: 0.05, beschrijving: 'Je ingenieur ontdekt een lek in de hoofdtank. Ze stoppen het snel, maar niet snel genoeg — de helft van je brandstof is al verdwenen.', heeftKeuze: false },
+
+    // SCHIP / HP
+    { id: 'kosmische_wolk', naam: 'Corrosieve Gaswolk', icoon: '☁️', type: 'gevaar', kans: 0.05, beschrijving: 'Je schip vliegt door een ongekaarteerde wolk van bijtende deeltjes. De buitenbeplating is aangetast — je schip lijdt scheepschade.', heeftKeuze: false },
+    { id: 'ruimtewal', naam: 'Botsing met Ruimtepuin', icoon: '🪨', type: 'gevaar', kans: 0.05, beschrijving: 'Een ongeregistreerde puinwolk op je route. Je ontwijk het grootste deel, maar een flinke klomp treft de romp.', heeftKeuze: true, keuzes: [{ id: 'repareer', tekst: 'Repareer onderweg (500 credits)', stijl: 'gevaar' }, { id: 'doorvaren', tekst: 'Doorvaren met schade', stijl: 'knop' }] },
+    { id: 'onderdeel_gevonden', naam: 'Drijvend Scheepsonderdeel', icoon: '🔧', type: 'kans', kans: 0.04, beschrijving: 'Je scanners pikken een bruikbaar onderdeel op uit een verlaten wrak. Na installatie herstelt je schip een deel van zijn capaciteit.', heeftKeuze: true, keuzes: [{ id: 'meenemen', tekst: 'Installeer het (+15 HP)', stijl: 'succes' }, { id: 'negeer', tekst: 'Vlieg door', stijl: 'knop' }] },
+
+    // PASSAGIERS
+    { id: 'vip_passagier', naam: 'VIP aan Boord', icoon: '🎩', type: 'kans', kans: 0.05, beschrijving: 'Een galactische zakenman drijft op een noodpod en wil dringend naar je bestemming. Hij betaalt het drievoudige tarief.', heeftKeuze: true, keuzes: [{ id: 'meenemen', tekst: 'Neem hem mee (3× ticket)', stijl: 'succes' }, { id: 'weiger', tekst: 'Geen ruimte', stijl: 'knop' }] },
+    { id: 'noodoproep_passagier', naam: 'Noodevacuatie', icoon: '🚨', type: 'neutraal', kans: 0.04, beschrijving: 'Een drijvende reddingscapsule met evacuees onderschept je route. Ze smeken om vervoer naar jouw bestemming. Geen betaling, wel een goed gevoel.', heeftKeuze: true, keuzes: [{ id: 'meenemen', tekst: 'Neem ze mee (gratis)', stijl: 'succes' }, { id: 'weiger', tekst: 'Vlieg door', stijl: 'knop' }] },
+    { id: 'passagier_wangedrag', naam: 'Wangedrag aan Boord', icoon: '😠', type: 'gevaar', kans: 0.04, beschrijving: 'Een dronken passagier heeft de lounge kort en klein geslagen. Reparatiekosten zijn voor jouw rekening — en je crew is er niet blij mee.', heeftKeuze: false },
+
+    // CREW
+    { id: 'vakbond_kwijtschelding', naam: 'Vakbondsakkoord', icoon: '🤝', type: 'kans', kans: 0.03, beschrijving: 'De Galactische Bemanningsvakbond heeft intern ruzie. Als gebaar van goede wil worden je achterstallige bemanningskosten kwijtgescholden.', heeftKeuze: false },
+    { id: 'crew_bonus_event', naam: 'Vrijwillige Crewbonus', icoon: '✨', type: 'kans', kans: 0.04, beschrijving: 'Je crew heeft de afgelopen reis uitzonderlijk hard gewerkt. Je kunt hen nu een vrijwillige bonus uitkeren.', heeftKeuze: true, keuzes: [{ id: 'geef_bonus', tekst: 'Geef bonus (crew × 150 cr)', stijl: 'succes' }, { id: 'niet', tekst: 'Geen bonus dit keer', stijl: 'knop' }] },
+    { id: 'vakbond_eis', naam: 'Vakbondseis Onderweg', icoon: '✊', type: 'gevaar', kans: 0.04, beschrijving: 'Halverwege je reis houdt een vakbondsvertegenwoordiger een toespraak in de kantine. De bemanning eist een directe eenmalige uitkering.', heeftKeuze: true, keuzes: [{ id: 'betaal', tekst: 'Betaal eenmalige uitkering (500 cr)', stijl: 'gevaar' }, { id: 'weiger', tekst: 'Weiger — werk gewoon door', stijl: 'knop' }] },
+
+    // BANK / LENING
+    { id: 'kredietlimiet_verhoging', naam: 'Verhoogde Kredietlimiet', icoon: '💳', type: 'kans', kans: 0.04, beschrijving: 'De Galactische Bank heeft je kredietgeschiedenis bekeken en besluit je maximale leenbedrag met 2.000 credits te verhogen.', heeftKeuze: false },
+    { id: 'schuldeiser', naam: 'Incassobot Onderschept Je', icoon: '🤖', type: 'gevaar', kans: 0.04, beschrijving: 'De Galactische Bank stuurt een incassobot die je onderschept. Ze eisen directe deelbetaling van je schuld, of ze leggen een boeteclausule op.', heeftKeuze: true, keuzes: [{ id: 'betaal', tekst: 'Betaal 25% schuld af', stijl: 'gevaar' }, { id: 'weiger', tekst: 'Weiger (renteboete)', stijl: 'knop' }] },
+    { id: 'beurs_insider', naam: 'Beursinformant', icoon: '📊', type: 'kans', kans: 0.04, beschrijving: 'Een anonieme bron fluistert je de naam in van een aandeel dat de komende beurten sterk zal stijgen. Welk aandeel dit is, wordt duidelijk in je logboek.', heeftKeuze: false },
+    { id: 'aandelencrash_event', naam: 'Beurscrash', icoon: '📉', type: 'neutraal', kans: 0.03, beschrijving: 'Galactisch nieuws bereikt je: de Beurs op Nexoria heeft een plotse correctie ondergaan. Alle aandelen staan 20% lager.', heeftKeuze: false },
+
+    // CONCURRENT
+    { id: 'concurrent_investering', naam: 'Concurrent in Financiële Problemen', icoon: '🏳️', type: 'kans', kans: 0.04, beschrijving: 'Geruchten bereiken je: Makelaar Voss heeft een reeks slechte deals gemaakt. Zijn vermogen is flink gekrompen.', heeftKeuze: false },
+    { id: 'concurrent_sabotage', naam: 'Sabotage door Concurrent', icoon: '🦹', type: 'gevaar', kans: 0.04, beschrijving: 'Iemand heeft je brandstoffilters gesaboteerd bij de laatste aanlegplaats. Je verbruikt de rest van de reis extra brandstof.', heeftKeuze: false },
+    { id: 'spionagedienst', naam: 'Ruimtespion Te Huur', icoon: '🕶️', type: 'kans', kans: 0.03, beschrijving: 'Een industriespion biedt zijn diensten aan. Als je hem betaalt, saboteert hij één concurrent — hun vermogen krimpt met 10%. Maar als hij gepakt wordt, rolt de boete naar jou.', heeftKeuze: true, keuzes: [{ id: 'inhuren', tekst: 'Inhuren (800 credits, riskant)', stijl: 'gevaar' }, { id: 'weiger', tekst: 'Weiger dit aanbod', stijl: 'knop' }] },
+
+    // MARKETING / VERZEKERING
+    { id: 'mond_tot_mond', naam: 'Mond-tot-Mondreclame', icoon: '📣', type: 'kans', kans: 0.04, beschrijving: 'Reizigers spreken lovend over jouw service op de interplanetaire forums. Zonder extra kosten wachten meer passagiers op je bestemming.', heeftKeuze: false },
+    { id: 'marketing_sabotage', naam: 'Marketingsabotage', icoon: '📢', type: 'gevaar', kans: 0.03, beschrijving: 'Een concurrent heeft je marketingcampagne onderschept en vervangen door misleidende berichten. Je campagne is tenietgedaan.', heeftKeuze: false },
+    { id: 'verzekering_aanbieding', naam: 'Verzekeringsaanbieding', icoon: '🛡️', type: 'kans', kans: 0.04, beschrijving: 'Een verzekeringsagent benadert je tussen twee sterren in. Hij biedt een gratis noodverzekering aan voor deze reis.', heeftKeuze: false },
+    { id: 'verzekering_fraude', naam: 'Valse Verzekeraar', icoon: '🎭', type: 'gevaar', kans: 0.03, beschrijving: 'De verzekeraar waarmee je dacht zaken te doen, blijkt een oplichter. Je premie is verdwenen — en je hebt géén dekking.', heeftKeuze: false },
 ];
 
 const AANDELEN = [
@@ -813,7 +945,7 @@ const ACHIEVEMENTS = [
         categorie: 'nettowaarde',
         beschrijving: 'Bereik een nettowaarde van 10.000 credits.',
         beloning: 1500,
-        check: s => s.berekenNettowaarde() >= 10000,
+        check: s => s.statistieken.gereisd >= 1 && s.berekenNettowaarde() >= 10000,
     },
     {
         id: 'groot_handelaar',
@@ -822,7 +954,7 @@ const ACHIEVEMENTS = [
         categorie: 'nettowaarde',
         beschrijving: 'Bereik een nettowaarde van 100.000 credits.',
         beloning: 7500,
-        check: s => s.berekenNettowaarde() >= 100000,
+        check: s => s.statistieken.gereisd >= 1 && s.berekenNettowaarde() >= 100000,
     },
     {
         id: 'millionair',
@@ -831,7 +963,7 @@ const ACHIEVEMENTS = [
         categorie: 'nettowaarde',
         beschrijving: 'Bereik een nettowaarde van 1.000.000 credits.',
         beloning: 50000,
-        check: s => s.berekenNettowaarde() >= 1000000,
+        check: s => s.statistieken.gereisd >= 1 && s.berekenNettowaarde() >= 1000000,
     },
     {
         id: 'wereldreiziger',
@@ -850,7 +982,7 @@ const ACHIEVEMENTS = [
         categorie: 'nettowaarde',
         beschrijving: 'Bereik een nettowaarde van 25 miljoen credits.',
         beloning: 100000,
-        check: s => s.berekenNettowaarde() >= 25000000,
+        check: s => s.statistieken.gereisd >= 1 && s.berekenNettowaarde() >= 25000000,
     },
     // Schip — Vrachtschip
     {
@@ -1042,18 +1174,18 @@ const ACHIEVEMENTS = [
         naam: 'Winstmaker',
         icoon: '💎',
         categorie: 'deals',
-        beschrijving: 'Maak 1.000 credits winst op één deal.',
+        beschrijving: 'Maak 5.000 credits winst op één deal.',
         beloning: 1500,
-        check: s => s._laatsteWinst >= 1000,
+        check: s => s._laatsteWinst >= 5000,
     },
     {
         id: 'superdeal',
         naam: 'Superdeal',
         icoon: '🏆',
         categorie: 'deals',
-        beschrijving: 'Maak 5.000 credits winst op één deal.',
+        beschrijving: 'Maak 25.000 credits winst op één deal.',
         beloning: 5000,
-        check: s => s._laatsteWinst >= 5000,
+        check: s => s._laatsteWinst >= 25000,
     },
     {
         id: 'reiziger',
@@ -1154,7 +1286,85 @@ const ACHIEVEMENTS = [
         beloning: 1000,
         check: s => (s.statistieken.mortexGladGestreken ?? 0) >= 1,
     },
+    {
+        id: 'bank_100k',
+        naam: 'Stevige Spaarpot',
+        icoon: '🏦',
+        categorie: 'financien',
+        beschrijving: 'Bereik een banksaldo van 100.000 credits.',
+        beloning: 5000,
+        check: s => (s.bankSaldo ?? 0) >= 100000,
+    },
+    {
+        id: 'bank_250k',
+        naam: 'Galactisch Vermogen',
+        icoon: '💰',
+        categorie: 'financien',
+        beschrijving: 'Bereik een banksaldo van 250.000 credits.',
+        beloning: 10000,
+        check: s => (s.bankSaldo ?? 0) >= 250000,
+    },
+    {
+        id: 'bank_500k',
+        naam: 'Ruimtebankier',
+        icoon: '💎',
+        categorie: 'financien',
+        beschrijving: 'Bereik een banksaldo van 500.000 credits.',
+        beloning: 25000,
+        check: s => (s.bankSaldo ?? 0) >= 500000,
+    },
 ];
+
+// =============================================================================
+// TUTORIAL SYSTEEM — progressief feature-unlocken
+// =============================================================================
+
+const TUTORIAL_STAPPEN = [
+    { beurt: 0,  feature: 'basis',           dialoog: { titel: 'Welkom, Kapitein!', tekst: 'Het jaar 3042. De melkweg bruist van handel en gevaar. Jij bent een beginnend ruimtehandelaar met één doel: zo rijk mogelijk worden in 150 beurten.\n\nKoop goederen goedkoop in op planeten waar ze geproduceerd worden, en verkoop ze met winst daar waar de vraag hoog is. Verken de 8 planeten, upgrade je schip en laat je fortuin groeien. Succes, Kapitein!' }},
+    { beurt: 2,  feature: 'brandstof',       dialoog: { titel: 'Brandstof', tekst: 'Zonder brandstof kom je nergens. Je schip verbruikt brandstof per reisbeurt — hoe verder de bestemming, hoe meer je verbruikt. Tank op tijd bij. Op Pyroflux is brandstof het goedkoopst van de hele sector.' }},
+    { beurt: 4,  feature: 'passagiers',      dialoog: { titel: 'Passagiers', tekst: 'Passagiers willen reizen! Op elke planeet wachten reizigers die een ticket willen kopen naar jouw volgende bestemming. Hoe meer passagierscapaciteit je schip heeft, hoe meer je kunt vervoeren. Passagiers betalen pas bij aankomst — dus kies je route slim.' }},
+    { beurt: 6,  feature: 'leningen',        dialoog: { titel: 'Galactische Bank', tekst: 'De Galactische Bank is beschikbaar op elke planeet. Je kunt nu een lening afsluiten als je extra kapitaal nodig hebt. Leen verstandig — rente loopt op zolang je schuld uitstaat.' }},
+    { beurt: 8,  feature: 'onderhoud',       dialoog: { titel: 'Onderhoud', tekst: 'Je schip loopt schade op bij gevaarlijke events. Bij lage HP vergroot de kans op mechanische defecten onderweg. Repareer je schip in de haven om problemen te voorkomen. Wacht niet te lang — een beschadigd schip is een risico.' }},
+    { beurt: 10, feature: 'verzekering',     dialoog: { titel: 'Reisverzekering', tekst: 'Een verzekering dekt schade en ladingverlies bij ongelukken en gevaarlijke events. Zonder verzekering draag je alle risico\'s zelf. De premie is afhankelijk van je scheepstype en lading — beoordeel zelf of het de moeite waard is.' }},
+    { beurt: 12, feature: 'bemanning',       dialoog: { titel: 'Bemanning', tekst: 'Je schip heeft een bemanning nodig om te functioneren. Je crew verwacht wekelijks salaris — mis je een betaling, dan daalt hun tevredenheid. Een ontevreden bemanning werkt langzamer en kan uiteindelijk in opstand komen. Houd ze tevreden.' }},
+    { beurt: 14, feature: 'bank',            dialoog: { titel: 'Spaarrekening', tekst: 'Je kunt nu overtollige credits op een spaarrekening zetten om rente te verdienen.' }},
+    { beurt: 16, feature: 'marketing',       dialoog: { titel: 'Marketing', tekst: 'Een marketingcampagne trekt extra passagiers aan op je volgende bestemming. Koop de campagne vóór vertrek — ze richt zich altijd op je geselecteerde reisdoel en vervalt zodra je landt. Slechts één campagne tegelijk mogelijk.' }},
+    { beurt: 18, feature: 'beurs',           dialoog: { titel: 'Aandelenbeurs', tekst: 'De Galactische Beurs is exclusief beschikbaar op Nexoria. Hier kun je aandelen kopen en verkopen in zes galactische bedrijven. Koersen fluctueren elke beurt. Op andere planeten kun je je portfolio raadplegen, maar niet handelen.' }},
+    { beurt: 20, feature: 'planeet_diensten',dialoog: { titel: 'Planeetdiensten', tekst: 'Elke planeet heeft unieke specialiteiten en diensten. Bezoek Techton voor scheepsupgrades, Luxoria voor het Casino Stellaris, Mortex voor de Zwarte Markt, en Pyroflux voor goedkope brandstof. Bij je eerste bezoek word je nader geïnformeerd.' }},
+    { beurt: 24, feature: 'missies',         dialoog: { titel: 'Missies', tekst: 'Galactische opdrachtgevers staan klaar met lucratieve opdrachten en beloningen.' }},
+];
+
+// Koppeling event-ID → minimale feature-fase voor het op kunnen treden
+// Events die niet in deze mapping staan vallen standaard onder 'planeet_diensten'
+const EVENT_UNLOCK_FASE = {
+    // Onderhoud (beurt 8)
+    stralingstorm: 'onderhoud', nevel: 'onderhoud', asteroiden: 'onderhoud',
+    defect: 'onderhoud', ruimtewrak: 'onderhoud', tip: 'onderhoud', cargo_lek: 'onderhoud',
+    // Douane / verdachte lading (beurt 10)
+    douane: 'verzekering', douaneboete: 'verzekering', smokkelbod: 'verzekering',
+    // Bemanning (beurt 12)
+    crew_opstand: 'bemanning', piraten: 'bemanning',
+    // Bank / spaarrekening (beurt 14)
+    bank_rente_omhoog: 'bank', bank_hoogconjunctuur: 'bank', bank_kredietexpansie: 'bank',
+    bank_recessie: 'bank', bank_nulrente: 'bank', bank_crisis: 'bank',
+    bank_belasting: 'bank', bank_bonus: 'bank', bank_bevriezing: 'bank',
+    // Marketing (beurt 16)
+    lifter: 'marketing', brandstof_vraag: 'marketing',
+};
+
+// Planeet-specifieke intro-dialogen (getoond bij eerste bezoek na unlock planeet_diensten)
+const PLANEET_DIENSTEN_INTRO_DIALOGEN = {
+    luxoria:  { titel: 'Casino Stellaris',  tekst: 'Het Casino Stellaris verwelkomt je. Trek een kaart en meet je kracht met de dealer — de hoogste kaart wint het dubbele terug. Bij gelijkspel krijg je je inzet terug. Maximaal 5 rondes per bezoek. Gok verstandig.' },
+    mortex:   { titel: 'Zwarte Markt',      tekst: 'De Zwarte Markt van Mortex biedt alle goederen voor 35% onder de normale prijs. Verdachte lading trekt echter de aandacht van de douane — 25% kans op confiscatie bij elke aankomst elders. Koop een Afgeschermd Vrachtruim om dat risico te verlagen naar 5%.' },
+    pyroflux: { titel: 'Energieboorpost',   tekst: 'De vulkanische energiereserves van Pyroflux maken dit de goedkoopste tankplek in de sector. Vul je tank hier zo vol mogelijk. Elke tankbeurt telt mee voor het Energieboer-achievement.' },
+    techton:  { titel: 'Scheepswerf',       tekst: 'De geavanceerde scheepswerf op Techton kan je schip upgraden naar het volgende Mark. Je huidige schip wordt ingenomen voor 60% van de aankoopprijs. Upgraden gaat stap voor stap — je kunt geen Marks overslaan. Je scheepstype blijft permanent.' },
+};
+
+// Achievement-categorie → minimale feature-fase
+const ACHIEVEMENT_CATEGORIE_FEATURE = {
+    deals: 'basis', nettowaarde: 'basis', events: 'basis', schip: 'basis',
+    beurs: 'beurs', financien: 'leningen',
+};
 
 // =============================================================================
 // PLANEET AANKOMST EVENTS — spelen af bij landing op een planeet
@@ -1253,4 +1463,8 @@ const PLANEET_EVENTS = [
         beschrijving: 'Mijnwerkers staken voor betere arbeidsomstandigheden. Ferroiet en Kristalliet zijn tijdelijk niet te krijgen voor normale prijs.',
         effect: { type: 'prijsVerhoging', goederen: ['ferroiet', 'kristalliet'], factor: 1.9 },
     },
+    { id: 'havenbelasting', naam: 'Havenheffing', icoon: '🚢', kans: 0.05, type: 'gevaar', beschrijving: 'De havenautoriteiten hebben een tijdelijke heffing ingevoerd op alle inkomende schepen. Je betaalt 350 credits bij aankomst.', effect: { type: 'kredietVerlies', bedrag: 350 } },
+    { id: 'bevolkingsfeest', naam: 'Koloniedag', icoon: '🎆', kans: 0.06, beschrijving: 'De planeet viert haar stichtingsjubileum! De bevolking is in feeststemming. Alle prijzen zijn 20% hoger.', effect: { type: 'opwaarderingAlles', factor: 1.20 } },
+    { id: 'medische_nood', naam: 'Medische Noodsituatie', icoon: '🏥', kans: 0.04, type: 'gevaar', beschrijving: 'De havenautoriteiten vorderen dringend Bioplasma wegens een epidemie. Ze betalen de basismarktwaarde.', effect: { type: 'ladingVordering', goed: 'bioplasma', ton: 10, prijs: 175 }, conditie: (state) => (state.lading?.bioplasma || 0) > 0 },
+    { id: 'piraten_haven', naam: 'Piratentol bij de Haven', icoon: '☠️', kans: 0.04, type: 'gevaar', beschrijving: 'Piraten controleren de aanvliegroute en eisen tol van elk binnenkomend schip. 500 credits om door te mogen.', effect: { type: 'haventol', bedrag: 500 } },
 ];
