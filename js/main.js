@@ -252,7 +252,7 @@ const App = {
         const res = state.verwerkevent(eventId, keuzeId);
         if (res.kredietDelta > 0) Audio.verkoop();
         else if (res.kredietDelta < 0) Audio.negatief();
-        if (res.bericht) UI.toonEventResultaat(res.bericht, res.verzekeringsInfo ?? null, res.marketingGemist ?? null);
+        UI.toonEventResultaat(res.gevolg ?? null, res.verzekeringsInfo ?? null, res.marketingGemist ?? null);
 
         const knoppen = document.getElementById('event-knoppen');
         knoppen.innerHTML = '';

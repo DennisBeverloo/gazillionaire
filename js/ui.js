@@ -2044,7 +2044,8 @@ const UI = {
         document.getElementById('event-icoon').textContent = event.icoon;
         document.getElementById('event-titel').textContent = event.naam;
         document.getElementById('event-beschrijving').textContent = event.beschrijving;
-        document.getElementById('event-gevolg').textContent = '';
+        const gevOpEl = document.getElementById('event-gevolg');
+        gevOpEl.textContent = ''; gevOpEl.style.display = '';
         this._toonEventMarketingMelding(null);
         this._toonEventVerzekering(null);
 
@@ -2118,7 +2119,9 @@ const UI = {
         } else {
             // Automatische afhandeling — verwerk direct en toon resultaat
             const res = state.verwerkevent(event.id, null);
-            if (res.bericht) document.getElementById('event-gevolg').textContent = res.bericht;
+            const gevolgEl = document.getElementById('event-gevolg');
+            if (res.gevolg) { gevolgEl.textContent = res.gevolg; gevolgEl.style.display = ''; }
+            else { gevolgEl.textContent = ''; gevolgEl.style.display = 'none'; }
             this._toonEventMarketingMelding(res.marketingGemist ?? null);
             this._toonEventVerzekering(res.verzekeringsInfo ?? null);
 
@@ -2172,7 +2175,8 @@ const UI = {
 
     verbergEventPopup() {
         document.getElementById('event-popup').classList.add('verborgen');
-        document.getElementById('event-gevolg').textContent = '';
+        const gevEl = document.getElementById('event-gevolg');
+        gevEl.textContent = ''; gevEl.style.display = '';
         this._toonEventMarketingMelding(null);
         this._toonEventVerzekering(null);
     },
@@ -2258,8 +2262,10 @@ const UI = {
         document.getElementById('instellingen-overlay')?.classList.add('verborgen');
     },
 
-    toonEventResultaat(bericht, verzekeringsInfo, marketingGemist) {
-        document.getElementById('event-gevolg').textContent = bericht;
+    toonEventResultaat(gevolg, verzekeringsInfo, marketingGemist) {
+        const gevolgEl = document.getElementById('event-gevolg');
+        if (gevolg) { gevolgEl.textContent = gevolg; gevolgEl.style.display = ''; }
+        else { gevolgEl.textContent = ''; gevolgEl.style.display = 'none'; }
         this._toonEventMarketingMelding(marketingGemist ?? null);
         this._toonEventVerzekering(verzekeringsInfo);
     },

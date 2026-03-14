@@ -421,6 +421,13 @@ Kans op een event per reisbeurt: ~52% normaal, ~70% op gevaarlijke planeten (Mor
 
 *Sommige events hebben keuzes met consequenties (bijv. piraten: betaal vs vlucht). Muiterij-event kan altijd optreden bij crew happiness < 25 (18% kans), ongeacht het normale event-systeem.*
 
+### Event-popup structuur
+
+De event-popup toont drie aparte secties:
+- **event-beschrijving** — narratieve tekst (wat er is voorgevallen)
+- **event-gevolg** — uitsluitend mechanische gevolgen: HP-verandering, krediet, brandstof, resources (verborgen als er geen gevolgen zijn)
+- **event-verzekering** — verzekeringsuitkering als die actief was (altijd apart weergegeven)
+
 ### Aankomstevents (bij landing)
 
 | Type | Events |

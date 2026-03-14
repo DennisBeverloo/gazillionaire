@@ -1286,7 +1286,7 @@ class GameState {
     // =========================================================================
 
     verwerkevent(eventId, keuzeId) {
-        const resultaat = { bericht: '', kredietDelta: 0, ladingDelta: {}, schade: false, extraBeurten: 0, tip: null };
+        const resultaat = { bericht: '', kredietDelta: 0, ladingDelta: {}, schade: false, extraBeurten: 0, tip: null, hpDelta: 0, brandstofDelta: 0, brutoDelta: undefined, gevolg: undefined };
 
         switch (eventId) {
             case 'piraten': {
@@ -1342,6 +1342,7 @@ class GameState {
                 const extraBrandstof = Math.round(12 + Math.random() * 18);
                 const stormWerkelijk = Math.min(extraBrandstof, this.brandstof);
                 this.brandstof = Math.max(0, this.brandstof - extraBrandstof);
+                resultaat.brandstofDelta = -stormWerkelijk;
                 resultaat.bericht = `De storm dwingt je een grote omweg te nemen. ⛽ Extra brandstofverbruik: −${stormWerkelijk} l. Resterend: ${this.brandstof} l.`;
                 resultaat.verzekeringsInfo = this._verzekeringsUitkering(this._brandstofCreditWaarde(stormWerkelijk));
                 break;
@@ -1374,12 +1375,14 @@ class GameState {
                     this.speler.krediet -= kosten;
                     resultaat.kredietDelta = -kosten;
                     this.schipHP = Math.min(this.schip?.maxHP ?? 40, this.schipHP + herstel);
+                    resultaat.hpDelta = herstel;
                     resultaat.bericht = `Noodreparatie voltooid voor ${this.formatteerKrediet(kosten)}. +${herstel} HP hersteld.`;
                     resultaat.verzekeringsInfo = this._verzekeringsUitkering(kosten);
                     if (resultaat.verzekeringsInfo?.gedekt) resultaat.kredietDelta = 0;
                 } else {
                     const schade = Math.floor(Math.random() * 8) + 12; // 12-20 HP
                     this.schipHP = Math.max(1, this.schipHP - schade);
+                    resultaat.hpDelta = -schade;
                     resultaat.schade = true;
                     resultaat.bericht = `Je reist door met het defect. Schip loopt ${schade} HP schade op (nu ${this.schipHP} HP). Repareer zo snel mogelijk!`;
                 }
@@ -1425,6 +1428,7 @@ class GameState {
                 const extraNevel = Math.round(6 + Math.random() * 12);
                 const nevelWerkelijk = Math.min(extraNevel, this.brandstof);
                 this.brandstof = Math.max(0, this.brandstof - extraNevel);
+                resultaat.brandstofDelta = -nevelWerkelijk;
                 resultaat.bericht = `De ionennevel dwingt je van koers. ⛽ Extra brandstofverbruik: −${nevelWerkelijk} l. Resterend: ${this.brandstof} l.`;
                 resultaat.verzekeringsInfo = this._verzekeringsUitkering(this._brandstofCreditWaarde(nevelWerkelijk));
                 break;
@@ -1450,6 +1454,7 @@ class GameState {
                 const hpSchade = Math.floor(Math.random() * 12) + 15; // 15-26 HP
                 const kredietSchade = Math.max(50, Math.round(this.speler.krediet * 0.04 + Math.random() * 150));
                 this.schipHP = Math.max(1, this.schipHP - hpSchade);
+                resultaat.hpDelta = -hpSchade;
                 resultaat.schade = true;
                 this.speler.krediet -= kredietSchade;
                 resultaat.kredietDelta = -kredietSchade;
@@ -1487,6 +1492,7 @@ class GameState {
                     const geef = 20;
                     if (this.brandstof >= geef) {
                         this.brandstof -= geef;
+                        resultaat.brandstofDelta = -geef;
                         // Kleine beloning: goodwill krediet
                         const beloning = Math.round(50 + Math.random() * 80);
                         this.speler.krediet += beloning;
@@ -1825,6 +1831,7 @@ class GameState {
                         delete this.aankoopPrijzen[goedId];
                         delete this.aankoopAantallen[goedId];
                     });
+                    resultaat.gevolg = 'Alle lading vernietigd';
                     resultaat.bericht = `Kortsluiting in vrachtruim! Alles vernietigd. Totaal verlies: ~${this.formatteerKrediet(ladingWaarde)}.`;
                     resultaat.verzekeringsInfo = this._verzekeringsUitkering(ladingWaarde);
                 } else {
@@ -1865,6 +1872,7 @@ class GameState {
                 if (this.brandstof > 20) {
                     const verlies = Math.floor(this.brandstof / 2);
                     this.brandstof = Math.ceil(this.brandstof / 2);
+                    resultaat.brandstofDelta = -verlies;
                     resultaat.bericht = `Brandstoflek! De helft van je brandstof is verdampt in de ruimte. ⛽ Resterend: ${this.brandstof} l.`;
                     resultaat.verzekeringsInfo = this._verzekeringsUitkering(this._brandstofCreditWaarde(verlies));
                 } else {
@@ -1876,6 +1884,7 @@ class GameState {
             case 'kosmische_wolk': {
                 const schade = 12;
                 this.schipHP = Math.max(1, this.schipHP - schade);
+                resultaat.hpDelta = -schade;
                 resultaat.schade = true;
                 resultaat.bericht = `Corrosieve gaswolk! Buitenbeplating aangetast. −${schade} HP. Schip: ${this.schipHP} HP.`;
                 const reparatieKosten = schade * 12; // standaard tarief per HP (niet-Techton)
@@ -1891,12 +1900,14 @@ class GameState {
                     this.speler.krediet -= werkelijkWal;
                     resultaat.kredietDelta = -werkelijkWal;
                     this.schipHP = Math.min(this.schip?.maxHP ?? 40, this.schipHP + herstel);
+                    resultaat.hpDelta = herstel;
                     resultaat.bericht = `Ruimtepuin! Noodreparatie voor ${this.formatteerKrediet(werkelijkWal)}. +${herstel} HP hersteld.`;
                     resultaat.verzekeringsInfo = this._verzekeringsUitkering(werkelijkWal);
                     if (resultaat.verzekeringsInfo?.gedekt) resultaat.kredietDelta = 0;
                 } else {
                     const schade = 18;
                     this.schipHP = Math.max(1, this.schipHP - schade);
+                    resultaat.hpDelta = -schade;
                     resultaat.schade = true;
                     resultaat.bericht = `Ruimtepuin treft de romp! −${schade} HP. Schip: ${this.schipHP} HP. Zorg voor reparaties!`;
                 }
@@ -1907,6 +1918,7 @@ class GameState {
                 if (keuzeId === 'meenemen') {
                     const herstel = Math.min(15, (this.schip?.maxHP ?? 40) - this.schipHP);
                     this.schipHP = Math.min(this.schip?.maxHP ?? 40, this.schipHP + herstel);
+                    resultaat.hpDelta = herstel;
                     resultaat.bericht = `Bruikbaar onderdeel gevonden en geïnstalleerd. +${herstel} HP hersteld. Schip: ${this.schipHP} HP.`;
                 } else {
                     resultaat.bericht = 'Je vliegt door. Het onderdeel verdwijnt in de sterrennevels.';
@@ -2085,6 +2097,7 @@ class GameState {
                 const extra = Math.floor(this.brandstof * 0.20);
                 const saboWerkelijk = Math.min(extra, this.brandstof);
                 this.brandstof = Math.max(0, this.brandstof - extra);
+                resultaat.brandstofDelta = -saboWerkelijk;
                 resultaat.bericht = `Brandstoffilters gesaboteerd door een concurrent! ⛽ −${saboWerkelijk} l extra verlies. Resterend: ${this.brandstof} l.`;
                 resultaat.verzekeringsInfo = this._verzekeringsUitkering(this._brandstofCreditWaarde(saboWerkelijk));
                 break;
@@ -2173,6 +2186,25 @@ class GameState {
             const wasNegatief = resultaat.kredietDelta < 0 || resultaat.schade || vi?.gedekt === false;
             const type = wasNegatief ? 'waarschuwing' : (resultaat.kredietDelta > 0 ? 'succes' : 'info');
             this.voegBerichtToe(logTekst, type);
+        }
+
+        // Auto-genereer gevolg-samenvatting uit delta-velden (tenzij al expliciet gezet)
+        if (!resultaat.gevolg) {
+            const delen = [];
+            if (resultaat.hpDelta < 0) delen.push(`${resultaat.hpDelta} HP`);
+            else if (resultaat.hpDelta > 0) delen.push(`+${resultaat.hpDelta} HP`);
+            if (resultaat.brandstofDelta < 0) delen.push(`⛽ ${resultaat.brandstofDelta} l`);
+            else if (resultaat.brandstofDelta > 0) delen.push(`⛽ +${resultaat.brandstofDelta} l`);
+            for (const [goedId, delta] of Object.entries(resultaat.ladingDelta)) {
+                if (!delta) continue;
+                const goed = GOEDEREN.find(g => g.id === goedId);
+                const naam = goed ? `${goed.icoon} ${goed.naam}` : goedId;
+                delen.push(delta < 0 ? `${delta}× ${naam}` : `+${delta}× ${naam}`);
+            }
+            const cd = resultaat.kredietDelta;
+            if (cd < 0) delen.push(`${this.formatteerKrediet(cd)} credits`);
+            else if (cd > 0) delen.push(`+${this.formatteerKrediet(cd)} credits`);
+            if (delen.length > 0) resultaat.gevolg = delen.join(' · ');
         }
 
         this.controleerSpelEinde();
