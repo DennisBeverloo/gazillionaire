@@ -504,7 +504,9 @@ const App = {
 
     casinoCrewUitje() {
         const res = state.casinoCrewUitje();
-        if (!res.succes) this._fout(res.reden); else UI.renderSpel();
+        if (!res.succes) { this._fout(res.reden); return; }
+        UI.renderSpel();
+        if (res.toast) UI.toonToast(res.toast);
     },
 
     koopSchip(schipId) {

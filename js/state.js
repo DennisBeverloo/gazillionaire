@@ -2619,10 +2619,72 @@ class GameState {
         const sindsLaatst = this.beurt - (this.crew.casinoBeurt ?? -99);
         if (sindsLaatst < cooldown)
             return { succes: false, reden: `Crew heeft nog ${cooldown - sindsLaatst} beurten rust nodig voor het volgende uitje.` };
-        this.crew.happiness = Math.min(100, this.crew.happiness + 25);
+
         this.crew.casinoBeurt = this.beurt;
-        this.voegBerichtToe(`🎉 Crew geniet van een avondje in Casino Stellaris op Luxoria! +25 happiness.`, 'succes');
-        return { succes: true };
+
+        const r = Math.random();
+        let toast = null;
+
+        if (r < 0.10) {
+            // Jackpot — crewlid wint en deelt uit (10%)
+            const winst = Math.round(800 + Math.random() * 400);
+            this.crew.happiness = Math.min(100, this.crew.happiness + 30);
+            this.speler.krediet += winst;
+            this.voegBerichtToe(`🎰 Jackpot! Een crewlid wint groot en deelt royaal uit aan z'n collega's en jou. +30 happiness, +${this.formatteerKrediet(winst)}.`, 'succes');
+            toast = { icoon: '🎰', titel: 'Jackpot!', beschrijving: `Een crewlid slaat de jackpot en trakteert iedereen. +30 happiness.`, winst, kleur: 'goud' };
+
+        } else if (r < 0.18) {
+            // Valsspelen — gepakt, boete (8%)
+            const boete = 1500;
+            const werkelijk = Math.min(boete, this.speler.krediet);
+            this.crew.happiness = Math.max(0, this.crew.happiness - 10);
+            this.speler.krediet -= werkelijk;
+            this.voegBerichtToe(`🃏 Crewlid betrapt met valsspelen! Het casino escorteert hem naar buiten en stuurt jou de rekening. Boete: ${this.formatteerKrediet(werkelijk)}. −10 happiness.`, 'gevaar');
+            toast = { icoon: '🃏', titel: 'Valsspelen!', beschrijving: `Betrapt met gemarkeerde kaarten. −10 happiness.`, winst: -werkelijk, kleur: 'gevaar' };
+
+        } else if (r < 0.30) {
+            // Vechtpartij na drank (12%)
+            const boete = 1200;
+            const werkelijk = Math.min(boete, this.speler.krediet);
+            this.crew.happiness = Math.max(0, this.crew.happiness - 15);
+            this.speler.krediet -= werkelijk;
+            this.voegBerichtToe(`🥊 Drie whisky's te veel en een verkeerd woord later ligt het meubilair in puin. Schaderekening voor jou: ${this.formatteerKrediet(werkelijk)}. −15 happiness.`, 'gevaar');
+            toast = { icoon: '🥊', titel: 'Vechtpartij!', beschrijving: `Drank + een verkeerd woord = meubilair in puin. −15 happiness.`, winst: -werkelijk, kleur: 'gevaar' };
+
+        } else if (r < 0.35) {
+            // Bevriend met lokale handelaar (5%)
+            const bonus = 150;
+            this.crew.happiness = Math.min(100, this.crew.happiness + 10);
+            this.speler.krediet += bonus;
+            this.voegBerichtToe(`🤝 Een crewlid raakt aan de praat met een lokale handelaar en komt terug met een nuttige tip én wat credits. +10 happiness, +${this.formatteerKrediet(bonus)}.`, 'succes');
+            toast = { icoon: '🤝', titel: 'Nieuwe connectie', beschrijving: `Crewlid sluit vriendschap met lokale handelaar. +10 happiness.`, winst: bonus, kleur: 'goud' };
+
+        } else if (r < 0.42) {
+            // Crewlid vergokt eigen salaris (7%)
+            const schuld = this.crew.grootte * this.crew.salaris * CREW_BETAAL_INTERVAL;
+            const werkelijk = Math.min(schuld, this.speler.krediet);
+            this.crew.happiness = Math.max(0, this.crew.happiness - 20);
+            this.speler.krediet -= werkelijk;
+            this.voegBerichtToe(`🎲 Crewlid vergokt z'n volledige maandloon en kijkt jou verwachtingsvol aan. Voor de teamsfeer dek je de schuld: ${this.formatteerKrediet(werkelijk)}. −20 happiness.`, 'gevaar');
+            toast = { icoon: '🎲', titel: 'Alles vergokt!', beschrijving: `Crewlid vergokt z'n maandloon — jij draait op voor de schuld. −20 happiness.`, winst: -werkelijk, kleur: 'gevaar' };
+
+        } else if (r < 0.47) {
+            // Gesignaleerd door Galactische Autoriteit (5%)
+            const boete = 600;
+            const werkelijk = Math.min(boete, this.speler.krediet);
+            this.crew.happiness = Math.max(0, this.crew.happiness - 5);
+            this.speler.krediet -= werkelijk;
+            this.voegBerichtToe(`🚨 Gezichtsherkenning in de casinolobby! Een crewlid heeft een oud openstaand dossier bij de Galactische Autoriteit. Als kapitein ben jij verantwoordelijk: ${this.formatteerKrediet(werkelijk)}. −5 happiness.`, 'gevaar');
+            toast = { icoon: '🚨', titel: 'Oud vergrijp', beschrijving: `Crewlid gesignaleerd door de Galactische Autoriteit. −5 happiness.`, winst: -werkelijk, kleur: 'gevaar' };
+
+        } else {
+            // Gewone gezellige avond (53%)
+            this.crew.happiness = Math.min(100, this.crew.happiness + 25);
+            this.voegBerichtToe(`🎉 Crew geniet van een avondje in Casino Stellaris op Luxoria! +25 happiness.`, 'succes');
+            toast = { icoon: '🎉', titel: 'Geweldige avond!', beschrijving: `Crew keert blij terug met lege portemonnees. +25 happiness.`, kleur: 'succes' };
+        }
+
+        return { succes: true, toast };
     }
 
     // =========================================================================
