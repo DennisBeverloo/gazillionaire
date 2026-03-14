@@ -143,8 +143,10 @@ const App = {
         }
         state.init(state.speler.naam, schipId);
         if (typeof DB !== 'undefined') DB.initSessie();
+        state.checkTutorialUnlocks(); // Trigger beurt 0 dialogen (welkomstbericht)
         UI.toonScherm('spel-scherm');
         UI.renderSpel();
+        this._verwerkTutorialDialogen(() => {});
     },
 
     // =========================================================================

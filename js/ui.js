@@ -203,14 +203,14 @@ const UI = {
                 <div class="bestemming-meta-rij" style="margin-top:8px">
                     <span>Afstand</span><span>${afstand} lj</span>
                 </div>
-                <div class="brandstof-vereist ${heeftGenoeg ? '' : 'brandstof-tekort'}" style="margin-top:6px">
+                ${state.isUnlocked('brandstof') ? `<div class="brandstof-vereist ${heeftGenoeg ? '' : 'brandstof-tekort'}" style="margin-top:6px">
                     <span class="bestemming-sub-label">Brandstofkosten</span>
                     <div>${FUEL_IMG} ${brandstofNodig} l
                     ${heeftGenoeg
                         ? `<span class="kleur-groen">✓</span>`
                         : dest ? `<span class="kleur-rood">✗ tekort: ${brandstofNodig - state.brandstof} l</span>` : ''}
                     </div>
-                </div>
+                </div>` : ''}
             </div>
             <button class="knop ${dest && heeftGenoeg ? 'primair' : dest ? 'gevaar' : 'dimmed'}"
                     style="width:100%;padding:10px 0;margin-top:8px"
@@ -236,7 +236,11 @@ const UI = {
         const hpPct = maxHP > 0 ? hp / maxHP : 1;
         const hpKleur = hpPct >= 0.8 ? 'var(--groen)' : hpPct >= 0.5 ? 'var(--oranje)' : 'var(--rood)';
         const schipEl = el('schip-naam-display');
-        schipEl.innerHTML = `🚀 ${state.schip?.naam ?? '---'} <span style="color:${hpKleur};font-size:0.9em">❤ ${hp}/${maxHP}</span>`;
+        if (state.isUnlocked('onderhoud')) {
+            schipEl.innerHTML = `🚀 ${state.schip?.naam ?? '---'} <span style="color:${hpKleur};font-size:0.9em">❤ ${hp}/${maxHP}</span>`;
+        } else {
+            schipEl.innerHTML = `🚀 ${state.schip?.naam ?? '---'}`;
+        }
 
         const geladen = state.getLadingGewicht?.() ?? 0;
         const maxLading = state.schip?.laadruimte ?? 0;
@@ -249,7 +253,7 @@ const UI = {
         const maxPax = state.schip?.passagiersCapaciteit ?? 0;
         const paxDisplay = el('passagiers-display');
         const paxSep = el('passagiers-sep');
-        if (maxPax > 0) {
+        if (maxPax > 0 && state.isUnlocked('passagiers')) {
             paxDisplay.textContent = `🧳 ${pax}/${maxPax}`;
             paxDisplay.style.display = '';
             paxDisplay.style.cursor = 'pointer';
@@ -264,9 +268,18 @@ const UI = {
         const brandstof = state.brandstof ?? 0;
         const maxBrandstof = state.schip?.brandstofTank ?? 0;
         const brandstofEl = el('brandstof-display');
-        brandstofEl.innerHTML = `${FUEL_IMG} ${brandstof}/${maxBrandstof} l`;
-        brandstofEl.style.cursor = 'pointer';
-        brandstofEl.onclick = () => App.switchTab('haven');
+        const brandstofSep = el('brandstof-sep');
+        if (state.isUnlocked('brandstof')) {
+            brandstofEl.innerHTML = `${FUEL_IMG} ${brandstof}/${maxBrandstof} l`;
+            brandstofEl.style.display = '';
+            brandstofEl.style.cursor = 'pointer';
+            brandstofEl.onclick = () => App.switchTab('haven');
+            if (brandstofSep) brandstofSep.style.display = '';
+        } else {
+            brandstofEl.style.display = 'none';
+            brandstofEl.onclick = null;
+            if (brandstofSep) brandstofSep.style.display = 'none';
+        }
 
         const kredietEl = el('krediet-display');
         kredietEl.textContent = `💰 ${state.formatteerKrediet(state.speler.krediet)}`;

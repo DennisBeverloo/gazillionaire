@@ -945,7 +945,7 @@ const ACHIEVEMENTS = [
         categorie: 'nettowaarde',
         beschrijving: 'Bereik een nettowaarde van 10.000 credits.',
         beloning: 1500,
-        check: s => s.berekenNettowaarde() >= 10000,
+        check: s => s.statistieken.gereisd >= 1 && s.berekenNettowaarde() >= 10000,
     },
     {
         id: 'groot_handelaar',
@@ -954,7 +954,7 @@ const ACHIEVEMENTS = [
         categorie: 'nettowaarde',
         beschrijving: 'Bereik een nettowaarde van 100.000 credits.',
         beloning: 7500,
-        check: s => s.berekenNettowaarde() >= 100000,
+        check: s => s.statistieken.gereisd >= 1 && s.berekenNettowaarde() >= 100000,
     },
     {
         id: 'millionair',
@@ -963,7 +963,7 @@ const ACHIEVEMENTS = [
         categorie: 'nettowaarde',
         beschrijving: 'Bereik een nettowaarde van 1.000.000 credits.',
         beloning: 50000,
-        check: s => s.berekenNettowaarde() >= 1000000,
+        check: s => s.statistieken.gereisd >= 1 && s.berekenNettowaarde() >= 1000000,
     },
     {
         id: 'wereldreiziger',
@@ -982,7 +982,7 @@ const ACHIEVEMENTS = [
         categorie: 'nettowaarde',
         beschrijving: 'Bereik een nettowaarde van 25 miljoen credits.',
         beloning: 100000,
-        check: s => s.berekenNettowaarde() >= 25000000,
+        check: s => s.statistieken.gereisd >= 1 && s.berekenNettowaarde() >= 25000000,
     },
     // Schip — Vrachtschip
     {
@@ -1174,18 +1174,18 @@ const ACHIEVEMENTS = [
         naam: 'Winstmaker',
         icoon: '💎',
         categorie: 'deals',
-        beschrijving: 'Maak 1.000 credits winst op één deal.',
+        beschrijving: 'Maak 5.000 credits winst op één deal.',
         beloning: 1500,
-        check: s => s._laatsteWinst >= 1000,
+        check: s => s._laatsteWinst >= 5000,
     },
     {
         id: 'superdeal',
         naam: 'Superdeal',
         icoon: '🏆',
         categorie: 'deals',
-        beschrijving: 'Maak 5.000 credits winst op één deal.',
+        beschrijving: 'Maak 25.000 credits winst op één deal.',
         beloning: 5000,
-        check: s => s._laatsteWinst >= 5000,
+        check: s => s._laatsteWinst >= 25000,
     },
     {
         id: 'reiziger',
@@ -1320,7 +1320,7 @@ const ACHIEVEMENTS = [
 // =============================================================================
 
 const TUTORIAL_STAPPEN = [
-    { beurt: 0,  feature: 'basis',           dialoog: null },
+    { beurt: 0,  feature: 'basis',           dialoog: { titel: 'Welkom, Kapitein!', tekst: 'Het jaar 3042. De melkweg bruist van handel en gevaar. Jij bent een beginnend ruimtehandelaar met één doel: zo rijk mogelijk worden in 150 beurten.\n\nKoop goederen goedkoop in op planeten waar ze geproduceerd worden, en verkoop ze met winst daar waar de vraag hoog is. Verken de 8 planeten, upgrade je schip en laat je fortuin groeien. Succes, Kapitein!' }},
     { beurt: 2,  feature: 'brandstof',       dialoog: { titel: 'Brandstof', tekst: 'Zonder brandstof kom je nergens. Je schip verbruikt brandstof per reisbeurt — hoe verder de bestemming, hoe meer je verbruikt. Tank op tijd bij. Op Pyroflux is brandstof het goedkoopst van de hele sector.' }},
     { beurt: 4,  feature: 'passagiers',      dialoog: { titel: 'Passagiers', tekst: 'Passagiers willen reizen! Op elke planeet wachten reizigers die een ticket willen kopen naar jouw volgende bestemming. Hoe meer passagierscapaciteit je schip heeft, hoe meer je kunt vervoeren. Passagiers betalen pas bij aankomst — dus kies je route slim.' }},
     { beurt: 6,  feature: 'leningen',        dialoog: { titel: 'Galactische Bank', tekst: 'De Galactische Bank is beschikbaar op elke planeet. Je kunt nu een lening afsluiten als je extra kapitaal nodig hebt. Leen verstandig — rente loopt op zolang je schuld uitstaat.' }},
