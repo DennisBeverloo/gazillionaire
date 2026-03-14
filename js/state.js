@@ -88,6 +88,13 @@ class GameState {
         // Agria veiling
         this.agriaVeiling = null;
 
+        // Tutorial systeem
+        this.tutorialActief = true;
+        this.unlockedFeatures = new Set(['basis']);
+        this.getoondeTutorialDialogen = new Set();
+        this.planeetDienstenIntro = new Set();
+        this._pendingTutorialDialogen = [];
+
         // Verzekering
         this.verzekering = null;            // null of { actief: true }
 
@@ -151,6 +158,15 @@ class GameState {
         this.nettoWaardeGeschiedenisSpeler = [this.berekenNettowaarde()];
         this.voegBerichtToe(`Welkom, ${this.speler.naam}! Je reis begint op Nexoria. Veel handelsgeluk!`, 'info');
         this.voegBerichtToe(`Je hebt een ${schipTemplate.naam} gekocht voor ${this.formatteerKrediet(schipTemplate.prijs)}`, 'goud');
+
+        // Tutorial: toepassen voorkeur uit localStorage (skip = alles direct unlocked)
+        const tutSkip = typeof localStorage !== 'undefined' && localStorage.getItem('gazillionaire_tutorial') === 'skip';
+        if (tutSkip) {
+            this.tutorialActief = false;
+            if (typeof TUTORIAL_STAPPEN !== 'undefined') {
+                TUTORIAL_STAPPEN.forEach(s => this.unlockedFeatures.add(s.feature));
+            }
+        }
     }
 
     _initPlanetVoorraden() {
@@ -197,6 +213,31 @@ class GameState {
                 schipTier: 1,
             };
         });
+    }
+
+    // =========================================================================
+    // TUTORIAL SYSTEEM
+    // =========================================================================
+
+    // Geeft true als de feature beschikbaar is (altijd true als tutorial uitgeschakeld)
+    isUnlocked(featureId) {
+        if (!this.tutorialActief) return true;
+        return this.unlockedFeatures.has(featureId);
+    }
+
+    // Unlock nieuwe features op basis van huidige beurt; vul _pendingTutorialDialogen
+    checkTutorialUnlocks() {
+        if (!this.tutorialActief) return;
+        if (typeof TUTORIAL_STAPPEN === 'undefined') return;
+        for (const stap of TUTORIAL_STAPPEN) {
+            if (stap.beurt <= this.beurt && !this.unlockedFeatures.has(stap.feature)) {
+                this.unlockedFeatures.add(stap.feature);
+                if (stap.dialoog && !this.getoondeTutorialDialogen.has(stap.feature)) {
+                    this.getoondeTutorialDialogen.add(stap.feature);
+                    this._pendingTutorialDialogen.push(stap);
+                }
+            }
+        }
     }
 
     // =========================================================================
@@ -483,9 +524,19 @@ class GameState {
         const eventKans = naarPlaneet?.isGevaarlijk ? 0.70 : 0.52;
         if (Math.random() > eventKans) return null;
 
-        const pool = EVENTS.filter(e => e.id !== 'niets' && e.id !== 'crew_opstand');
+        // Tutorial: filter event-pool op unlocked fase
+        const pool = EVENTS.filter(e => {
+            if (e.id === 'niets' || e.id === 'crew_opstand') return false;
+            if (this.tutorialActief && typeof EVENT_UNLOCK_FASE !== 'undefined') {
+                const fase = EVENT_UNLOCK_FASE[e.id] ?? 'planeet_diensten';
+                if (!this.isUnlocked(fase)) return false;
+            }
+            return true;
+        });
+        if (pool.length === 0) return null; // geen events unlocked in tutorial
         const gevaarBonus = naarPlaneet?.isGevaarlijk ? 1.4 : 1.0;
         const totaal = pool.reduce((s, e) => s + e.kans * (e.type === 'gevaar' ? gevaarBonus : 1.0), 0);
+        if (totaal === 0) return null;
         const r = Math.random() * totaal;
         let acc = 0;
         for (const e of pool) {
@@ -501,6 +552,8 @@ class GameState {
 
         this.reisData.stap++;
         this.beurt++;
+        // Tutorial: unlock nieuwe features op basis van nieuwe beurt
+        this.checkTutorialUnlocks();
         this.updatePrijzen(this.reisData.naar);
         this.updateAandeelKoersen();
         this.updateBrandstofPrijzen();
@@ -512,7 +565,8 @@ class GameState {
         this._simuleerConcurrenten();
 
         // Crew-opstand: prioriteit boven gepland event als happiness kritiek laag is
-        if ((this.crew?.grootte ?? 0) > 0 && (this.crew?.happiness ?? 100) < 25 && Math.random() < 0.18) {
+        // Tutorial: alleen als bemanning-feature unlocked is
+        if (this.isUnlocked('bemanning') && (this.crew?.grootte ?? 0) > 0 && (this.crew?.happiness ?? 100) < 25 && Math.random() < 0.18) {
             const mutinyEvent = EVENTS.find(e => e.id === 'crew_opstand');
             if (mutinyEvent) {
                 this.statistieken.eventsMeegemaakt++;
@@ -734,6 +788,16 @@ class GameState {
         this.fase = 'spel';
         this.reisData = null;
         this.bezochteplaneten.add(this.locatie);
+
+        // Tutorial: planeet-specifieke intro-dialogen (na unlock planeet_diensten)
+        if (this.tutorialActief && this.isUnlocked('planeet_diensten')
+                && typeof PLANEET_DIENSTEN_INTRO_DIALOGEN !== 'undefined') {
+            const intro = PLANEET_DIENSTEN_INTRO_DIALOGEN[this.locatie];
+            if (intro && !this.planeetDienstenIntro.has(this.locatie)) {
+                this.planeetDienstenIntro.add(this.locatie);
+                this._pendingTutorialDialogen.push({ dialoog: intro });
+            }
+        }
         this.planeetBezoeken[this.locatie] = (this.planeetBezoeken[this.locatie] ?? 0) + 1;
 
         // Lever passagiers af
@@ -848,6 +912,8 @@ class GameState {
 
     _bepaalAankomstEvent() {
         if (typeof PLANEET_EVENTS === 'undefined') return null;
+        // Tutorial: planeet_events zijn pas beschikbaar na unlock planeet_diensten
+        if (this.tutorialActief && !this.isUnlocked('planeet_diensten')) return null;
         for (const event of PLANEET_EVENTS) {
             if (event.conditie && !event.conditie(this)) continue;
             if (Math.random() < event.kans) return event;
@@ -2490,6 +2556,8 @@ class GameState {
     // =========================================================================
 
     controleerCrew() {
+        // Tutorial: crew-mechanica uitgeschakeld totdat bemanning is unlocked
+        if (!this.isUnlocked('bemanning')) return;
         if (!this.crew || this.crew.grootte <= 0) return;
 
         // Dagelijks verval: happiness daalt elke dag 1 punt (sleet van het reizen)
@@ -2680,6 +2748,11 @@ class GameState {
                 maxSchuld: this.maxSchuld ?? MAX_SCHULD,
                 _insiderBoost: this._insiderBoost ?? null,
                 _noodoproepBonus: this._noodoproepBonus ?? false,
+                // Tutorial systeem
+                tutorialActief: this.tutorialActief,
+                unlockedFeatures: [...(this.unlockedFeatures ?? [])],
+                getoondeTutorialDialogen: [...(this.getoondeTutorialDialogen ?? [])],
+                planeetDienstenIntro: [...(this.planeetDienstenIntro ?? [])],
             };
             localStorage.setItem('gazillionaire_save', JSON.stringify(data));
         } catch(e) {}
@@ -2728,6 +2801,22 @@ class GameState {
             this.maxSchuld = data.maxSchuld ?? MAX_SCHULD;
             this._insiderBoost = data._insiderBoost ?? null;
             this._noodoproepBonus = data._noodoproepBonus ?? false;
+            // Tutorial systeem: migratie van oude saves (tutorialActief ontbreekt → uitschakelen)
+            if (data.tutorialActief !== undefined) {
+                this.tutorialActief = data.tutorialActief;
+                this.unlockedFeatures = new Set(data.unlockedFeatures || ['basis']);
+                this.getoondeTutorialDialogen = new Set(data.getoondeTutorialDialogen || []);
+                this.planeetDienstenIntro = new Set(data.planeetDienstenIntro || []);
+            } else {
+                // Oude save: tutorial uitschakelen, alles direct beschikbaar
+                this.tutorialActief = false;
+                this.unlockedFeatures = new Set(
+                    typeof TUTORIAL_STAPPEN !== 'undefined' ? TUTORIAL_STAPPEN.map(s => s.feature) : []
+                );
+                this.getoondeTutorialDialogen = new Set(this.unlockedFeatures);
+                this.planeetDienstenIntro = new Set();
+            }
+            this._pendingTutorialDialogen = [];
             // Migratie: crew ontbrak in oude saves — herstel en bereken happiness retroactief
             if (!this.crew || !this.crew.grootte) {
                 const schipId = this.schip?.id;

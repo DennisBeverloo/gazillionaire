@@ -64,12 +64,45 @@ const UI = {
     // HOOFD RENDER — roept alles aan
     // =========================================================================
 
+    // =========================================================================
+    // TUTORIAL DIALOG
+    // =========================================================================
+
+    toonTutorialDialog(stap, callback) {
+        const overlay = document.getElementById('tutorial-overlay');
+        if (!overlay || !stap?.dialoog) { if (callback) callback(); return; }
+        document.getElementById('tutorial-titel').textContent = stap.dialoog.titel;
+        document.getElementById('tutorial-tekst').textContent = stap.dialoog.tekst;
+        overlay.classList.remove('verborgen');
+        const sluitKnop = document.getElementById('tutorial-sluit');
+        const handler = () => {
+            overlay.classList.add('verborgen');
+            sluitKnop.removeEventListener('click', handler);
+            if (callback) callback();
+        };
+        sluitKnop.addEventListener('click', handler);
+    },
+
     renderSpel() {
         this.updateTopBalk();
         this.renderPlaneetInfo();
         this.renderKaart();
         this.renderBestemmingPaneel();
         this.updateBerichten();
+
+        // Tutorial: verberg/toon tabs op basis van unlock status
+        const havenHasContent = state.isUnlocked('brandstof') || state.isUnlocked('passagiers')
+            || state.isUnlocked('onderhoud') || state.isUnlocked('marketing');
+        const havenTabKnop = document.querySelector('.tab[data-tab="haven"]');
+        const financienTabKnop = document.querySelector('.tab[data-tab="financien"]');
+        const missiesTabKnop = document.querySelector('.tab[data-tab="missies"]');
+        if (havenTabKnop) havenTabKnop.style.display = havenHasContent ? '' : 'none';
+        if (financienTabKnop) financienTabKnop.style.display = state.isUnlocked('leningen') ? '' : 'none';
+        if (missiesTabKnop) missiesTabKnop.style.display = state.isUnlocked('missies') ? '' : 'none';
+        // Vergrendelde actieve tab → terug naar handel
+        if (state.activeTab === 'haven' && !havenHasContent) state.activeTab = 'handel';
+        if (state.activeTab === 'financien' && !state.isUnlocked('leningen')) state.activeTab = 'handel';
+        if (state.activeTab === 'missies' && !state.isUnlocked('missies')) state.activeTab = 'handel';
 
         // Render actieve tab-inhoud
         if (state.activeTab === 'beurs') state.activeTab = 'financien'; // migreer oude saves
@@ -103,7 +136,11 @@ const UI = {
                 ferrum:  '⛏ Ertsverwerkingsfaciliteit',
             };
             const planeetLabel = planeetLabels[state.locatie];
-            if (planeetLabel) {
+            // Tutorial: planeet-tab verbergen tot de juiste feature unlocked is
+            const planeetTabUnlocked = state.locatie === 'nexoria'
+                ? state.isUnlocked('beurs')
+                : state.isUnlocked('planeet_diensten');
+            if (planeetLabel && planeetTabUnlocked) {
                 planeetGaKnop.textContent = planeetLabel;
                 planeetGaKnop.style.display = '';
             } else {
@@ -125,12 +162,13 @@ const UI = {
 
     _getPlaneetServiceTags(planeet) {
         const tags = [];
-        if (planeet.id === 'nexoria') tags.push('🌌 Galactische Beurs');
-        if (planeet.id === 'techton') tags.push('🛸 Scheepswerf');
-        if (planeet.id === 'luxoria') tags.push('🎰 Casino');
-        if (planeet.id === 'agria')   tags.push('🏺 Veiling');
-        if (planeet.id === 'mortex')  tags.push('💀 Zwarte Markt');
-        if (planeet.id === 'pyroflux') tags.push(`${FUEL_IMG} Speciale brandstof`);
+        // Tutorial: toon alleen tags van unlocked planeetdiensten
+        if (planeet.id === 'nexoria' && state.isUnlocked('beurs')) tags.push('🌌 Galactische Beurs');
+        if (planeet.id === 'techton' && state.isUnlocked('planeet_diensten')) tags.push('🛸 Scheepswerf');
+        if (planeet.id === 'luxoria' && state.isUnlocked('planeet_diensten')) tags.push('🎰 Casino');
+        if (planeet.id === 'agria'   && state.isUnlocked('planeet_diensten')) tags.push('🏺 Veiling');
+        if (planeet.id === 'mortex'  && state.isUnlocked('planeet_diensten')) tags.push('💀 Zwarte Markt');
+        if (planeet.id === 'pyroflux' && state.isUnlocked('brandstof')) tags.push(`${FUEL_IMG} Speciale brandstof`);
         return tags;
     },
 
@@ -731,8 +769,8 @@ const UI = {
         const planeet = PLANETEN.find(p => p.id === state.locatie);
         let html = '<div class="haven-raster">';
 
-        // === REPARATIE (volle breedte, altijd zichtbaar) ===
-        {
+        // === REPARATIE (tutorial: alleen als onderhoud unlocked) ===
+        if (state.isUnlocked('onderhoud')) {
             const hp = state.schipHP ?? 0;
             const maxHP = state.schip?.maxHP ?? 0;
             const hpPct = maxHP > 0 ? Math.round(hp / maxHP * 100) : 100;
@@ -756,9 +794,10 @@ const UI = {
                 if (!kanBetalen) repHtml += `<div class="kleur-rood" style="font-size:0.8em;margin-top:5px">Onvoldoende credits</div>`;
             }
             html += `<div class="haven-blok haven-blok-reparatie"><div class="haven-blok-header">🔧 Scheepsconditie</div><div class="haven-blok-inhoud">${repHtml}</div></div>`;
-        }
+        } // einde onderhoud-check
 
-        // === PASSAGIERS ===
+        // === PASSAGIERS (tutorial: alleen als passagiers unlocked) ===
+        if (state.isUnlocked('passagiers')) {
         const maxPax = state.schip?.passagiersCapaciteit || 0;
         const aanBoord = state.passagiers ?? 0;
         const wachtendObj = state.wachtendePassagiers?.[state.locatie] || { aantal: 0, prijs: 0 };
@@ -791,9 +830,10 @@ const UI = {
             </div>`;
         }
         html += `<div class="haven-blok haven-blok-passagiers"><div class="haven-blok-header">🧳 Passagiers</div><div class="haven-blok-inhoud">${paxHtml}</div></div>`;
+        } // einde passagiers-check
 
-        // === MARKETING (altijd zichtbaar voor passagiersschepen) ===
-        if (maxPax > 0) {
+        // === MARKETING (tutorial: alleen als marketing unlocked én schip passagiersruimte heeft) ===
+        if (state.isUnlocked('marketing') && (state.schip?.passagiersCapaciteit || 0) > 0) {
             const mKosten = state.berekenMarketingKosten();
             const kanBetalen = state.speler.krediet >= mKosten;
             let mktHtml = '';
@@ -807,9 +847,10 @@ const UI = {
                     <button class="knop primair klein" onclick="App.koopMarketing()" ${!kanBetalen ? 'disabled' : ''}>Start campagne (${state.formatteerKrediet(mKosten)})</button>`;
             }
             html += `<div class="haven-blok"><div class="haven-blok-header">📢 Marketing</div><div class="haven-blok-inhoud">${mktHtml}</div></div>`;
-        }
+        } // einde marketing-check
 
-        // === BRANDSTOF ===
+        // === BRANDSTOF (tutorial: alleen als brandstof unlocked) ===
+        if (state.isUnlocked('brandstof')) {
         const bPrijsBasis = state.brandstofPrijzen[state.locatie] || 12;
         const bPrijs = state._effectieveBrandstofPrijs();
         const bIsKorting = state.locatie === 'pyroflux';
@@ -832,6 +873,7 @@ const UI = {
                 <button class="knop primair klein" onclick="App.koopMaxBrandstof()" ${vrij <= 0 ? 'disabled' : ''}>Koop max (${state.formatteerKrediet(koopMaxKosten)})</button>
             </div>
         </div></div>`;
+        } // einde brandstof-check
 
         html += '</div>'; // sluit haven-raster
         container.innerHTML = html;
@@ -1312,8 +1354,8 @@ const UI = {
         const planeet = PLANETEN.find(p => p.id === state.locatie);
         let html = '<div class="haven-raster">';
 
-        // === CREW MANAGEMENT ===
-        {
+        // === CREW MANAGEMENT (tutorial: alleen als bemanning unlocked) ===
+        if (state.isUnlocked('bemanning')) {
             const crew = state.crew;
             if (crew && crew.grootte > 0) {
                 const weekTotaal = crew.grootte * crew.salaris * 7;
@@ -1338,10 +1380,10 @@ const UI = {
                     </div>
                 </div></div>`;
             }
-        }
+        } // einde bemanning-check
 
-        // === VERZEKERING ===
-        {
+        // === VERZEKERING (tutorial: alleen als verzekering unlocked) ===
+        if (state.isUnlocked('verzekering')) {
             const verzPrijs = state._berekenVerzekeringsPrijs();
             const verzActief = state.verzekering?.actief;
             let verzHtml = '';
@@ -1357,32 +1399,37 @@ const UI = {
                     <button class="knop primair klein" ${!kanVerz ? 'disabled' : ''} onclick="App.koopVerzekering()">${kanVerz ? 'Sluit af' : 'Onvoldoende credits'}</button>`;
             }
             html += `<div class="haven-blok haven-blok-verzekering"><div class="haven-blok-header">🛡️ Reisverzekering</div><div class="haven-blok-inhoud">${verzHtml}</div></div>`;
-        }
+        } // einde verzekering-check
 
-        // === BANK TEGEL ===
-        {
+        // === BANK TEGEL (tutorial: alleen als leningen of meer unlocked) ===
+        if (state.isUnlocked('leningen')) {
             const bankSaldo = state.bankSaldo ?? 0;
             const bankRente = state.bankRente ?? 2;
             const bankBevroren = state.bankBevroren ?? 0;
             const maxStorten = state.speler.krediet;
             const renteKleur = bankRente >= 3 ? 'var(--groen)' : bankRente >= 1 ? 'var(--accent)' : 'var(--rood)';
 
-            let bankHtml = `<div class="pax-sectie-label">Spaarrekening</div>`;
-            if (bankBevroren > 0) {
-                bankHtml += `<div class="kleur-rood" style="font-size:0.82em;margin-bottom:8px">🔒 Bank bevroren — transacties nog ${bankBevroren} beurt${bankBevroren > 1 ? 'en' : ''} geblokkeerd</div>`;
+            let bankHtml = '';
+
+            // Spaarrekening: tutorial: alleen als bank-feature unlocked is
+            if (state.isUnlocked('bank')) {
+                bankHtml += `<div class="pax-sectie-label">Spaarrekening</div>`;
+                if (bankBevroren > 0) {
+                    bankHtml += `<div class="kleur-rood" style="font-size:0.82em;margin-bottom:8px">🔒 Bank bevroren — transacties nog ${bankBevroren} beurt${bankBevroren > 1 ? 'en' : ''} geblokkeerd</div>`;
+                }
+                bankHtml += `
+                    <div class="stat-rij"><span class="stat-naam">Saldo</span><span class="stat-waarde kleur-goud">${state.formatteerKrediet(bankSaldo)}</span></div>
+                    <div class="stat-rij"><span class="stat-naam">Rente</span><span class="stat-waarde" style="color:${renteKleur}">${bankRente}% per beurt</span></div>
+                    <div style="display:flex;gap:6px;align-items:center;margin:8px 0 4px">
+                        <input class="aantal-invoer" type="number" min="1" max="${Math.max(1, Math.max(maxStorten, bankSaldo))}" step="100" value="${Math.max(1, Math.floor(state.speler.krediet / 2))}" id="bank-bedrag" style="width:80px">
+                        <button class="knop succes klein" onclick="App.stortenOpBank()" ${bankBevroren > 0 || maxStorten <= 0 ? 'disabled' : ''}>Storten</button>
+                        <button class="knop primair klein" onclick="App.opnemenVanBank()" ${bankBevroren > 0 || bankSaldo <= 0 ? 'disabled' : ''}>Opnemen</button>
+                    </div>
+                    <div style="display:flex;gap:6px;margin-bottom:14px">
+                        <button class="knop dimmed klein" onclick="App.stortenAlles()" ${bankBevroren > 0 || maxStorten <= 0 ? 'disabled' : ''}>Alles storten</button>
+                        <button class="knop dimmed klein" onclick="App.opnemenAlles()" ${bankBevroren > 0 || bankSaldo <= 0 ? 'disabled' : ''}>Alles opnemen</button>
+                    </div>`;
             }
-            bankHtml += `
-                <div class="stat-rij"><span class="stat-naam">Saldo</span><span class="stat-waarde kleur-goud">${state.formatteerKrediet(bankSaldo)}</span></div>
-                <div class="stat-rij"><span class="stat-naam">Rente</span><span class="stat-waarde" style="color:${renteKleur}">${bankRente}% per beurt</span></div>
-                <div style="display:flex;gap:6px;align-items:center;margin:8px 0 4px">
-                    <input class="aantal-invoer" type="number" min="1" max="${Math.max(1, Math.max(maxStorten, bankSaldo))}" step="100" value="${Math.max(1, Math.floor(state.speler.krediet / 2))}" id="bank-bedrag" style="width:80px">
-                    <button class="knop succes klein" onclick="App.stortenOpBank()" ${bankBevroren > 0 || maxStorten <= 0 ? 'disabled' : ''}>Storten</button>
-                    <button class="knop primair klein" onclick="App.opnemenVanBank()" ${bankBevroren > 0 || bankSaldo <= 0 ? 'disabled' : ''}>Opnemen</button>
-                </div>
-                <div style="display:flex;gap:6px;margin-bottom:14px">
-                    <button class="knop dimmed klein" onclick="App.stortenAlles()" ${bankBevroren > 0 || maxStorten <= 0 ? 'disabled' : ''}>Alles storten</button>
-                    <button class="knop dimmed klein" onclick="App.opnemenAlles()" ${bankBevroren > 0 || bankSaldo <= 0 ? 'disabled' : ''}>Alles opnemen</button>
-                </div>`;
 
             bankHtml += `<div class="pax-sectie-label">Lening</div>
                 <div class="stat-rij"><span class="stat-naam">Schuld</span><span class="stat-waarde ${state.speler.schuld > 0 ? 'kleur-oranje' : ''}">${state.formatteerKrediet(state.speler.schuld)}</span></div>
@@ -1395,9 +1442,10 @@ const UI = {
                 </div>`;
 
             html += `<div class="haven-blok"><div class="haven-blok-header">💳 Galactische Bank</div><div class="haven-blok-inhoud">${bankHtml}</div></div>`;
-        }
+        } // einde leningen-check
 
-        // === PORTFOLIO TEGEL (full-width) ===
+        // === PORTFOLIO TEGEL (tutorial: alleen als beurs unlocked) ===
+        if (state.isUnlocked('beurs')) {
         html += `<div class="haven-blok haven-blok-vol-breed"><div class="haven-blok-header">📊 Aandelenportfolio</div><div class="haven-blok-inhoud">
             <div style="margin-bottom:10px;font-size:0.82em;color:var(--tekst-dim)">
                 Koersen bijgewerkt per reis &nbsp;·&nbsp;
@@ -1408,6 +1456,7 @@ const UI = {
                 ${this._renderPortfolioTabel()}
             </div>
         </div></div>`;
+        } // einde beurs-check
 
         html += '</div>';
         container.innerHTML = html;
@@ -1678,13 +1727,20 @@ const UI = {
         const container = document.getElementById('achievements-tab');
         if (!container) return;
 
-        const categorieen = [
+        // Tutorial: filter achievement-categorieën op basis van unlock status
+        const alleCat = [
             { id: 'deals', naam: '⚖ Handel & Deals' },
             { id: 'nettowaarde', naam: '💰 Nettowaarde' },
             { id: 'beurs', naam: '📈 Beurs' },
             { id: 'schip', naam: '🚀 Schip' },
             { id: 'events', naam: '⭐ Reizen & Events' },
+            { id: 'financien', naam: '💳 Financiën' },
         ];
+        const categorieen = alleCat.filter(cat => {
+            if (typeof ACHIEVEMENT_CATEGORIE_FEATURE === 'undefined') return true;
+            const benodigdeFeature = ACHIEVEMENT_CATEGORIE_FEATURE[cat.id] ?? 'basis';
+            return state.isUnlocked(benodigdeFeature);
+        });
 
         const unlocked = state.achievements.size;
         const totaal = ACHIEVEMENTS.length;

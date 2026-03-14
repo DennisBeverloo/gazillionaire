@@ -1316,6 +1316,57 @@ const ACHIEVEMENTS = [
 ];
 
 // =============================================================================
+// TUTORIAL SYSTEEM — progressief feature-unlocken
+// =============================================================================
+
+const TUTORIAL_STAPPEN = [
+    { beurt: 0,  feature: 'basis',           dialoog: null },
+    { beurt: 2,  feature: 'brandstof',       dialoog: { titel: 'Brandstof', tekst: 'Zonder brandstof kom je nergens. Je schip verbruikt brandstof per reisbeurt — hoe verder de bestemming, hoe meer je verbruikt. Tank op tijd bij. Op Pyroflux is brandstof het goedkoopst van de hele sector.' }},
+    { beurt: 4,  feature: 'passagiers',      dialoog: { titel: 'Passagiers', tekst: 'Passagiers willen reizen! Op elke planeet wachten reizigers die een ticket willen kopen naar jouw volgende bestemming. Hoe meer passagierscapaciteit je schip heeft, hoe meer je kunt vervoeren. Passagiers betalen pas bij aankomst — dus kies je route slim.' }},
+    { beurt: 6,  feature: 'leningen',        dialoog: { titel: 'Galactische Bank', tekst: 'De Galactische Bank is beschikbaar op elke planeet. Je kunt nu een lening afsluiten als je extra kapitaal nodig hebt. Leen verstandig — rente loopt op zolang je schuld uitstaat.' }},
+    { beurt: 8,  feature: 'onderhoud',       dialoog: { titel: 'Onderhoud', tekst: 'Je schip loopt schade op bij gevaarlijke events. Bij lage HP vergroot de kans op mechanische defecten onderweg. Repareer je schip in de haven om problemen te voorkomen. Wacht niet te lang — een beschadigd schip is een risico.' }},
+    { beurt: 10, feature: 'verzekering',     dialoog: { titel: 'Reisverzekering', tekst: 'Een verzekering dekt schade en ladingverlies bij ongelukken en gevaarlijke events. Zonder verzekering draag je alle risico\'s zelf. De premie is afhankelijk van je scheepstype en lading — beoordeel zelf of het de moeite waard is.' }},
+    { beurt: 12, feature: 'bemanning',       dialoog: { titel: 'Bemanning', tekst: 'Je schip heeft een bemanning nodig om te functioneren. Je crew verwacht wekelijks salaris — mis je een betaling, dan daalt hun tevredenheid. Een ontevreden bemanning werkt langzamer en kan uiteindelijk in opstand komen. Houd ze tevreden.' }},
+    { beurt: 14, feature: 'bank',            dialoog: { titel: 'Spaarrekening', tekst: 'Je kunt nu overtollige credits op een spaarrekening zetten om rente te verdienen.' }},
+    { beurt: 16, feature: 'marketing',       dialoog: { titel: 'Marketing', tekst: 'Een marketingcampagne trekt extra passagiers aan op je volgende bestemming. Koop de campagne vóór vertrek — ze richt zich altijd op je geselecteerde reisdoel en vervalt zodra je landt. Slechts één campagne tegelijk mogelijk.' }},
+    { beurt: 18, feature: 'beurs',           dialoog: { titel: 'Aandelenbeurs', tekst: 'De Galactische Beurs is exclusief beschikbaar op Nexoria. Hier kun je aandelen kopen en verkopen in zes galactische bedrijven. Koersen fluctueren elke beurt. Op andere planeten kun je je portfolio raadplegen, maar niet handelen.' }},
+    { beurt: 20, feature: 'planeet_diensten',dialoog: { titel: 'Planeetdiensten', tekst: 'Elke planeet heeft unieke specialiteiten en diensten. Bezoek Techton voor scheepsupgrades, Luxoria voor het Casino Stellaris, Mortex voor de Zwarte Markt, en Pyroflux voor goedkope brandstof. Bij je eerste bezoek word je nader geïnformeerd.' }},
+    { beurt: 24, feature: 'missies',         dialoog: { titel: 'Missies', tekst: 'Galactische opdrachtgevers staan klaar met lucratieve opdrachten en beloningen.' }},
+];
+
+// Koppeling event-ID → minimale feature-fase voor het op kunnen treden
+// Events die niet in deze mapping staan vallen standaard onder 'planeet_diensten'
+const EVENT_UNLOCK_FASE = {
+    // Onderhoud (beurt 8)
+    stralingstorm: 'onderhoud', nevel: 'onderhoud', asteroiden: 'onderhoud',
+    defect: 'onderhoud', ruimtewrak: 'onderhoud', tip: 'onderhoud', cargo_lek: 'onderhoud',
+    // Douane / verdachte lading (beurt 10)
+    douane: 'verzekering', douaneboete: 'verzekering', smokkelbod: 'verzekering',
+    // Bemanning (beurt 12)
+    crew_opstand: 'bemanning', piraten: 'bemanning',
+    // Bank / spaarrekening (beurt 14)
+    bank_rente_omhoog: 'bank', bank_hoogconjunctuur: 'bank', bank_kredietexpansie: 'bank',
+    bank_recessie: 'bank', bank_nulrente: 'bank', bank_crisis: 'bank',
+    bank_belasting: 'bank', bank_bonus: 'bank', bank_bevriezing: 'bank',
+    // Marketing (beurt 16)
+    lifter: 'marketing', brandstof_vraag: 'marketing',
+};
+
+// Planeet-specifieke intro-dialogen (getoond bij eerste bezoek na unlock planeet_diensten)
+const PLANEET_DIENSTEN_INTRO_DIALOGEN = {
+    luxoria:  { titel: 'Casino Stellaris',  tekst: 'Het Casino Stellaris verwelkomt je. Trek een kaart en meet je kracht met de dealer — de hoogste kaart wint het dubbele terug. Bij gelijkspel krijg je je inzet terug. Maximaal 5 rondes per bezoek. Gok verstandig.' },
+    mortex:   { titel: 'Zwarte Markt',      tekst: 'De Zwarte Markt van Mortex biedt alle goederen voor 35% onder de normale prijs. Verdachte lading trekt echter de aandacht van de douane — 25% kans op confiscatie bij elke aankomst elders. Koop een Afgeschermd Vrachtruim om dat risico te verlagen naar 5%.' },
+    pyroflux: { titel: 'Energieboorpost',   tekst: 'De vulkanische energiereserves van Pyroflux maken dit de goedkoopste tankplek in de sector. Vul je tank hier zo vol mogelijk. Elke tankbeurt telt mee voor het Energieboer-achievement.' },
+    techton:  { titel: 'Scheepswerf',       tekst: 'De geavanceerde scheepswerf op Techton kan je schip upgraden naar het volgende Mark. Je huidige schip wordt ingenomen voor 60% van de aankoopprijs. Upgraden gaat stap voor stap — je kunt geen Marks overslaan. Je scheepstype blijft permanent.' },
+};
+
+// Achievement-categorie → minimale feature-fase
+const ACHIEVEMENT_CATEGORIE_FEATURE = {
+    deals: 'basis', nettowaarde: 'basis', events: 'basis', schip: 'basis',
+    beurs: 'beurs', financien: 'leningen',
+};
+
+// =============================================================================
 // PLANEET AANKOMST EVENTS — spelen af bij landing op een planeet
 // =============================================================================
 const PLANEET_EVENTS = [

@@ -134,6 +134,13 @@ const App = {
     },
 
     selecteerSchip(schipId) {
+        // Tutorial: sla skip-voorkeur op in localStorage vóór init() die het leest
+        const skipEl = document.getElementById('skip-tutorial');
+        if (skipEl?.checked) {
+            localStorage.setItem('gazillionaire_tutorial', 'skip');
+        } else {
+            localStorage.removeItem('gazillionaire_tutorial');
+        }
         state.init(state.speler.naam, schipId);
         if (typeof DB !== 'undefined') DB.initSessie();
         UI.toonScherm('spel-scherm');
@@ -214,7 +221,8 @@ const App = {
                     if (state.fase === 'einde') {
                         UI.toonEindeScherm();
                     } else {
-                        this._toonAankomstEventQueue();
+                        // Tutorial: dialogen eerst, daán aankomst events
+                        this._verwerkTutorialDialogen(() => this._toonAankomstEventQueue());
                     }
                 }, 1100);
             });
@@ -270,7 +278,8 @@ const App = {
                     if (state.fase === 'einde') {
                         UI.toonEindeScherm();
                     } else {
-                        this._toonAankomstEventQueue();
+                        // Tutorial: dialogen eerst, daán aankomst events
+                        this._verwerkTutorialDialogen(() => this._toonAankomstEventQueue());
                     }
                 }, 1100);
             });
@@ -283,6 +292,22 @@ const App = {
         if (!el) return;
         el.textContent = tekst;
         el.className = 'reis-status ' + (klasse || '');
+    },
+
+    // Tutorial: verwerk wachtrij van tutorial-dialogen, roep callback aan als klaar
+    _verwerkTutorialDialogen(callback) {
+        const wachtrij = [...(state._pendingTutorialDialogen ?? [])];
+        state._pendingTutorialDialogen = [];
+        this._verwerkDialogWachtrij(wachtrij, callback);
+    },
+
+    _verwerkDialogWachtrij(wachtrij, callback) {
+        if (!wachtrij.length) { if (callback) callback(); return; }
+        const stap = wachtrij.shift();
+        UI.toonTutorialDialog(stap, () => {
+            UI.renderSpel(); // re-render na sluiten (nieuwe features zichtbaar)
+            this._verwerkDialogWachtrij(wachtrij, callback);
+        });
     },
 
     _toonAankomstEventQueue() {

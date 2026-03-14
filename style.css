@@ -1340,6 +1340,68 @@ html, body {
 
     /* Instellingen modal */
     .instellingen-modal { max-width: 95vw; }
+    .tutorial-modal { max-width: 95vw; }
+}
+
+/* =============================================================================
+   TUTORIAL SYSTEEM
+   ============================================================================= */
+
+#tutorial-overlay {
+    position: fixed; inset: 0;
+    z-index: 200;
+    background: rgba(0,0,0,0.75);
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(4px);
+}
+#tutorial-overlay.verborgen { display: none; }
+
+.tutorial-modal {
+    background: var(--bg-paneel);
+    border: 1px solid var(--goud);
+    border-radius: 14px;
+    padding: 36px 40px;
+    max-width: 480px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 0 60px rgba(0,0,0,0.7), 0 0 30px rgba(255,215,0,0.12);
+    animation: popup-in 0.25s ease-out;
+}
+.tutorial-icoon {
+    font-size: 3em;
+    margin-bottom: 14px;
+    display: block;
+}
+.tutorial-modal h3 {
+    font-family: var(--font-titel);
+    color: var(--goud);
+    font-size: 1.3em;
+    margin-bottom: 12px;
+}
+.tutorial-modal p {
+    color: var(--tekst);
+    line-height: 1.7;
+    margin-bottom: 22px;
+    font-size: 0.95em;
+    text-align: left;
+}
+
+/* Tutorial skip checkbox op intro-scherm */
+.tutorial-skip-rij {
+    margin: 14px 0 4px;
+}
+.tutorial-skip-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--tekst-dim);
+    font-size: 0.85em;
+    cursor: pointer;
+}
+.tutorial-skip-label input[type="checkbox"] {
+    accent-color: var(--accent);
+    width: 15px; height: 15px;
+    cursor: pointer;
 }
 
 /* ACHIEVEMENT TOAST */
