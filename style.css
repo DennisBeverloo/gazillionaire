@@ -1053,6 +1053,16 @@ html, body {
     line-height: 1.5;
 }
 #event-knoppen { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.event-verzekering {
+    border-radius: 5px;
+    padding: 10px 14px;
+    margin-bottom: 18px;
+    font-size: 0.88em;
+    line-height: 1.5;
+}
+.ev-gedekt { color: var(--groen); font-weight: 600; }
+.ev-niet-gedekt { color: var(--tekst-dim); }
+.ev-payout { color: var(--tekst); margin-top: 4px; }
 
 /* ===== EINDESCHERM ===== */
 #einde-scherm {

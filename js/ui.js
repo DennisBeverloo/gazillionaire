@@ -2045,6 +2045,7 @@ const UI = {
         document.getElementById('event-titel').textContent = event.naam;
         document.getElementById('event-beschrijving').textContent = event.beschrijving;
         document.getElementById('event-gevolg').textContent = '';
+        this._toonEventVerzekering(null);
 
         const knoppen = document.getElementById('event-knoppen');
         knoppen.innerHTML = '';
@@ -2117,6 +2118,7 @@ const UI = {
             // Automatische afhandeling — verwerk direct en toon resultaat
             const res = state.verwerkevent(event.id, null);
             if (res.bericht) document.getElementById('event-gevolg').textContent = res.bericht;
+            this._toonEventVerzekering(res.verzekeringsInfo ?? null);
 
             // Update bestemmingsweergave bij omleiding
             if (res.omleiding) {
@@ -2169,6 +2171,7 @@ const UI = {
     verbergEventPopup() {
         document.getElementById('event-popup').classList.add('verborgen');
         document.getElementById('event-gevolg').textContent = '';
+        this._toonEventVerzekering(null);
     },
 
     toonAankomstPopup(event, callback) {
@@ -2252,8 +2255,24 @@ const UI = {
         document.getElementById('instellingen-overlay')?.classList.add('verborgen');
     },
 
-    toonEventResultaat(bericht) {
+    toonEventResultaat(bericht, verzekeringsInfo) {
         document.getElementById('event-gevolg').textContent = bericht;
+        this._toonEventVerzekering(verzekeringsInfo);
+    },
+
+    _toonEventVerzekering(info) {
+        const el = document.getElementById('event-verzekering');
+        if (!el) return;
+        if (!info) { el.innerHTML = ''; el.style.display = 'none'; return; }
+        el.style.display = '';
+        if (info.gedekt) {
+            const payoutHtml = (info.uitkering > 0)
+                ? `<div class="ev-payout">De verzekering keert je ${state.formatteerKrediet(info.uitkering)} uit.</div>`
+                : `<div class="ev-payout">Je romp is gevrijwaard van schade.</div>`;
+            el.innerHTML = `<div class="ev-gedekt">🛡️ Gelukkig was je verzekerd!</div>${payoutHtml}`;
+        } else {
+            el.innerHTML = `<div class="ev-niet-gedekt">😬 Helaas was je niet verzekerd!</div>`;
+        }
     },
 
     // =========================================================================

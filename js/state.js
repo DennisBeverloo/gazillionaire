@@ -1296,13 +1296,11 @@ class GameState {
                 }
                 if (keuzeId === 'betaal') {
                     const bedrag = Math.min(Math.round(this.speler.krediet * 0.25 + 100), 800);
-                    if (this.verzekering?.actief) {
-                        resultaat.bericht = `Piraten eisen ${this.formatteerKrediet(bedrag)} losgeld — je verzekering vergoedt het! 🛡️`;
-                    } else {
-                        this.speler.krediet -= bedrag;
-                        resultaat.kredietDelta = -bedrag;
-                        resultaat.bericht = `Je betaalt ${this.formatteerKrediet(bedrag)} losgeld. De piraten laten je door.`;
-                    }
+                    this.speler.krediet -= bedrag;
+                    resultaat.kredietDelta = -bedrag;
+                    resultaat.bericht = `Je betaalt ${this.formatteerKrediet(bedrag)} losgeld. De piraten laten je door.`;
+                    resultaat.verzekeringsInfo = this._verzekeringsUitkering(bedrag);
+                    if (resultaat.verzekeringsInfo?.gedekt) resultaat.kredietDelta = 0;
                     resultaat.losgeldbedrag = bedrag;
                 } else {
                     // Ontsnapping: kans gebaseerd op snelheid en schild
@@ -1319,22 +1317,21 @@ class GameState {
                             const verloren = Math.ceil(this.lading[goedId] * 0.4);
                             const goedObj = GOEDEREN.find(g=>g.id===goedId);
                             const goedNaam = `${goedObj.icoon} ${goedObj.naam}`;
-                            if (this.verzekering?.actief) {
-                                resultaat.bericht = `Gepakt! Piraten grijpen naar ${verloren}× ${goedNaam} — je verzekering dekt het verlies! 🛡️`;
-                            } else {
-                                this.lading[goedId] = Math.max(0, this.lading[goedId] - verloren);
-                                resultaat.ladingDelta[goedId] = -verloren;
-                                resultaat.bericht = `Gepakt! Je verliest ${verloren}× ${goedNaam}.`;
-                            }
+                            const piratenLadingPrijs = this.aankoopPrijzen[goedId] ?? goedObj.basisPrijs ?? 50;
+                            const piratenLadingWaarde = Math.round(verloren * piratenLadingPrijs);
+                            this.lading[goedId] = Math.max(0, this.lading[goedId] - verloren);
+                            this.aankoopAantallen[goedId] = Math.max(0, (this.aankoopAantallen[goedId] || 0) - verloren);
+                            if (this.lading[goedId] === 0) { delete this.aankoopPrijzen[goedId]; delete this.aankoopAantallen[goedId]; }
+                            resultaat.ladingDelta[goedId] = -verloren;
+                            resultaat.bericht = `Gepakt! Je verliest ${verloren}× ${goedNaam}.`;
+                            resultaat.verzekeringsInfo = this._verzekeringsUitkering(piratenLadingWaarde);
                         } else {
                             const bedrag = Math.min(200, this.speler.krediet);
-                            if (this.verzekering?.actief) {
-                                resultaat.bericht = `Piraten doorzoeken je ruim — ze vinden niks. Geluk!`;
-                            } else {
-                                this.speler.krediet -= bedrag;
-                                resultaat.kredietDelta = -bedrag;
-                                resultaat.bericht = `Ze vinden je lege ruim en pakken ${this.formatteerKrediet(bedrag)} uit je kluis.`;
-                            }
+                            this.speler.krediet -= bedrag;
+                            resultaat.kredietDelta = -bedrag;
+                            resultaat.bericht = `Ze vinden je lege ruim en pakken ${this.formatteerKrediet(bedrag)} uit je kluis.`;
+                            resultaat.verzekeringsInfo = this._verzekeringsUitkering(bedrag);
+                            if (resultaat.verzekeringsInfo?.gedekt) resultaat.kredietDelta = 0;
                         }
                     }
                 }
@@ -1343,13 +1340,10 @@ class GameState {
 
             case 'stralingstorm': {
                 const extraBrandstof = Math.round(12 + Math.random() * 18);
-                if (this.verzekering?.actief) {
-                    resultaat.bericht = `De storm dwingt een grote omweg af (⛽ −${extraBrandstof} l) — je verzekering vergoedt het! 🛡️`;
-                } else {
-                    const werkelijk = Math.min(extraBrandstof, this.brandstof);
-                    this.brandstof = Math.max(0, this.brandstof - extraBrandstof);
-                    resultaat.bericht = `De storm dwingt je een grote omweg te nemen. ⛽ Extra brandstofverbruik: −${werkelijk} l. Resterend: ${this.brandstof} l.`;
-                }
+                const stormWerkelijk = Math.min(extraBrandstof, this.brandstof);
+                this.brandstof = Math.max(0, this.brandstof - extraBrandstof);
+                resultaat.bericht = `De storm dwingt je een grote omweg te nemen. ⛽ Extra brandstofverbruik: −${stormWerkelijk} l. Resterend: ${this.brandstof} l.`;
+                resultaat.verzekeringsInfo = this._verzekeringsUitkering(this._brandstofCreditWaarde(stormWerkelijk));
                 break;
             }
 
@@ -1377,15 +1371,12 @@ class GameState {
                 if (keuzeId === 'repareer') {
                     const kosten = 400;
                     const herstel = Math.min(20, (this.schip?.maxHP ?? 40) - this.schipHP);
-                    if (this.verzekering?.actief) {
-                        this.schipHP = Math.min(this.schip?.maxHP ?? 40, this.schipHP + herstel);
-                        resultaat.bericht = `Noodreparatie (${this.formatteerKrediet(kosten)}) gedekt door je verzekering! +${herstel} HP 🛡️`;
-                    } else {
-                        this.speler.krediet -= kosten;
-                        resultaat.kredietDelta = -kosten;
-                        this.schipHP = Math.min(this.schip?.maxHP ?? 40, this.schipHP + herstel);
-                        resultaat.bericht = `Noodreparatie voltooid voor ${this.formatteerKrediet(kosten)}. +${herstel} HP hersteld.`;
-                    }
+                    this.speler.krediet -= kosten;
+                    resultaat.kredietDelta = -kosten;
+                    this.schipHP = Math.min(this.schip?.maxHP ?? 40, this.schipHP + herstel);
+                    resultaat.bericht = `Noodreparatie voltooid voor ${this.formatteerKrediet(kosten)}. +${herstel} HP hersteld.`;
+                    resultaat.verzekeringsInfo = this._verzekeringsUitkering(kosten);
+                    if (resultaat.verzekeringsInfo?.gedekt) resultaat.kredietDelta = 0;
                 } else {
                     const schade = Math.floor(Math.random() * 8) + 12; // 12-20 HP
                     this.schipHP = Math.max(1, this.schipHP - schade);
@@ -1432,12 +1423,10 @@ class GameState {
 
             case 'nevel': {
                 const extraNevel = Math.round(6 + Math.random() * 12);
-                if (this.verzekering?.actief) {
-                    resultaat.bericht = `Ionennevel verstoort de navigatie (−${extraNevel} l brandstof) — je verzekering vergoedt het! 🛡️`;
-                } else {
-                    this.brandstof = Math.max(0, this.brandstof - extraNevel);
-                    resultaat.bericht = `De ionennevel dwingt je van koers. ⛽ Extra brandstofverbruik: −${extraNevel} l. Resterend: ${this.brandstof} l.`;
-                }
+                const nevelWerkelijk = Math.min(extraNevel, this.brandstof);
+                this.brandstof = Math.max(0, this.brandstof - extraNevel);
+                resultaat.bericht = `De ionennevel dwingt je van koers. ⛽ Extra brandstofverbruik: −${nevelWerkelijk} l. Resterend: ${this.brandstof} l.`;
+                resultaat.verzekeringsInfo = this._verzekeringsUitkering(this._brandstofCreditWaarde(nevelWerkelijk));
                 break;
             }
 
@@ -1462,13 +1451,11 @@ class GameState {
                 const kredietSchade = Math.max(50, Math.round(this.speler.krediet * 0.04 + Math.random() * 150));
                 this.schipHP = Math.max(1, this.schipHP - hpSchade);
                 resultaat.schade = true;
-                if (this.verzekering?.actief) {
-                    resultaat.bericht = `Keiharde klappen! −${hpSchade} HP rompschade. Creditverlies (${this.formatteerKrediet(kredietSchade)}) gedekt door verzekering! 🛡️`;
-                } else {
-                    this.speler.krediet -= kredietSchade;
-                    resultaat.kredietDelta = -kredietSchade;
-                    resultaat.bericht = `Keiharde klappen! −${hpSchade} HP rompschade en ${this.formatteerKrediet(kredietSchade)} noodreparatiekosten. Schip: ${this.schipHP} HP.`;
-                }
+                this.speler.krediet -= kredietSchade;
+                resultaat.kredietDelta = -kredietSchade;
+                resultaat.bericht = `Keiharde klappen! −${hpSchade} HP rompschade en ${this.formatteerKrediet(kredietSchade)} noodreparatiekosten. Schip: ${this.schipHP} HP.`;
+                resultaat.verzekeringsInfo = this._verzekeringsUitkering(kredietSchade);
+                if (resultaat.verzekeringsInfo?.gedekt) resultaat.kredietDelta = 0;
                 break;
             }
 
@@ -1536,15 +1523,14 @@ class GameState {
                     const goedId = gevuldeGoederen[Math.floor(Math.random() * gevuldeGoederen.length)];
                     const goed = GOEDEREN.find(g => g.id === goedId);
                     const verloren = Math.ceil(this.lading[goedId] / 2);
-                    if (this.verzekering?.actief) {
-                        resultaat.bericht = `Koelsysteemstoring! ${verloren}× ${goed.icoon} ${goed.naam} dreigt te bederven — je verzekering dekt het verlies! 🛡️`;
-                    } else {
-                        this.lading[goedId] -= verloren;
-                        this.aankoopAantallen[goedId] = Math.max(0, (this.aankoopAantallen[goedId] || 0) - verloren);
-                        if (this.lading[goedId] === 0) { delete this.aankoopPrijzen[goedId]; delete this.aankoopAantallen[goedId]; }
-                        resultaat.ladingDelta[goedId] = -verloren;
-                        resultaat.bericht = `Koelsysteemstoring! ${verloren}× ${goed.icoon} ${goed.naam} zijn bedorven en verloren gegaan.`;
-                    }
+                    const bederfPrijs = this.aankoopPrijzen[goedId] ?? goed.basisPrijs ?? 50;
+                    const bederfWaarde = Math.round(verloren * bederfPrijs);
+                    this.lading[goedId] -= verloren;
+                    this.aankoopAantallen[goedId] = Math.max(0, (this.aankoopAantallen[goedId] || 0) - verloren);
+                    if (this.lading[goedId] === 0) { delete this.aankoopPrijzen[goedId]; delete this.aankoopAantallen[goedId]; }
+                    resultaat.ladingDelta[goedId] = -verloren;
+                    resultaat.bericht = `Koelsysteemstoring! ${verloren}× ${goed.icoon} ${goed.naam} zijn bedorven en verloren gegaan.`;
+                    resultaat.verzekeringsInfo = this._verzekeringsUitkering(bederfWaarde);
                 } else {
                     resultaat.bericht = 'Koelsysteemstoring, maar je had geen kwetsbare lading. Mazzel!';
                 }
@@ -1575,14 +1561,12 @@ class GameState {
 
             case 'douaneboete': {
                 const boete = Math.round(200 + Math.random() * 500);
-                if (this.verzekering?.actief) {
-                    resultaat.bericht = `Douaneboete van ${this.formatteerKrediet(boete)} — je verzekering vergoedt het! 🛡️`;
-                } else {
-                    const werkelijk = Math.min(boete, this.speler.krediet);
-                    this.speler.krediet -= werkelijk;
-                    resultaat.kredietDelta = -werkelijk;
-                    resultaat.bericht = `De galactische douane legt een boete op van ${this.formatteerKrediet(werkelijk)}. Bezwaar maken helpt niet.`;
-                }
+                const werkelijkDouane = Math.min(boete, this.speler.krediet);
+                this.speler.krediet -= werkelijkDouane;
+                resultaat.kredietDelta = -werkelijkDouane;
+                resultaat.bericht = `De galactische douane legt een boete op van ${this.formatteerKrediet(werkelijkDouane)}. Bezwaar maken helpt niet.`;
+                resultaat.verzekeringsInfo = this._verzekeringsUitkering(werkelijkDouane);
+                if (resultaat.verzekeringsInfo?.gedekt) resultaat.kredietDelta = 0;
                 break;
             }
 
@@ -1592,15 +1576,14 @@ class GameState {
                     const goedId = gevuld[Math.floor(Math.random() * gevuld.length)];
                     const goed = GOEDEREN.find(g => g.id === goedId);
                     const verloren = Math.ceil(this.lading[goedId] * 0.4);
-                    if (this.verzekering?.actief) {
-                        resultaat.bericht = `Containerlek! ${verloren}× ${goed.naam} dreigt te verdwijnen — je verzekering dekt het verlies! 🛡️`;
-                    } else {
-                        this.lading[goedId] = Math.max(0, this.lading[goedId] - verloren);
-                        this.aankoopAantallen[goedId] = Math.max(0, (this.aankoopAantallen[goedId] || 0) - verloren);
-                        if (this.lading[goedId] === 0) { delete this.aankoopPrijzen[goedId]; delete this.aankoopAantallen[goedId]; }
-                        resultaat.ladingDelta[goedId] = -verloren;
-                        resultaat.bericht = `Containerlek! ${verloren}× ${goed.naam} is in de ruimte verdwenen.`;
-                    }
+                    const cargolekPrijs = this.aankoopPrijzen[goedId] ?? goed.basisPrijs ?? 50;
+                    const cargolekWaarde = Math.round(verloren * cargolekPrijs);
+                    this.lading[goedId] = Math.max(0, this.lading[goedId] - verloren);
+                    this.aankoopAantallen[goedId] = Math.max(0, (this.aankoopAantallen[goedId] || 0) - verloren);
+                    if (this.lading[goedId] === 0) { delete this.aankoopPrijzen[goedId]; delete this.aankoopAantallen[goedId]; }
+                    resultaat.ladingDelta[goedId] = -verloren;
+                    resultaat.bericht = `Containerlek! ${verloren}× ${goed.naam} is in de ruimte verdwenen.`;
+                    resultaat.verzekeringsInfo = this._verzekeringsUitkering(cargolekWaarde);
                 } else {
                     resultaat.bericht = 'Containerlek gedetecteerd, maar je ruim was leeg. Nauwelijks schade.';
                 }
@@ -1610,13 +1593,11 @@ class GameState {
             case 'motordiefstal': {
                 const gestolen = Math.round(200 + Math.random() * 600);
                 const werkelijk = Math.min(gestolen, this.speler.krediet);
-                if (this.verzekering?.actief) {
-                    resultaat.bericht = `Ruimtedief! ${this.formatteerKrediet(werkelijk)} gestolen — je verzekering vergoedt het! 🛡️`;
-                } else {
-                    this.speler.krediet -= werkelijk;
-                    resultaat.kredietDelta = -werkelijk;
-                    resultaat.bericht = `Een listige ruimtecrimineel heeft ongemerkt ${this.formatteerKrediet(werkelijk)} uit je kluis gestolen!`;
-                }
+                this.speler.krediet -= werkelijk;
+                resultaat.kredietDelta = -werkelijk;
+                resultaat.bericht = `Een listige ruimtecrimineel heeft ongemerkt ${this.formatteerKrediet(werkelijk)} uit je kluis gestolen!`;
+                resultaat.verzekeringsInfo = this._verzekeringsUitkering(werkelijk);
+                if (resultaat.verzekeringsInfo?.gedekt) resultaat.kredietDelta = 0;
                 break;
             }
 
@@ -1810,20 +1791,20 @@ class GameState {
                 const aanwezig = organisch.filter(id => (this.lading[id] || 0) > 0);
                 if (aanwezig.length > 0) {
                     let berichten = [];
+                    let totaleWaardeSK = 0;
                     aanwezig.forEach(goedId => {
                         const goed = GOEDEREN.find(g => g.id === goedId);
                         const verloren = Math.ceil(this.lading[goedId] * 0.30);
-                        if (this.verzekering?.actief) {
-                            berichten.push(`${verloren}× ${goed.icoon} ${goed.naam} bedorven — je verzekering dekt het verlies! 🛡️`);
-                        } else {
-                            this.lading[goedId] -= verloren;
-                            this.aankoopAantallen[goedId] = Math.max(0, (this.aankoopAantallen[goedId] || 0) - verloren);
-                            if (this.lading[goedId] === 0) { delete this.aankoopPrijzen[goedId]; delete this.aankoopAantallen[goedId]; }
-                            resultaat.ladingDelta[goedId] = -verloren;
-                            berichten.push(`${verloren}× ${goed.icoon} ${goed.naam} bedorven`);
-                        }
+                        const skPrijs = this.aankoopPrijzen[goedId] ?? goed.basisPrijs ?? 50;
+                        totaleWaardeSK += Math.round(verloren * skPrijs);
+                        this.lading[goedId] -= verloren;
+                        this.aankoopAantallen[goedId] = Math.max(0, (this.aankoopAantallen[goedId] || 0) - verloren);
+                        if (this.lading[goedId] === 0) { delete this.aankoopPrijzen[goedId]; delete this.aankoopAantallen[goedId]; }
+                        resultaat.ladingDelta[goedId] = -verloren;
+                        berichten.push(`${verloren}× ${goed.icoon} ${goed.naam} bedorven`);
                     });
                     resultaat.bericht = `Organische lading aangetast bij de bron: ${berichten.join(', ')}.`;
+                    resultaat.verzekeringsInfo = this._verzekeringsUitkering(totaleWaardeSK);
                 } else {
                     resultaat.bericht = 'Geen organische lading aan boord — geen bederf door slechte kwaliteit.';
                 }
@@ -1841,13 +1822,8 @@ class GameState {
                         delete this.aankoopPrijzen[goedId];
                         delete this.aankoopAantallen[goedId];
                     });
-                    if (this.verzekering?.actief) {
-                        this.speler.krediet += ladingWaarde;
-                        resultaat.kredietDelta = ladingWaarde;
-                        resultaat.bericht = `Kortsluiting in vrachtruim! Alles vernietigd — je verzekering vergoedt ${this.formatteerKrediet(ladingWaarde)}! 🛡️`;
-                    } else {
-                        resultaat.bericht = `Kortsluiting in vrachtruim! Alles vernietigd. Totaal verlies: ~${this.formatteerKrediet(ladingWaarde)}.`;
-                    }
+                    resultaat.bericht = `Kortsluiting in vrachtruim! Alles vernietigd. Totaal verlies: ~${this.formatteerKrediet(ladingWaarde)}.`;
+                    resultaat.verzekeringsInfo = this._verzekeringsUitkering(ladingWaarde);
                 } else {
                     resultaat.bericht = 'Drukregeling faalt, maar je had geen lading. Geluk!';
                 }
@@ -1885,12 +1861,9 @@ class GameState {
             case 'brandstoflek': {
                 if (this.brandstof > 20) {
                     const verlies = Math.floor(this.brandstof / 2);
-                    if (this.verzekering?.actief) {
-                        resultaat.bericht = `Brandstoflek ontdekt! ⛽ −${verlies} l verloren — je verzekering vergoedt het! 🛡️`;
-                    } else {
-                        this.brandstof = Math.ceil(this.brandstof / 2);
-                        resultaat.bericht = `Brandstoflek! De helft van je brandstof is verdampt in de ruimte. ⛽ Resterend: ${this.brandstof} l.`;
-                    }
+                    this.brandstof = Math.ceil(this.brandstof / 2);
+                    resultaat.bericht = `Brandstoflek! De helft van je brandstof is verdampt in de ruimte. ⛽ Resterend: ${this.brandstof} l.`;
+                    resultaat.verzekeringsInfo = this._verzekeringsUitkering(this._brandstofCreditWaarde(verlies));
                 } else {
                     resultaat.bericht = 'Brandstoffilter geeft alarm, maar de tank was al bijna leeg. Minimale schade.';
                 }
@@ -1900,11 +1873,13 @@ class GameState {
             case 'kosmische_wolk': {
                 const schade = 12;
                 if (this.verzekering?.actief) {
-                    resultaat.bericht = `Corrosieve gaswolk! −${schade} HP rompschade — je verzekering vergoedt de reparatie! 🛡️`;
+                    resultaat.bericht = `Corrosieve gaswolk! Je romp wordt geraakt, maar de schade is beperkt.`;
+                    resultaat.verzekeringsInfo = { gedekt: true, uitkering: null };
                 } else {
                     this.schipHP = Math.max(1, this.schipHP - schade);
                     resultaat.schade = true;
                     resultaat.bericht = `Corrosieve gaswolk! Buitenbeplating aangetast. −${schade} HP. Schip: ${this.schipHP} HP.`;
+                    resultaat.verzekeringsInfo = { gedekt: false };
                 }
                 break;
             }
@@ -1913,16 +1888,13 @@ class GameState {
                 if (keuzeId === 'repareer') {
                     const kosten = 500;
                     const herstel = Math.min(20, (this.schip?.maxHP ?? 40) - this.schipHP);
-                    if (this.verzekering?.actief) {
-                        this.schipHP = Math.min(this.schip?.maxHP ?? 40, this.schipHP + herstel);
-                        resultaat.bericht = `Ruimtepuin raakt de romp! Noodreparatie (${this.formatteerKrediet(kosten)}) gedekt door verzekering. +${herstel} HP 🛡️`;
-                    } else {
-                        const werkelijk = Math.min(kosten, this.speler.krediet);
-                        this.speler.krediet -= werkelijk;
-                        resultaat.kredietDelta = -werkelijk;
-                        this.schipHP = Math.min(this.schip?.maxHP ?? 40, this.schipHP + herstel);
-                        resultaat.bericht = `Ruimtepuin! Noodreparatie voor ${this.formatteerKrediet(werkelijk)}. +${herstel} HP hersteld.`;
-                    }
+                    const werkelijkWal = Math.min(kosten, this.speler.krediet);
+                    this.speler.krediet -= werkelijkWal;
+                    resultaat.kredietDelta = -werkelijkWal;
+                    this.schipHP = Math.min(this.schip?.maxHP ?? 40, this.schipHP + herstel);
+                    resultaat.bericht = `Ruimtepuin! Noodreparatie voor ${this.formatteerKrediet(werkelijkWal)}. +${herstel} HP hersteld.`;
+                    resultaat.verzekeringsInfo = this._verzekeringsUitkering(werkelijkWal);
+                    if (resultaat.verzekeringsInfo?.gedekt) resultaat.kredietDelta = 0;
                 } else {
                     const schade = 18;
                     this.schipHP = Math.max(1, this.schipHP - schade);
@@ -2112,12 +2084,10 @@ class GameState {
 
             case 'concurrent_sabotage': {
                 const extra = Math.floor(this.brandstof * 0.20);
-                if (this.verzekering?.actief) {
-                    resultaat.bericht = `Brandstoffilters gesaboteerd! Extra verbruik (⛽ −${extra} l) gedekt door verzekering! 🛡️`;
-                } else {
-                    this.brandstof = Math.max(0, this.brandstof - extra);
-                    resultaat.bericht = `Brandstoffilters gesaboteerd door een concurrent! ⛽ −${extra} l extra verlies. Resterend: ${this.brandstof} l.`;
-                }
+                const saboWerkelijk = Math.min(extra, this.brandstof);
+                this.brandstof = Math.max(0, this.brandstof - extra);
+                resultaat.bericht = `Brandstoffilters gesaboteerd door een concurrent! ⛽ −${saboWerkelijk} l extra verlies. Resterend: ${this.brandstof} l.`;
+                resultaat.verzekeringsInfo = this._verzekeringsUitkering(this._brandstofCreditWaarde(saboWerkelijk));
                 break;
             }
 
@@ -2197,8 +2167,13 @@ class GameState {
 
         // Log resultaat
         if (resultaat.bericht) {
-            const type = resultaat.kredietDelta < 0 || resultaat.schade ? 'waarschuwing' : (resultaat.kredietDelta > 0 ? 'succes' : 'info');
-            this.voegBerichtToe(resultaat.bericht, type);
+            let logTekst = resultaat.bericht;
+            const vi = resultaat.verzekeringsInfo;
+            if (vi?.gedekt && vi.uitkering > 0) logTekst += ` 🛡️ Verzekering: +${this.formatteerKrediet(vi.uitkering)}.`;
+            else if (vi?.gedekt) logTekst += ' 🛡️ Verzekering: schade gedekt.';
+            const wasNegatief = resultaat.kredietDelta < 0 || resultaat.schade || vi?.gedekt === false;
+            const type = wasNegatief ? 'waarschuwing' : (resultaat.kredietDelta > 0 ? 'succes' : 'info');
+            this.voegBerichtToe(logTekst, type);
         }
 
         this.controleerSpelEinde();
@@ -2342,6 +2317,22 @@ class GameState {
         if (schade <= 0) return 0;
         const prijs = this.locatie === 'techton' ? 6 : 12;
         return schade * prijs;
+    }
+
+    // Verzekering: trek bedrag altijd af, keer het terug als verzekerd.
+    // Retourneert verzekeringsInfo voor de UI.
+    _verzekeringsUitkering(bedrag) {
+        if (bedrag <= 0) return null;
+        if (this.verzekering?.actief) {
+            this.speler.krediet += bedrag;
+            return { gedekt: true, uitkering: bedrag };
+        }
+        return { gedekt: false };
+    }
+
+    // Creditwaarde van verloren brandstof (op basis van vertrekplaneet-prijs).
+    _brandstofCreditWaarde(liter) {
+        return Math.round(liter * (this.brandstofPrijzen[this.locatie] || 12));
     }
 
     repareerSchip() {
