@@ -1072,6 +1072,14 @@ html, body {
 .ev-niet-gedekt { color: var(--tekst-dim); }
 .ev-payout { color: var(--tekst); margin-top: 4px; }
 
+/* Verzekering statistieken overlay */
+#verzekering-stats-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1200; }
+#verzekering-stats-overlay.verborgen { display: none !important; }
+.vstat-rij { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--rand); }
+.vstat-saldo-rij { display: flex; justify-content: space-between; align-items: center; padding: 10px 0 16px; font-weight: 600; }
+.vstat-label { color: var(--tekst-dim); font-size: 0.9em; }
+.vstat-waarde { font-family: 'Share Tech Mono', monospace; font-size: 0.95em; }
+
 /* ===== EINDESCHERM ===== */
 #einde-scherm {
     align-items: center;

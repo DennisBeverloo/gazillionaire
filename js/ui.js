@@ -1497,7 +1497,8 @@ const UI = {
             const verzActief = state.verzekering?.actief;
             let verzHtml = '';
             if (verzActief) {
-                verzHtml = `<div class="kleur-groen" style="font-size:0.88em">✓ Verzekering actief — je bent gedekt voor de komende reis.</div>`;
+                verzHtml = `<div class="kleur-groen" style="font-size:0.88em">✓ Verzekering actief — je bent gedekt voor de komende reis.</div>
+                    <button class="knop dimmed klein" style="margin-top:8px" onclick="UI.toonVerzekeringOverzicht()">📊 Bekijk overzicht</button>`;
             } else {
                 const kanVerz = state.speler.krediet >= verzPrijs;
                 const cap = state.schip?.laadruimte ?? 0;
@@ -1505,7 +1506,8 @@ const UI = {
                 verzHtml = `<div style="font-size:0.85em;margin-bottom:8px">Dekt verliezen door piraten, storms, lekken en douaneboetes. Vervalt bij aankomst.</div>
                     <div class="upgrade-prijs">${state.formatteerKrediet(verzPrijs)}</div>
                     <div class="kleur-dimmed" style="font-size:0.78em;margin-bottom:8px">Basisprijs + ${cap} ton laadruimte${paxCap > 0 ? ` + ${paxCap} passagiersplaatsen` : ''}</div>
-                    <button class="knop primair klein" ${!kanVerz ? 'disabled' : ''} onclick="App.koopVerzekering()">${kanVerz ? 'Sluit af' : 'Onvoldoende credits'}</button>`;
+                    <button class="knop primair klein" ${!kanVerz ? 'disabled' : ''} onclick="App.koopVerzekering()">${kanVerz ? 'Sluit af' : 'Onvoldoende credits'}</button>
+                    <button class="knop dimmed klein" style="margin-top:6px" onclick="UI.toonVerzekeringOverzicht()">📊 Bekijk overzicht</button>`;
             }
             html += `<div class="haven-blok haven-blok-verzekering"><div class="haven-blok-header">🛡️ Reisverzekering</div><div class="haven-blok-inhoud">${verzHtml}</div></div>`;
         } // einde verzekering-check
@@ -2268,6 +2270,17 @@ const UI = {
         else { gevolgEl.textContent = ''; gevolgEl.style.display = 'none'; }
         this._toonEventMarketingMelding(marketingGemist ?? null);
         this._toonEventVerzekering(verzekeringsInfo);
+    },
+
+    toonVerzekeringOverzicht() {
+        const st = state.verzekeringStatistiek ?? { premiesBetaald: 0, vergoedingen: 0 };
+        const saldo = st.vergoedingen - st.premiesBetaald;
+        document.getElementById('vstat-premies').textContent = `−${state.formatteerKrediet(st.premiesBetaald)}`;
+        document.getElementById('vstat-vergoedingen').textContent = `+${state.formatteerKrediet(st.vergoedingen)}`;
+        const saldoEl = document.getElementById('vstat-saldo');
+        saldoEl.textContent = saldo >= 0 ? `+${state.formatteerKrediet(saldo)}` : state.formatteerKrediet(saldo);
+        saldoEl.className = `vstat-waarde ${saldo >= 0 ? 'kleur-groen' : 'kleur-rood'}`;
+        document.getElementById('verzekering-stats-overlay').classList.remove('verborgen');
     },
 
     _toonEventMarketingMelding(info) {

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gazillionaire</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>">
-    <link rel="stylesheet" href="style.css?v=5.4.4">
+    <link rel="stylesheet" href="style.css?v=5.4.5">
 </head>
 <body>
 
@@ -50,7 +50,7 @@
         </div>
         <button class="knop primair groot" id="start-knop">Begin de reis &rarr;</button>
     </div>
-    <span class="versie-label">v5.4.4</span>
+    <span class="versie-label">v5.4.5</span>
 </div>
 
 <!-- ============================================================
@@ -263,6 +263,22 @@
     </div>
 </div>
 
+<!-- Verzekering statistieken overlay -->
+<div id="verzekering-stats-overlay" class="verborgen">
+    <div class="instellingen-modal" style="max-width:380px">
+        <div class="instellingen-header">
+            <span class="instellingen-titel">🛡️ Verzekeringsoverzicht</span>
+            <button class="instellingen-sluit" onclick="document.getElementById('verzekering-stats-overlay').classList.add('verborgen')">✕</button>
+        </div>
+        <div class="instellingen-body">
+            <div class="vstat-rij"><span class="vstat-label">Premies betaald</span><span id="vstat-premies" class="vstat-waarde kleur-rood"></span></div>
+            <div class="vstat-rij"><span class="vstat-label">Totaal vergoed</span><span id="vstat-vergoedingen" class="vstat-waarde kleur-groen"></span></div>
+            <div class="vstat-saldo-rij"><span class="vstat-label">Netto resultaat</span><span id="vstat-saldo" class="vstat-waarde"></span></div>
+            <button class="knop dimmed instellingen-knop" onclick="document.getElementById('verzekering-stats-overlay').classList.add('verborgen')">Sluiten</button>
+        </div>
+    </div>
+</div>
+
 <!-- Top balk tooltip -->
 <div id="top-tooltip" class="top-tooltip verborgen"></div>
 
@@ -273,10 +289,10 @@
 <script src="js/audio.js"></script>
 <script src="js/config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="js/data.js?v=5.4.4"></script>
-<script src="js/state.js?v=5.4.4"></script>
-<script src="js/ui.js?v=5.4.4"></script>
-<script src="js/db.js?v=5.4.4"></script>
-<script src="js/main.js?v=5.4.4"></script>
+<script src="js/data.js?v=5.4.5"></script>
+<script src="js/state.js?v=5.4.5"></script>
+<script src="js/ui.js?v=5.4.5"></script>
+<script src="js/db.js?v=5.4.5"></script>
+<script src="js/main.js?v=5.4.5"></script>
 </body>
 </html>

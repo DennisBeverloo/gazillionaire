@@ -421,6 +421,13 @@ Kans op een event per reisbeurt: ~52% normaal, ~70% op gevaarlijke planeten (Mor
 
 *Sommige events hebben keuzes met consequenties (bijv. piraten: betaal vs vlucht). Muiterij-event kan altijd optreden bij crew happiness < 25 (18% kans), ongeacht het normale event-systeem.*
 
+### Verzekering — statistieken
+
+De verzekerings-tegel op het Financiën-tab toont een **📊 Bekijk overzicht** knop. Die opent een popup met:
+- **Premies betaald** — totaal aan verzekeringspremies afgesloten tijdens het spel
+- **Totaal vergoed** — totaal aan uitkeringen ontvangen via de verzekering
+- **Netto resultaat** — vergoed minus premies (groen = winst, rood = verlies)
+
 ### Event-popup structuur
 
 De event-popup toont drie aparte secties:

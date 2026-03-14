@@ -97,6 +97,7 @@ class GameState {
 
         // Verzekering
         this.verzekering = null;            // null of { actief: true }
+        this.verzekeringStatistiek = { premiesBetaald: 0, vergoedingen: 0 };
 
         // Crew
         this.crew = {
@@ -2339,6 +2340,7 @@ class GameState {
             return { succes: false, reden: 'Onvoldoende krediet!' };
         this.speler.krediet -= kosten;
         this.verzekering = { actief: true };
+        this.verzekeringStatistiek.premiesBetaald = (this.verzekeringStatistiek?.premiesBetaald ?? 0) + kosten;
         this.voegBerichtToe(`🛡️ Reisverzekering afgesloten voor ${this.formatteerKrediet(kosten)}. Geldig voor de komende reis.`, 'info');
         return { succes: true };
     }
@@ -2356,6 +2358,7 @@ class GameState {
         if (bedrag <= 0) return null;
         if (this.verzekering?.actief) {
             this.speler.krediet += bedrag;
+            this.verzekeringStatistiek.vergoedingen = (this.verzekeringStatistiek?.vergoedingen ?? 0) + bedrag;
             return { gedekt: true, uitkering: bedrag };
         }
         return { gedekt: false };
@@ -2826,6 +2829,7 @@ class GameState {
                 eindeReden: this.eindeReden || null,
                 marketingActief: this.marketingActief || null,
                 verzekering: this.verzekering || null,
+                verzekeringStatistiek: this.verzekeringStatistiek ?? { premiesBetaald: 0, vergoedingen: 0 },
                 concurrenten: this.concurrenten,
                 nettoWaardeGeschiedenisSpeler: this.nettoWaardeGeschiedenisSpeler,
                 ladingVerdacht: this.ladingVerdacht,
@@ -2891,6 +2895,7 @@ class GameState {
             this.maxSchuld = data.maxSchuld ?? MAX_SCHULD;
             this._insiderBoost = data._insiderBoost ?? null;
             this._noodoproepBonus = data._noodoproepBonus ?? false;
+            if (!this.verzekeringStatistiek) this.verzekeringStatistiek = { premiesBetaald: 0, vergoedingen: 0 };
             // Tutorial systeem: migratie van oude saves (tutorialActief ontbreekt → uitschakelen)
             if (data.tutorialActief !== undefined) {
                 this.tutorialActief = data.tutorialActief;
