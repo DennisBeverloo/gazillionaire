@@ -275,11 +275,7 @@ const UI = {
 
         // Marketing (marketing unlocked)
         if (state.isUnlocked('marketing')) {
-            let mktStatus = 'open';
-            if (state.marketingActief) {
-                mktStatus = (!dest || state.marketingActief.planeet === dest.id) ? 'groen' : 'oranje';
-            }
-            items.push({ label: 'Marketing opgezet', status: mktStatus });
+            items.push({ label: 'Marketing opgezet', status: state.marketingActief ? 'groen' : 'open' });
         }
 
         return items;

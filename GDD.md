@@ -558,7 +558,7 @@ Een compacte statuslijst in het bestemmingspaneel (rechterzijbalk) die verschijn
 | Passagiers aan boord | passagiers | Capaciteit vol | Deels bezet | — | Geen |
 | Brandstof voldoende | brandstof | Genoeg voor rit | — | Tekort | — |
 | Verzekering actief | verzekering | Actief | — | — | Niet actief |
-| Marketing opgezet | marketing | Campagne voor deze bestemming | Campagne voor andere bestemming | — | Geen campagne |
+| Marketing opgezet | marketing | Campagne actief | — | — | Geen campagne |
 
 Items zijn alleen zichtbaar als de bijbehorende tutorial-feature unlocked is.
 
