@@ -1196,6 +1196,7 @@ class GameState {
 
     initAgriaVeiling() {
         this.agriaVeiling = null;
+        if (!this.isUnlocked('planeet_diensten')) return;
         if (Math.random() > 0.60) return; // 60% kans
 
         const goedId = Math.random() < 0.5 ? 'nebulakorrels' : 'aquapure';
