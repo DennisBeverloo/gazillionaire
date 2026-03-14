@@ -236,27 +236,30 @@ const UI = {
         const items = [];
 
         // Bestemming (altijd eerste item)
-        items.push({ label: 'Bestemming gekozen', status: dest ? 'groen' : 'open' });
+        items.push({
+            label: dest ? 'Bestemming gekozen' : 'Geen bestemming gekozen',
+            status: dest ? 'groen' : 'rood',
+        });
 
         // Goederen (basis — altijd zichtbaar)
         const geladen = state.getLadingGewicht?.() ?? 0;
         const maxLading = state.schip?.laadruimte ?? 0;
-        let cargoStatus;
-        if (geladen === 0) cargoStatus = 'open';
-        else if (maxLading > 0 && geladen >= maxLading) cargoStatus = 'groen';
-        else cargoStatus = 'oranje';
-        items.push({ label: 'Goederen geladen', status: cargoStatus });
+        let cargoLabel, cargoStatus;
+        if (geladen === 0)                                   { cargoLabel = 'Geen vracht geladen';         cargoStatus = 'open'; }
+        else if (maxLading > 0 && geladen >= maxLading)     { cargoLabel = 'Vrachtruim vol';               cargoStatus = 'groen'; }
+        else                                                  { cargoLabel = 'Vracht geladen (ruimte over)'; cargoStatus = 'oranje'; }
+        items.push({ label: cargoLabel, status: cargoStatus });
 
         // Passagiers (passagiers unlocked)
         if (state.isUnlocked('passagiers')) {
             const pax = state.passagiers ?? 0;
             const maxPax = state.schip?.passagiersCapaciteit ?? 0;
             if (maxPax > 0) {
-                let paxStatus;
-                if (pax === 0) paxStatus = 'open';
-                else if (pax >= maxPax) paxStatus = 'groen';
-                else paxStatus = 'oranje';
-                items.push({ label: 'Passagiers aan boord', status: paxStatus });
+                let paxLabel, paxStatus;
+                if (pax === 0)         { paxLabel = 'Geen passagiers';                    paxStatus = 'open'; }
+                else if (pax >= maxPax){ paxLabel = 'Alle passagiers aan boord';          paxStatus = 'groen'; }
+                else                   { paxLabel = 'Passagiers aan boord (ruimte over)'; paxStatus = 'oranje'; }
+                items.push({ label: paxLabel, status: paxStatus });
             }
         }
 
@@ -264,27 +267,35 @@ const UI = {
         if (state.isUnlocked('brandstof')) {
             const brandstof = state.brandstof ?? 0;
             const maxBrandstof = state.schip?.brandstofTank ?? 0;
-            let fuelStatus;
+            const pct = maxBrandstof > 0 ? brandstof / maxBrandstof : 1;
+            let fuelLabel, fuelStatus;
             if (dest) {
                 const nodig = state.berekenBrandstofVerbruik(state.locatie, dest.id);
-                fuelStatus = brandstof >= nodig ? 'groen' : 'rood';
+                if (brandstof < nodig)          { fuelLabel = 'Niet genoeg brandstof'; fuelStatus = 'rood'; }
+                else if (pct < 0.75)            { fuelLabel = 'Voldoende brandstof';   fuelStatus = 'oranje'; }
+                else                            { fuelLabel = 'Genoeg brandstof';      fuelStatus = 'groen'; }
             } else {
-                const pct = maxBrandstof > 0 ? brandstof / maxBrandstof : 1;
-                if (pct >= 0.75) fuelStatus = 'groen';
-                else if (pct >= 0.3) fuelStatus = 'oranje';
-                else fuelStatus = 'rood';
+                if (pct < 0.3)      { fuelLabel = 'Niet genoeg brandstof'; fuelStatus = 'rood'; }
+                else if (pct < 0.75){ fuelLabel = 'Voldoende brandstof';   fuelStatus = 'oranje'; }
+                else                { fuelLabel = 'Genoeg brandstof';      fuelStatus = 'groen'; }
             }
-            items.push({ label: 'Brandstof voldoende', status: fuelStatus });
+            items.push({ label: fuelLabel, status: fuelStatus });
         }
 
         // Verzekering (verzekering unlocked)
         if (state.isUnlocked('verzekering')) {
-            items.push({ label: 'Verzekering actief', status: state.verzekering?.actief ? 'groen' : 'open' });
+            items.push({
+                label: state.verzekering?.actief ? 'Verzekering afgesloten' : 'Geen verzekering',
+                status: state.verzekering?.actief ? 'groen' : 'open',
+            });
         }
 
         // Marketing (marketing unlocked)
         if (state.isUnlocked('marketing')) {
-            items.push({ label: 'Marketing opgezet', status: state.marketingActief ? 'groen' : 'open' });
+            items.push({
+                label: state.marketingActief ? 'Actieve marketingcampagne' : 'Geen marketing',
+                status: state.marketingActief ? 'groen' : 'open',
+            });
         }
 
         return items;
