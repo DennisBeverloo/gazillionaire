@@ -523,34 +523,20 @@ html, body {
     overflow: hidden;
 }
 .planeet-info-kaart {
-    position: relative;
-    min-height: 130px;
-    background-size: cover;
-    background-position: center;
-    background-color: var(--bg-diep);
-    background-image: radial-gradient(circle at 35% 35%, var(--planeet-kleur, #00d4ff)66, transparent 70%);
-    display: flex;
-    align-items: stretch;
-    padding: 8px;
-}
-.planeet-info-kaart::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(to top, rgba(4,6,13,0.7) 0%, rgba(4,6,13,0.15) 60%, rgba(4,6,13,0.05) 100%);
-}
-.planeet-info-overlay {
-    position: relative;
-    z-index: 1;
-    padding: 8px 12px;
-    width: 100%;
-    box-sizing: border-box;
-    background: rgba(0, 0, 0, 0.55);
-    border-radius: 6px;
-    backdrop-filter: blur(2px);
     display: flex;
     flex-direction: column;
-    justify-content: flex-start;
+    background-color: var(--bg-diep);
+    overflow: hidden;
+}
+.planeet-info-img {
+    width: 100%;
+    height: 110px;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+}
+.planeet-info-tekst {
+    padding: 10px 14px 8px;
 }
 
 /* "Ga naar planeet" knop in zijbalk */
@@ -593,11 +579,10 @@ html, body {
     text-shadow: 0 1px 4px rgba(0,0,0,0.8);
 }
 .planeet-info-beschr {
-    font-size: 0.72em;
-    color: var(--tekst-dim);
+    font-size: 0.84em;
+    color: var(--tekst);
     line-height: 1.4;
-    margin-bottom: 5px;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+    margin-bottom: 6px;
 }
 .planeet-tags {
     display: flex;
@@ -1132,7 +1117,7 @@ html, body {
 .galact-goed-col {
     text-align: left !important;
     color: var(--tekst);
-    padding-right: 14px !important;
+    padding: 7px 14px 7px 10px !important;
     white-space: nowrap;
     position: sticky;
     left: 0;
@@ -1160,7 +1145,7 @@ html, body {
     color: #ff7090;
     font-weight: bold;
 }
-.galact-tabel tbody tr:hover .galact-cel { background-color: rgba(255,255,255,0.025); }
+.galact-tabel tbody tr:hover td { background-color: rgba(255,255,255,0.04); }
 .galact-tabel tbody tr:hover .galact-cel.galact-goedkoop { background: rgba(57,255,20,0.25); }
 .galact-tabel tbody tr:hover .galact-cel.galact-duur      { background: rgba(255,56,85,0.25); }
 .galact-tabel th.galact-bestemming-th {
@@ -1369,8 +1354,15 @@ html, body {
 }
 .tutorial-icoon {
     font-size: 3em;
-    margin-bottom: 14px;
+    margin-bottom: 10px;
     display: block;
+}
+.tutorial-unlocked-label {
+    font-size: 0.72em;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    margin-bottom: 6px;
 }
 .tutorial-modal h3 {
     font-family: var(--font-titel);

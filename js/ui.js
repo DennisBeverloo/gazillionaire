@@ -196,7 +196,7 @@ const UI = {
 
         // Inhoud altijd renderen maar verbergen als er geen bestemming is (behoudt hoogte)
         const verbergStijl = dest ? '' : 'visibility:hidden';
-        const preflightHtml = dest ? this._renderPreflightHtml(this._preflightItems(dest)) : '';
+        const preflightHtml = this._renderPreflightHtml(this._preflightItems(dest));
 
         container.innerHTML = `<div class="bestemming-paneel">
             <div class="bestemming-inhoud" style="${verbergStijl}">
@@ -218,8 +218,8 @@ const UI = {
                         : dest ? `<span class="kleur-rood">✗ tekort: ${brandstofNodig - state.brandstof} l</span>` : ''}
                     </div>
                 </div>` : ''}
-                ${preflightHtml}
             </div>
+            ${preflightHtml}
             <button class="knop ${dest && heeftGenoeg ? 'primair' : dest ? 'gevaar' : 'dimmed'}"
                     style="width:100%;padding:10px 0;margin-top:8px"
                     ${dest ? `onclick="App.reisNaar('${dest.id}')"` : 'disabled'}>
@@ -234,6 +234,9 @@ const UI = {
 
     _preflightItems(dest) {
         const items = [];
+
+        // Bestemming (altijd eerste item)
+        items.push({ label: 'Bestemming gekozen', status: dest ? 'groen' : 'open' });
 
         // Goederen (basis — altijd zichtbaar)
         const geladen = state.getLadingGewicht?.() ?? 0;
@@ -295,7 +298,7 @@ const UI = {
             <span class="preflight-dot" style="color:${KLEUR[it.status]}">${DOT[it.status]}</span>
             <span class="${it.status === 'open' ? 'kleur-dimmed' : ''}">${it.label}</span>
         </div>`).join('');
-        return `<div class="preflight-checklist"><div class="preflight-titel">Pre-flight</div>${rows}</div>`;
+        return `<div class="preflight-checklist"><div class="preflight-titel">Pre-flight Checklist</div>${rows}</div>`;
     },
 
     // =========================================================================
@@ -499,8 +502,9 @@ const UI = {
         const tags = this._getPlaneetServiceTags(planeet).map(s => `<span class="planeet-tag">${s}</span>`);
 
         container.innerHTML = `
-            <div class="planeet-info-kaart" style="background-image:url('${imgSrc}');--planeet-kleur:${planeet.kleur}">
-                <div class="planeet-info-overlay">
+            <div class="planeet-info-kaart" style="--planeet-kleur:${planeet.kleur}">
+                <img src="${imgSrc}" class="planeet-info-img" alt="${planeet.naam}" onerror="this.style.opacity='0'">
+                <div class="planeet-info-tekst">
                     <div class="planeet-info-naam" style="color:${planeet.kleur}">${planeet.naam}</div>
                     <div class="planeet-info-beschr">${planeet.beschrijving}</div>
                     ${tags.length ? `<div class="planeet-tags">${tags.join('')}</div>` : ''}
@@ -724,7 +728,7 @@ const UI = {
             const minPrijs  = Math.min(...allePrijzen);
             const maxPrijs  = Math.max(...allePrijzen);
             const prijsKlas = prijs === minPrijs ? 'kleur-groen' : prijs === maxPrijs ? 'kleur-rood' : '';
-            const tipHtml   = `<span class="goed-tip">${goed.beschrijving}<br><span class="goed-tip-prijs">Galactisch bereik nu: ${minPrijs}–${maxPrijs} cr &nbsp;·&nbsp; basis ${goed.basisPrijs} cr</span></span>`;
+            const tipHtml   = `<span class="goed-tip">${goed.beschrijving}</span>`;
 
             let marktLabelHtml = '';
             if (planeet.specialiteit?.includes(goed.id)) {
@@ -817,7 +821,7 @@ const UI = {
             const maxPrijs = Math.max(...allePrijzen);
             const tipMin = Math.max(5, Math.round(goed.basisPrijs * 0.25));
             const tipMax = Math.round(goed.basisPrijs * 2.2);
-            const tipHtml2 = `<span class="goed-tip">${goed.beschrijving}<br><span class="goed-tip-prijs">Bereik: ${tipMin}–${tipMax} cr</span></span>`;
+            const tipHtml2 = `<span class="goed-tip">${goed.beschrijving}</span>`;
 
             html += `<tr><td class="galact-goed-col"><span>${goed.icoon}</span><span class="goed-tip-wrap"> ${goed.naam}${tipHtml2}</span></td>`;
             html += `<td class="galact-prijsrange">${tipMin}–${tipMax}</td>`;
