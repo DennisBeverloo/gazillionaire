@@ -474,12 +474,21 @@ const UI = {
             }
             case 'krediet-display': {
                 const schuld = state.speler?.schuld ?? 0;
+                const bankSaldo = state.bankSaldo ?? 0;
+                const bankRij = state.isUnlocked('bank') && bankSaldo > 0
+                    ? `<div class="tt-rij"><span>🏦 Bankrekening</span><span class="tt-prijs">${state.formatteerKrediet(bankSaldo)}</span></div>`
+                    : '';
+                const totaal = state.speler.krediet + bankSaldo - schuld;
+                const totaalRij = (bankSaldo > 0 || schuld > 0) && state.isUnlocked('bank')
+                    ? `<div class="tt-scheidslijn"></div><div class="tt-rij" style="font-weight:600"><span>Netto vermogen</span><span class="${totaal >= 0 ? 'tt-prijs' : ''}" style="${totaal < 0 ? 'color:var(--rood)' : ''}">${state.formatteerKrediet(totaal)}</span></div>`
+                    : '';
                 return `<div class="tt-label">Saldo</div>
-                    <div class="tt-rij"><span>Credits</span><span class="tt-prijs">${state.formatteerKrediet(state.speler.krediet)}</span></div>
+                    <div class="tt-rij"><span>💰 Cash</span><span class="tt-prijs">${state.formatteerKrediet(state.speler.krediet)}</span></div>
+                    ${bankRij}
                     ${schuld > 0 ? `
                     <div class="tt-rij"><span>Lening</span><span style="color:var(--rood)">${state.formatteerKrediet(schuld)}</span></div>
                     <div class="tt-rij"><span>Rente</span><span style="color:var(--oranje)">${(RENTE_PERCENTAGE * 100).toFixed(0)}% per ${RENTE_INTERVAL} beurten</span></div>
-                    ` : ''}`;
+                    ` : ''}${totaalRij}`;
             }
             case 'nav-logboek':
                 return `<div class="tt-label">📋 Reislogboek</div><div class="tt-beschr">Alle gebeurtenissen en berichten van deze reis.</div>`;

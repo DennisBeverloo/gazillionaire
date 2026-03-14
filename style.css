@@ -344,6 +344,7 @@ html, body {
     color: var(--tekst);
 }
 .tt-ster { color: var(--goud); letter-spacing: 1px; }
+.tt-scheidslijn { border-top: 1px solid var(--rand); margin: 6px 0 2px; }
 .tt-prijs { color: var(--goud); }
 .tt-leeg { color: var(--tekst-dim); font-style: italic; }
 .tt-schade { color: var(--rood); margin-top: 6px; font-size: 0.9em; }
