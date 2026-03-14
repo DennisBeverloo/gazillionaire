@@ -592,9 +592,7 @@ const UI = {
             const minPrijs  = Math.min(...allePrijzen);
             const maxPrijs  = Math.max(...allePrijzen);
             const prijsKlas = prijs === minPrijs ? 'kleur-groen' : prijs === maxPrijs ? 'kleur-rood' : '';
-            const tipMin    = Math.max(5, Math.round(goed.basisPrijs * 0.25));
-            const tipMax    = Math.round(goed.basisPrijs * 2.2);
-            const tipHtml   = `<span class="goed-tip">${goed.beschrijving}<br><span class="goed-tip-prijs">Bereik: ${tipMin}–${tipMax} cr &nbsp;·&nbsp; basis ${goed.basisPrijs} cr</span></span>`;
+            const tipHtml   = `<span class="goed-tip">${goed.beschrijving}<br><span class="goed-tip-prijs">Galactisch bereik nu: ${minPrijs}–${maxPrijs} cr &nbsp;·&nbsp; basis ${goed.basisPrijs} cr</span></span>`;
 
             let marktLabelHtml = '';
             if (planeet.specialiteit?.includes(goed.id)) {
@@ -635,7 +633,7 @@ const UI = {
                 <td style="font-family:var(--font-data)">${aanBoordTd}</td>
                 <td class="handel-col-sec" style="font-family:var(--font-data)">${prijsBetaaldTd}</td>
                 <td class="${prijsKlas}" style="font-family:var(--font-data)">${state.formatteerKrediet(prijs)}${modHtml}</td>
-                <td class="handel-col-sec" style="font-family:var(--font-data)">${tipMin}–${tipMax}</td>
+                <td class="handel-col-sec" style="font-family:var(--font-data)">${minPrijs}–${maxPrijs}</td>
                 <td>
                     <div class="actie-rij">
                         <button class="knop primair klein" onclick="App.koopN('${goed.id}', 1, event)" ${maxKoop<=0?'disabled':''}>+1</button>
@@ -1976,7 +1974,11 @@ const UI = {
             btn.onclick = () => {
                 this.verbergEventPopup();
                 if (state.fase === 'einde') { UI.toonEindeScherm(); return; }
-                state.aankomst();
+                const aankomstResult = state.aankomst();
+                if (aankomstResult?.passagiersInfo) {
+                    const pi = aankomstResult.passagiersInfo;
+                    UI.toonTransactieToast({ icoon: '🧳', titel: `${pi.aantal} passagier${pi.aantal > 1 ? 's' : ''} afgeleverd`, totaal: pi.totaal });
+                }
                 if (state.fase === 'einde') { state.wisSave(); } else { state.slaOp(); }
                 const planNaam = PLANETEN.find(p => p.id === state.locatie)?.naam ?? '';
                 App._startFase2(() => {

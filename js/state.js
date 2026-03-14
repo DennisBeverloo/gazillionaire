@@ -280,8 +280,8 @@ class GameState {
                     : planeet?.vraag?.includes(goedId)        ? VOORRAAD_VRAAG
                     : VOORRAAD_BASIS;
         const stockRatio = Math.max(0, Math.min(1, (voorraad - range.min) / (range.max - range.min)));
-        // stockRatio 0 = minimale voorraad (+30% prijs), 0.5 = normaal, 1 = vol (−25% prijs)
-        const voorraadMod = 1.0 + 0.30 * (1 - 2 * stockRatio);
+        // stockRatio 0 = minimale voorraad (+20% prijs), 0.5 = normaal, 1 = vol (−20% prijs)
+        const voorraadMod = 1.0 + 0.20 * (1 - 2 * stockRatio);
         return Math.max(5, Math.round(naBasisMod * voorraadMod));
     }
 
@@ -1655,7 +1655,7 @@ class GameState {
         }
 
         // Marktimpact: wordt pas bij vertrek geflusht (voorkomt direct terugverkopen met winst)
-        this._visitMarktSaldo[goedId] = (this._visitMarktSaldo[goedId] ?? 0) + aantal * 0.004;
+        this._visitMarktSaldo[goedId] = (this._visitMarktSaldo[goedId] ?? 0) + aantal * 0.002;
 
         this.voegBerichtToe(`Gekocht: ${aantal}× ${goed.naam} voor ${this.formatteerKrediet(totaal)}${this.schip?.spearheadBonus ? ' (−8% Spearhead)' : ''}.`, 'info');
         this.controleerAchievements();
@@ -1690,7 +1690,7 @@ class GameState {
         this.statistieken.verkopen = (this.statistieken.verkopen ?? 0) + 1;
 
         // Marktimpact: wordt pas bij vertrek geflusht
-        this._visitMarktSaldo[goedId] = (this._visitMarktSaldo[goedId] ?? 0) - aantal * 0.005;
+        this._visitMarktSaldo[goedId] = (this._visitMarktSaldo[goedId] ?? 0) - aantal * 0.0025;
 
         // Verhoog planeetvoorraad bij verkoop
         if (this.planetVoorraden?.[this.locatie]) {
