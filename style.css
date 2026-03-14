@@ -1404,33 +1404,48 @@ html, body {
     cursor: pointer;
 }
 
-/* ACHIEVEMENT TOAST */
-#achievement-toast {
+/* ===== TOAST SYSTEEM ===== */
+#toast-container {
     position: fixed;
-    bottom: 90px;
-    right: 20px;
-    z-index: 200;
+    top: calc(var(--top-balk-h, 50px) + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1500;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: stretch;
+    pointer-events: none;
+    width: 400px;
+    max-width: 90vw;
+}
+.toast {
     background: var(--bg-paneel);
-    border: 1px solid var(--goud);
+    border: 1px solid var(--rand-actief);
     border-radius: 10px;
-    padding: 14px 18px;
+    padding: 12px 16px;
     display: flex;
     align-items: center;
-    gap: 14px;
-    box-shadow: 0 0 30px rgba(255,215,0,0.2);
+    gap: 12px;
     opacity: 0;
-    pointer-events: none;
-    transform: translateX(calc(100% + 40px));
-    transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.4s ease;
-    max-width: 320px;
+    transform: translateY(-16px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    box-shadow: 0 6px 28px rgba(0,0,0,0.5);
 }
-#achievement-toast.zichtbaar {
+.toast.zichtbaar {
     opacity: 1;
-    pointer-events: auto;
-    transform: translateX(0);
+    transform: translateY(0);
 }
-.toast-icoon { font-size: 2em; }
-.toast-naam { color: var(--goud); font-family: var(--font-titel); font-size: 0.85em; margin-bottom: 3px; }
+.toast.verdwijnt {
+    opacity: 0;
+    transform: translateY(-16px);
+    transition: opacity 0.45s ease, transform 0.45s ease;
+}
+.toast-goud { border-color: var(--goud); box-shadow: 0 0 28px rgba(255,215,0,0.15); }
+.toast-groen { border-color: var(--groen); }
+.toast-rood  { border-color: var(--rood); }
+.toast-icoon { font-size: 2em; flex-shrink: 0; }
+.toast-naam  { font-family: var(--font-titel); font-size: 0.82em; margin-bottom: 3px; }
 .toast-beschr { color: var(--tekst-dim); font-size: 0.78em; }
 
 /* ACHIEVEMENTS TAB */
@@ -1712,40 +1727,6 @@ html, body {
 .floating-toast-koop    { color: #ff6070; }
 .floating-toast-winst   { color: #39ff14; }
 .floating-toast-verlies { color: #ff6070; }
-
-/* TRANSACTIE TOAST */
-#transactie-toast {
-    position: fixed;
-    bottom: 90px;
-    left: 20px;
-    z-index: 200;
-    background: var(--bg-paneel);
-    border: 1px solid var(--groen);
-    border-radius: 10px;
-    padding: 12px 16px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    box-shadow: 0 0 24px rgba(57,255,20,0.12);
-    opacity: 0;
-    pointer-events: none;
-    transform: translateX(calc(-100% - 40px));
-    transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.4s ease;
-    max-width: 280px;
-}
-#transactie-toast.zichtbaar {
-    opacity: 1;
-    pointer-events: auto;
-    transform: translateX(0);
-}
-#transactie-toast.verlies {
-    border-color: var(--rood);
-    box-shadow: 0 0 24px rgba(255,56,85,0.12);
-}
-#transactie-toast.verdwijnt {
-    opacity: 0 !important;
-    transition: opacity 1s ease-out !important;
-}
 
 /* ===== RANGLIJST ===== */
 .ranglijst-lijst { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }

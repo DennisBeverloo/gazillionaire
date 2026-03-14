@@ -6,6 +6,12 @@ const FUEL_IMG = '<img src="assets/fuel.png" class="icoon-brandstof" alt="brands
 
 const UI = {
 
+    // Toast queue state
+    _toastQueue: [],
+    _toastActiefCount: 0,
+    _deferToastsAankomst: false,
+    _pendingAankomstToasts: [],
+
     // =========================================================================
     // SCHERM BEHEER
     // =========================================================================
@@ -299,6 +305,9 @@ const UI = {
     updateTopBalk() {
         document.body.dataset.planeet = state.locatie;
         const planeetObj = PLANETEN.find(p => p.id === state.locatie);
+        // Stel CSS-variabele in voor toast-positionering onder de top-balk
+        const topBalk = document.getElementById('top-balk');
+        if (topBalk) document.documentElement.style.setProperty('--top-balk-h', topBalk.getBoundingClientRect().bottom + 'px');
         document.body.style.setProperty('--planeet-knop-kleur', planeetObj?.kleur ?? 'var(--accent)');
 
         const el = id => document.getElementById(id);
@@ -2231,20 +2240,18 @@ const UI = {
     },
 
     // =========================================================================
-    // ACHIEVEMENT TOAST
+    // TOAST SYSTEEM (gecentraliseerde queue, max 2 tegelijk, 3s zichtbaar)
     // =========================================================================
 
     toonAchievementToast(ach) {
-        Audio.achievement();
-        const toast = document.getElementById('achievement-toast');
-        if (!toast) return;
-        toast.innerHTML = `<span class="toast-icoon">${ach.icoon}</span>
-            <div><div class="toast-naam">Achievement: ${ach.naam}</div>
-            <div class="toast-beschr">${ach.beschrijving}</div>
-            ${ach.beloning ? `<div class="toast-beschr kleur-goud">+${new Intl.NumberFormat('nl-NL').format(ach.beloning)} credits beloning</div>` : ''}</div>`;
-        toast.classList.add('zichtbaar');
-        clearTimeout(this._toastTimer);
-        this._toastTimer = setTimeout(() => toast.classList.remove('zichtbaar'), 4000);
+        this.toonToast({
+            icoon: ach.icoon,
+            titel: `Achievement: ${ach.naam}`,
+            beschrijving: ach.beschrijving,
+            beloning: ach.beloning,
+            kleur: 'goud',
+            geluid: 'achievement',
+        });
     },
 
     toonKoopToast(btn, bedrag) {
@@ -2278,29 +2285,68 @@ const UI = {
     },
 
     toonTransactieToast(config) {
-        const toast = document.getElementById('transactie-toast');
-        if (!toast) return;
-        const fmt = n => new Intl.NumberFormat('nl-NL').format(Math.round(n));
-        const winstHtml = (config.winst !== undefined && config.winst !== null)
-            ? `<div class="toast-beschr ${config.winst >= 0 ? 'kleur-groen' : 'kleur-rood'}">${config.winst >= 0 ? '+' : ''}${fmt(config.winst)} credits ${config.winst >= 0 ? 'winst' : 'verlies'}</div>`
-            : '';
-        toast.innerHTML = `<span style="font-size:1.6em">${config.icoon}</span>
-            <div>
-                <div class="toast-naam" style="color:var(--tekst);font-size:0.82em">${config.titel}</div>
-                ${config.totaal ? `<div class="toast-beschr kleur-goud">+${fmt(config.totaal)} credits</div>` : ''}
-                ${winstHtml}
-            </div>`;
-        toast.classList.remove('verlies');
-        if (config.winst !== undefined && config.winst !== null && config.winst < 0) {
-            toast.classList.add('verlies');
+        this.toonToast(config);
+    },
+
+    toonToast(config) {
+        if (this._deferToastsAankomst) {
+            this._pendingAankomstToasts.push(config);
+            return;
         }
-        toast.classList.remove('verdwijnt');
-        toast.classList.add('zichtbaar');
-        clearTimeout(this._transactieToastTimer);
-        this._transactieToastTimer = setTimeout(() => {
-            toast.classList.add('verdwijnt');
-            setTimeout(() => toast.classList.remove('zichtbaar', 'verdwijnt'), 1000);
-        }, 5000);
+        this._toastQueue.push(config);
+        this._verwerkToastQueue();
+    },
+
+    _verwerkToastQueue() {
+        while (this._toastActiefCount < 2 && this._toastQueue.length > 0) {
+            const config = this._toastQueue.shift();
+            this._toastActiefCount++;
+            this._toonToastElement(config);
+        }
+    },
+
+    _toonToastElement(config) {
+        const container = document.getElementById('toast-container');
+        if (!container) { this._toastActiefCount--; return; }
+        const fmt = n => new Intl.NumberFormat('nl-NL').format(Math.round(n));
+
+        const el = document.createElement('div');
+        el.className = 'toast' + (config.kleur ? ` toast-${config.kleur}` : '');
+
+        let bodyHtml = '';
+        if (config.beschrijving) bodyHtml += `<div class="toast-beschr">${config.beschrijving}</div>`;
+        if (config.beloning)     bodyHtml += `<div class="toast-beschr kleur-goud">+${fmt(config.beloning)} credits beloning</div>`;
+        if (config.totaal)       bodyHtml += `<div class="toast-beschr kleur-goud">+${fmt(config.totaal)} credits</div>`;
+        if (config.winst !== undefined && config.winst !== null) {
+            bodyHtml += `<div class="toast-beschr ${config.winst >= 0 ? 'kleur-groen' : 'kleur-rood'}">${config.winst >= 0 ? '+' : ''}${fmt(config.winst)} credits ${config.winst >= 0 ? 'winst' : 'verlies'}</div>`;
+        }
+
+        el.innerHTML = `<span class="toast-icoon">${config.icoon ?? ''}</span>
+            <div><div class="toast-naam">${config.titel}</div>${bodyHtml}</div>`;
+        container.appendChild(el);
+
+        // Geluid afspelen wanneer toast verschijnt
+        if (config.geluid === 'achievement') Audio.achievement();
+
+        // Fade in
+        requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('zichtbaar')));
+
+        // Na 3 seconden: fade uit, verwijder, verwerk volgende in queue
+        setTimeout(() => {
+            el.classList.add('verdwijnt');
+            setTimeout(() => {
+                el.remove();
+                this._toastActiefCount--;
+                this._verwerkToastQueue();
+            }, 450);
+        }, 3000);
+    },
+
+    spoelAankomstToasts() {
+        this._deferToastsAankomst = false;
+        const pending = [...this._pendingAankomstToasts];
+        this._pendingAankomstToasts = [];
+        pending.forEach(c => this.toonToast(c));
     },
 
     // =========================================================================

@@ -207,6 +207,7 @@ const App = {
             // Geen event — ga direct naar fase 2 dan aankomst
             this._startFase2(() => {
                 Audio.landing();
+                UI._deferToastsAankomst = true;
                 const aankomstResult = state.aankomst();
                 if (aankomstResult?.passagiersInfo) {
                     const pi = aankomstResult.passagiersInfo;
@@ -220,6 +221,7 @@ const App = {
                     UI.toonScherm('spel-scherm');
                     state.activeTab = 'handel';
                     UI.renderSpel();
+                    UI.spoelAankomstToasts();
                     if (state.fase === 'einde') {
                         UI.toonEindeScherm();
                     } else {
@@ -263,6 +265,7 @@ const App = {
 
             // Altijd aankomst na event (1 stap per reis)
             Audio.landing();
+            UI._deferToastsAankomst = true;
             const aankomstResult = state.aankomst();
             if (aankomstResult?.passagiersInfo) {
                 const pi = aankomstResult.passagiersInfo;
@@ -277,6 +280,7 @@ const App = {
                     UI.toonScherm('spel-scherm');
                     state.activeTab = 'handel';
                     UI.renderSpel();
+                    UI.spoelAankomstToasts();
                     if (state.fase === 'einde') {
                         UI.toonEindeScherm();
                     } else {
