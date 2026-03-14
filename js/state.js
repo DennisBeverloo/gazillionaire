@@ -722,6 +722,7 @@ class GameState {
     }
 
     aankomst() {
+        if (!this.reisData) return { passagiersInfo: null };
         this._visitMarktSaldo = {};
         this.locatie = this.reisData.naar;
         const planeet = PLANETEN.find(p => p.id === this.locatie);
