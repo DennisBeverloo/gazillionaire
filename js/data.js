@@ -790,6 +790,52 @@ const EVENTS = [
         beschrijving: 'Politieke onrust heeft alle banktransacties tijdelijk geblokkeerd. Storten en opnemen is de komende beurt niet mogelijk.',
         heeftKeuze: false,
     },
+
+    // GELD / GELUK
+    { id: 'erfenis', naam: 'Verre Erfenis', icoon: '📜', type: 'kans', kans: 0.04, beschrijving: 'Een galactische notaris bereikt je via de noodfrequentie. Een ver familielid heeft je credits nagelaten.', heeftKeuze: false },
+    { id: 'loterij', naam: 'Galactische Loterij', icoon: '🎟️', type: 'kans', kans: 0.03, beschrijving: 'Het loterijticket dat je maanden geleden kocht, blijkt een prijs te hebben opgeleverd!', heeftKeuze: false },
+    { id: 'keizerlijke_donatie', naam: 'Galactische Smeekbede', icoon: '👑', type: 'gevaar', kans: 0.04, beschrijving: 'De Galactische Kanselier vraagt — in niet mis te verstane bewoordingen — om een "vrijwillige bijdrage" aan het Galactisch Welvaartsfonds. Weigeren heeft gevolgen.', heeftKeuze: true, keuzes: [{ id: 'doneer', tekst: 'Doneer 700 credits', stijl: 'gevaar' }, { id: 'weiger', tekst: 'Weiger vriendelijk', stijl: 'knop' }] },
+    { id: 'speculant_bod', naam: 'Ruimtespeculant', icoon: '🤑', type: 'kans', kans: 0.05, beschrijving: 'Een zwevende koopman onderschept je signaal. Hij biedt 115% van de marktwaarde voor al je lading — contant, geen vragen gesteld.', heeftKeuze: true, keuzes: [{ id: 'verkoop', tekst: 'Verkoop alles (115% waarde)', stijl: 'succes' }, { id: 'weiger', tekst: 'Bedankt, maar nee', stijl: 'knop' }] },
+    { id: 'belastingboete', naam: 'Galactische Naheffing', icoon: '🧾', type: 'gevaar', kans: 0.05, beschrijving: 'De Galactische Belastingdienst ontdekte een administratieve fout — in hun voordeel. Je ontvangt een naheffingsaanslag van 3% van je credits.', heeftKeuze: false },
+
+    // CARGO
+    { id: 'geheime_lading', naam: 'Mysterieus Pakket', icoon: '📦', type: 'kans', kans: 0.04, beschrijving: 'Een naamloze drone koppelt aan je luik en laat een verzegeld krat achter. Geen afzender.', heeftKeuze: true, keuzes: [{ id: 'open', tekst: 'Open het krat', stijl: 'succes' }, { id: 'dump', tekst: 'Dump het de ruimte in', stijl: 'knop' }] },
+    { id: 'slechte_kwaliteit', naam: 'Bedorven Lading', icoon: '🤢', type: 'gevaar', kans: 0.05, beschrijving: 'Een bemanningslid ontdekt dat een deel van je organische lading al beschimmeld is bij de bron. Je hebt geen keuze — het overboord ermee.', heeftKeuze: false },
+    { id: 'cargo_volledig_verloren', naam: 'Lading Volledig Vernietigd', icoon: '💥', type: 'gevaar', kans: 0.03, beschrijving: 'Door een kortsluiting in de drukregeling overkookt je vrachtruim. Alles wat erin zat is onbruikbaar geworden.', heeftKeuze: false },
+    { id: 'smokkelaar_ruil', naam: 'Ruilaanbod van een Smokkelaar', icoon: '🤫', type: 'kans', kans: 0.04, beschrijving: 'Een bekende tussenpersoon biedt een ruilhandel aan: al je lading inleveren voor een kleinere partij hoogwaardige Luxuriet én 500 credits toe.', heeftKeuze: true, keuzes: [{ id: 'ruil', tekst: 'Accepteer de ruil', stijl: 'succes' }, { id: 'weiger', tekst: 'Weiger', stijl: 'knop' }] },
+    { id: 'brandstoflek', naam: 'Brandstoflek', icoon: '⛽', type: 'gevaar', kans: 0.05, beschrijving: 'Je ingenieur ontdekt een lek in de hoofdtank. Ze stoppen het snel, maar niet snel genoeg — de helft van je brandstof is al verdwenen.', heeftKeuze: false },
+
+    // SCHIP / HP
+    { id: 'kosmische_wolk', naam: 'Corrosieve Gaswolk', icoon: '☁️', type: 'gevaar', kans: 0.05, beschrijving: 'Je schip vliegt door een ongekaarteerde wolk van bijtende deeltjes. De buitenbeplating is aangetast — je schip lijdt scheepschade.', heeftKeuze: false },
+    { id: 'ruimtewal', naam: 'Botsing met Ruimtepuin', icoon: '🪨', type: 'gevaar', kans: 0.05, beschrijving: 'Een ongeregistreerde puinwolk op je route. Je ontwijk het grootste deel, maar een flinke klomp treft de romp.', heeftKeuze: true, keuzes: [{ id: 'repareer', tekst: 'Repareer onderweg (500 credits)', stijl: 'gevaar' }, { id: 'doorvaren', tekst: 'Doorvaren met schade', stijl: 'knop' }] },
+    { id: 'onderdeel_gevonden', naam: 'Drijvend Scheepsonderdeel', icoon: '🔧', type: 'kans', kans: 0.04, beschrijving: 'Je scanners pikken een bruikbaar onderdeel op uit een verlaten wrak. Na installatie herstelt je schip een deel van zijn capaciteit.', heeftKeuze: true, keuzes: [{ id: 'meenemen', tekst: 'Installeer het (+15 HP)', stijl: 'succes' }, { id: 'negeer', tekst: 'Vlieg door', stijl: 'knop' }] },
+
+    // PASSAGIERS
+    { id: 'vip_passagier', naam: 'VIP aan Boord', icoon: '🎩', type: 'kans', kans: 0.05, beschrijving: 'Een galactische zakenman drijft op een noodpod en wil dringend naar je bestemming. Hij betaalt het drievoudige tarief.', heeftKeuze: true, keuzes: [{ id: 'meenemen', tekst: 'Neem hem mee (3× ticket)', stijl: 'succes' }, { id: 'weiger', tekst: 'Geen ruimte', stijl: 'knop' }] },
+    { id: 'noodoproep_passagier', naam: 'Noodevacuatie', icoon: '🚨', type: 'neutraal', kans: 0.04, beschrijving: 'Een drijvende reddingscapsule met evacuees onderschept je route. Ze smeken om vervoer naar jouw bestemming. Geen betaling, wel een goed gevoel.', heeftKeuze: true, keuzes: [{ id: 'meenemen', tekst: 'Neem ze mee (gratis)', stijl: 'succes' }, { id: 'weiger', tekst: 'Vlieg door', stijl: 'knop' }] },
+    { id: 'passagier_wangedrag', naam: 'Wangedrag aan Boord', icoon: '😠', type: 'gevaar', kans: 0.04, beschrijving: 'Een dronken passagier heeft de lounge kort en klein geslagen. Reparatiekosten zijn voor jouw rekening — en je crew is er niet blij mee.', heeftKeuze: false },
+
+    // CREW
+    { id: 'vakbond_kwijtschelding', naam: 'Vakbondsakkoord', icoon: '🤝', type: 'kans', kans: 0.03, beschrijving: 'De Galactische Bemanningsvakbond heeft intern ruzie. Als gebaar van goede wil worden je achterstallige bemanningskosten kwijtgescholden.', heeftKeuze: false },
+    { id: 'crew_bonus_event', naam: 'Vrijwillige Crewbonus', icoon: '✨', type: 'kans', kans: 0.04, beschrijving: 'Je crew heeft de afgelopen reis uitzonderlijk hard gewerkt. Je kunt hen nu een vrijwillige bonus uitkeren.', heeftKeuze: true, keuzes: [{ id: 'geef_bonus', tekst: 'Geef bonus (crew × 150 cr)', stijl: 'succes' }, { id: 'niet', tekst: 'Geen bonus dit keer', stijl: 'knop' }] },
+    { id: 'vakbond_eis', naam: 'Vakbondseis Onderweg', icoon: '✊', type: 'gevaar', kans: 0.04, beschrijving: 'Halverwege je reis houdt een vakbondsvertegenwoordiger een toespraak in de kantine. De bemanning eist een directe eenmalige uitkering.', heeftKeuze: true, keuzes: [{ id: 'betaal', tekst: 'Betaal eenmalige uitkering (500 cr)', stijl: 'gevaar' }, { id: 'weiger', tekst: 'Weiger — werk gewoon door', stijl: 'knop' }] },
+
+    // BANK / LENING
+    { id: 'kredietlimiet_verhoging', naam: 'Verhoogde Kredietlimiet', icoon: '💳', type: 'kans', kans: 0.04, beschrijving: 'De Galactische Bank heeft je kredietgeschiedenis bekeken en besluit je maximale leenbedrag met 2.000 credits te verhogen.', heeftKeuze: false },
+    { id: 'schuldeiser', naam: 'Incassobot Onderschept Je', icoon: '🤖', type: 'gevaar', kans: 0.04, beschrijving: 'De Galactische Bank stuurt een incassobot die je onderschept. Ze eisen directe deelbetaling van je schuld, of ze leggen een boeteclausule op.', heeftKeuze: true, keuzes: [{ id: 'betaal', tekst: 'Betaal 25% schuld af', stijl: 'gevaar' }, { id: 'weiger', tekst: 'Weiger (renteboete)', stijl: 'knop' }] },
+    { id: 'beurs_insider', naam: 'Beursinformant', icoon: '📊', type: 'kans', kans: 0.04, beschrijving: 'Een anonieme bron fluistert je de naam in van een aandeel dat de komende beurten sterk zal stijgen. Welk aandeel dit is, wordt duidelijk in je logboek.', heeftKeuze: false },
+    { id: 'aandelencrash_event', naam: 'Beurscrash', icoon: '📉', type: 'neutraal', kans: 0.03, beschrijving: 'Galactisch nieuws bereikt je: de Beurs op Nexoria heeft een plotse correctie ondergaan. Alle aandelen staan 20% lager.', heeftKeuze: false },
+
+    // CONCURRENT
+    { id: 'concurrent_investering', naam: 'Concurrent in Financiële Problemen', icoon: '🏳️', type: 'kans', kans: 0.04, beschrijving: 'Geruchten bereiken je: Makelaar Voss heeft een reeks slechte deals gemaakt. Zijn vermogen is flink gekrompen.', heeftKeuze: false },
+    { id: 'concurrent_sabotage', naam: 'Sabotage door Concurrent', icoon: '🦹', type: 'gevaar', kans: 0.04, beschrijving: 'Iemand heeft je brandstoffilters gesaboteerd bij de laatste aanlegplaats. Je verbruikt de rest van de reis extra brandstof.', heeftKeuze: false },
+    { id: 'spionagedienst', naam: 'Ruimtespion Te Huur', icoon: '🕶️', type: 'kans', kans: 0.03, beschrijving: 'Een industriespion biedt zijn diensten aan. Als je hem betaalt, saboteert hij één concurrent — hun vermogen krimpt met 10%. Maar als hij gepakt wordt, rolt de boete naar jou.', heeftKeuze: true, keuzes: [{ id: 'inhuren', tekst: 'Inhuren (800 credits, riskant)', stijl: 'gevaar' }, { id: 'weiger', tekst: 'Weiger dit aanbod', stijl: 'knop' }] },
+
+    // MARKETING / VERZEKERING
+    { id: 'mond_tot_mond', naam: 'Mond-tot-Mondreclame', icoon: '📣', type: 'kans', kans: 0.04, beschrijving: 'Reizigers spreken lovend over jouw service op de interplanetaire forums. Zonder extra kosten wachten meer passagiers op je bestemming.', heeftKeuze: false },
+    { id: 'marketing_sabotage', naam: 'Marketingsabotage', icoon: '📢', type: 'gevaar', kans: 0.03, beschrijving: 'Een concurrent heeft je marketingcampagne onderschept en vervangen door misleidende berichten. Je campagne is tenietgedaan.', heeftKeuze: false },
+    { id: 'verzekering_aanbieding', naam: 'Verzekeringsaanbieding', icoon: '🛡️', type: 'kans', kans: 0.04, beschrijving: 'Een verzekeringsagent benadert je tussen twee sterren in. Hij biedt een gratis noodverzekering aan voor deze reis.', heeftKeuze: false },
+    { id: 'verzekering_fraude', naam: 'Valse Verzekeraar', icoon: '🎭', type: 'gevaar', kans: 0.03, beschrijving: 'De verzekeraar waarmee je dacht zaken te doen, blijkt een oplichter. Je premie is verdwenen — en je hebt géén dekking.', heeftKeuze: false },
 ];
 
 const AANDELEN = [
@@ -1366,4 +1412,8 @@ const PLANEET_EVENTS = [
         beschrijving: 'Mijnwerkers staken voor betere arbeidsomstandigheden. Ferroiet en Kristalliet zijn tijdelijk niet te krijgen voor normale prijs.',
         effect: { type: 'prijsVerhoging', goederen: ['ferroiet', 'kristalliet'], factor: 1.9 },
     },
+    { id: 'havenbelasting', naam: 'Havenheffing', icoon: '🚢', kans: 0.05, type: 'gevaar', beschrijving: 'De havenautoriteiten hebben een tijdelijke heffing ingevoerd op alle inkomende schepen. Je betaalt 350 credits bij aankomst.', effect: { type: 'kredietVerlies', bedrag: 350 } },
+    { id: 'bevolkingsfeest', naam: 'Koloniedag', icoon: '🎆', kans: 0.06, beschrijving: 'De planeet viert haar stichtingsjubileum! De bevolking is in feeststemming. Alle prijzen zijn 20% hoger.', effect: { type: 'opwaarderingAlles', factor: 1.20 } },
+    { id: 'medische_nood', naam: 'Medische Noodsituatie', icoon: '🏥', kans: 0.04, type: 'gevaar', beschrijving: 'De havenautoriteiten vorderen dringend Bioplasma wegens een epidemie. Ze betalen de basismarktwaarde.', effect: { type: 'ladingVordering', goed: 'bioplasma', ton: 10, prijs: 175 }, conditie: (state) => (state.lading?.bioplasma || 0) > 0 },
+    { id: 'piraten_haven', naam: 'Piratentol bij de Haven', icoon: '☠️', kans: 0.04, type: 'gevaar', beschrijving: 'Piraten controleren de aanvliegroute en eisen tol van elk binnenkomend schip. 500 credits om door te mogen.', effect: { type: 'haventol', bedrag: 500 } },
 ];
