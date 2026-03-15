@@ -2131,8 +2131,8 @@ const UI = {
             // Automatische afhandeling — verwerk direct en toon resultaat
             const res = state.verwerkevent(event.id, null);
             const gevolgEl = document.getElementById('event-gevolg');
-            if (res.gevolg) { gevolgEl.textContent = res.gevolg; gevolgEl.style.display = ''; }
-            else { gevolgEl.textContent = ''; gevolgEl.style.display = 'none'; }
+            if (res.gevolg) { gevolgEl.innerHTML = res.gevolg; gevolgEl.style.display = ''; }
+            else { gevolgEl.innerHTML = ''; gevolgEl.style.display = 'none'; }
             this._toonEventMarketingMelding(res.marketingGemist ?? null);
             this._toonEventVerzekering(res.verzekeringsInfo ?? null);
 
@@ -2202,7 +2202,7 @@ const UI = {
 
         const gestolenDiv = document.getElementById('aankomst-event-gestolen');
         if (event._gestelenTekst) {
-            gestolenDiv.textContent = `Gestolen: ${event._gestelenTekst}`;
+            gestolenDiv.innerHTML = `Gestolen: ${event._gestelenTekst}`;
             gestolenDiv.style.display = 'block';
         } else {
             gestolenDiv.style.display = 'none';
@@ -2241,7 +2241,7 @@ const UI = {
 
         document.getElementById('aankomst-event-icoon').textContent = npc.icoon;
         document.getElementById('aankomst-event-naam').textContent = `${npc.naam} was eerder!`;
-        document.getElementById('aankomst-event-beschrijving').textContent =
+        document.getElementById('aankomst-event-beschrijving').innerHTML =
             `${npc.naam} arriveerde eerder op ${evt.planeetNaam} en kocht ${aankoopTekst} voor een scherpe prijs.`;
 
         const gestolenDiv = document.getElementById('aankomst-event-gestolen');
@@ -2275,8 +2275,8 @@ const UI = {
 
     toonEventResultaat(gevolg, verzekeringsInfo, marketingGemist) {
         const gevolgEl = document.getElementById('event-gevolg');
-        if (gevolg) { gevolgEl.textContent = gevolg; gevolgEl.style.display = ''; }
-        else { gevolgEl.textContent = ''; gevolgEl.style.display = 'none'; }
+        if (gevolg) { gevolgEl.innerHTML = gevolg; gevolgEl.style.display = ''; }
+        else { gevolgEl.innerHTML = ''; gevolgEl.style.display = 'none'; }
         this._toonEventMarketingMelding(marketingGemist ?? null);
         this._toonEventVerzekering(verzekeringsInfo);
     },

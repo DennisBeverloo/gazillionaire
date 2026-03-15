@@ -85,6 +85,7 @@ class GameState {
         this.beschikbareMissies = [];       // gegenereerde maar nog niet geaccepteerd
         this._missieIdTeller = 0;
         this._verdachteMissieLading = 0;    // teller voor verdachte missie-lading aan boord
+        this._missieCooldowns = {};         // templateId → beurt waarop cooldown vervalt
 
         // Agria veiling
         this.agriaVeiling = null;
@@ -373,7 +374,10 @@ class GameState {
     // =========================================================================
 
     genereerMissies() {
-        const planeetMissies = MISSIES.filter(m => m.planeet === this.locatie);
+        const planeetMissies = MISSIES.filter(m =>
+            m.planeet === this.locatie &&
+            !((this._missieCooldowns?.[m.id] ?? 0) > this.beurt)
+        );
         if (planeetMissies.length === 0) { this.beschikbareMissies = []; return; }
 
         const andereplaneten = PLANETEN.filter(p => p.id !== this.locatie && !p.isGevaarlijk);
@@ -478,16 +482,39 @@ class GameState {
             missie.passagiersAanBoord = missie.aantalPassagiers;
         }
 
-        // Special cargo (levering type, niet ophalen): direct aan boord bij acceptatie
+        // Levering met goed: lading wordt gratis geleverd bij acceptatie
+        if (missie.goedId && missie.type === 'levering') {
+            const ruimte = this.schip.laadruimte - this.getLadingGewicht();
+            if (ruimte < missie.hoeveelheid) return { succes: false, reden: `Niet genoeg laadruimte (nodig: ${missie.hoeveelheid} ton vrij).` };
+            this.lading[missie.goedId] = (this.lading[missie.goedId] || 0) + missie.hoeveelheid;
+            missie.goedGratisGeleverd = true;
+            if (missie.isVerdacht) this.ladingVerdacht[missie.goedId] = (this.ladingVerdacht[missie.goedId] || 0) + missie.hoeveelheid;
+            this.voegBerichtToe(`📦 ${missie.hoeveelheid}t ${goedIcoonHtml(missie.goedIcoon, missie.goedNaam)} ${missie.goedNaam} geladen als missielading.`, 'goud');
+        }
+
+        // Special cargo (levering, niet ophalen): direct aan boord
         if (missie.missieLadingType && missie.type !== 'ophalen') {
             missie.missieLadingAanBoord = true;
             if (missie.isVerdacht) this._verdachteMissieLading = (this._verdachteMissieLading || 0) + 1;
         }
 
-        // Verdachte cargo-goederen: markeer lading
-        if (missie.goedId && missie.isVerdacht) {
-            // Lading wordt verdacht zodra de speler het koopt — we markeren de missie
-            missie._ladingVerdachtGemarkeerd = false; // wordt gemarkeerd bij aflevering ophaalstap
+        // Ophalen-missie: als speler al op ophaalPlaneet is, direct laden
+        if (missie.type === 'ophalen' && missie.ophaalPlaneetId === this.locatie && !missie.opgehaald) {
+            if (missie.goedId) {
+                const ruimte = this.schip.laadruimte - this.getLadingGewicht();
+                if (ruimte >= missie.hoeveelheid) {
+                    this.lading[missie.goedId] = (this.lading[missie.goedId] || 0) + missie.hoeveelheid;
+                    missie.opgehaald = true;
+                    missie.goedGratisGeleverd = true;
+                    if (missie.isVerdacht) this.ladingVerdacht[missie.goedId] = (this.ladingVerdacht[missie.goedId] || 0) + missie.hoeveelheid;
+                    this.voegBerichtToe(`📦 ${missie.hoeveelheid}t ${goedIcoonHtml(missie.goedIcoon, missie.goedNaam)} ${missie.goedNaam} direct geladen. Lever af op ${missie.bestemmingNaam}.`, 'goud');
+                }
+            } else if (missie.missieLadingType) {
+                missie.opgehaald = true;
+                missie.missieLadingAanBoord = true;
+                if (missie.isVerdacht) this._verdachteMissieLading = (this._verdachteMissieLading || 0) + 1;
+                this.voegBerichtToe(`${missie.missieLadingIcoon ?? '📦'} ${missie.missieLadingNaam} direct aan boord geladen. Lever af op ${missie.bestemmingNaam}.`, 'goud');
+            }
         }
 
         missie.actief = true;
@@ -524,24 +551,25 @@ class GameState {
                 } else {
                     this.voegBerichtToe(`⌛ Missie verlopen: ${m.naam}`, 'gevaar');
                 }
+                if (m.templateId) this._missieCooldowns[m.templateId] = this.beurt + 7;
                 return false;
             }
 
-            // OPHALEN — stap 1: ophalen op ophaalPlaneet
+            // OPHALEN — stap 1: ophalen op ophaalPlaneet (gratis laden)
             if (m.type === 'ophalen' && !m.opgehaald && m.ophaalPlaneetId === this.locatie) {
                 if (m.goedId) {
-                    // Cargo ophalen: check of speler genoeg heeft in hold
-                    const inHold = this.lading[m.goedId] || 0;
-                    if (inHold >= m.hoeveelheid) {
+                    const ruimte = this.schip.laadruimte - this.getLadingGewicht();
+                    if (ruimte >= m.hoeveelheid) {
+                        this.lading[m.goedId] = (this.lading[m.goedId] || 0) + m.hoeveelheid;
                         m.opgehaald = true;
-                        if (m.isVerdacht) {
-                            this.ladingVerdacht[m.goedId] = (this.ladingVerdacht[m.goedId] || 0) + m.hoeveelheid;
-                        }
+                        m.goedGratisGeleverd = true;
+                        if (m.isVerdacht) this.ladingVerdacht[m.goedId] = (this.ladingVerdacht[m.goedId] || 0) + m.hoeveelheid;
                         const goedNaam = goedIcoonHtml(m.goedIcoon, m.goedNaam) + ' ' + m.goedNaam;
-                        this.voegBerichtToe(`📦 Missie: ${m.hoeveelheid}t ${goedNaam} opgehaald op ${m.ophaalPlaneetNaam}. Lever af op ${m.bestemmingNaam}.`, 'goud');
+                        this.voegBerichtToe(`📦 Missie: ${m.hoeveelheid}t ${goedNaam} geladen op ${m.ophaalPlaneetNaam}. Lever af op ${m.bestemmingNaam}.`, 'goud');
+                    } else {
+                        this.voegBerichtToe(`⚠️ Missie ${m.naam}: te weinig ruimte om lading op te halen.`, 'waarschuwing');
                     }
                 } else if (m.missieLadingType) {
-                    // Special item ophalen
                     m.opgehaald = true;
                     m.missieLadingAanBoord = true;
                     if (m.isVerdacht) this._verdachteMissieLading = (this._verdachteMissieLading || 0) + 1;
@@ -558,14 +586,14 @@ class GameState {
                         this.lading[m.goedId] -= m.hoeveelheid;
                         if (this.lading[m.goedId] === 0) delete this.aankoopPrijzen[m.goedId];
                         this.aankoopAantallen[m.goedId] = Math.max(0, (this.aankoopAantallen[m.goedId] || 0) - m.hoeveelheid);
-                        if (m.isVerdacht) {
-                            this.ladingVerdacht[m.goedId] = Math.max(0, (this.ladingVerdacht[m.goedId] || 0) - m.hoeveelheid);
-                        }
-                        const marktwaarde = this.getPrijs(this.locatie, m.goedId) * m.hoeveelheid;
-                        const totaal = marktwaarde + m.beloning;
-                        this.speler.krediet += totaal;
+                        if (m.isVerdacht) this.ladingVerdacht[m.goedId] = Math.max(0, (this.ladingVerdacht[m.goedId] || 0) - m.hoeveelheid);
+                        // Gratis geleverde goederen: alleen beloning, geen marktwaarde
+                        const uitbetaling = m.goedGratisGeleverd ? m.beloning : (this.getPrijs(this.locatie, m.goedId) * m.hoeveelheid + m.beloning);
+                        this.speler.krediet += uitbetaling;
                         const goedNaam = goedIcoonHtml(m.goedIcoon, m.goedNaam) + ' ' + m.goedNaam;
-                        this.voegBerichtToe(`🎯 Missie voltooid: ${m.naam}! ${m.hoeveelheid}t ${goedNaam} afgeleverd. +${this.formatteerKrediet(totaal)} (incl. ${this.formatteerKrediet(m.beloning)} bonus)`, 'goud');
+                        const beloningTekst = m.goedGratisGeleverd ? `+${this.formatteerKrediet(uitbetaling)} beloning` : `+${this.formatteerKrediet(uitbetaling)} (incl. ${this.formatteerKrediet(m.beloning)} bonus)`;
+                        this.voegBerichtToe(`🎯 Missie voltooid: ${m.naam}! ${m.hoeveelheid}t ${goedNaam} afgeleverd. ${beloningTekst}`, 'goud');
+                        if (m.templateId) this._missieCooldowns[m.templateId] = this.beurt + 7;
                         return false;
                     }
                 }
@@ -575,6 +603,7 @@ class GameState {
                     if (m.isVerdacht) this._verdachteMissieLading = Math.max(0, (this._verdachteMissieLading || 0) - 1);
                     this.speler.krediet += m.beloning;
                     this.voegBerichtToe(`🎯 Missie voltooid: ${m.naam}! ${m.missieLadingIcoon ?? ''} ${m.missieLadingNaam} afgeleverd op ${m.bestemmingNaam}. +${this.formatteerKrediet(m.beloning)}`, 'goud');
+                    if (m.templateId) this._missieCooldowns[m.templateId] = this.beurt + 7;
                     return false;
                 }
                 // Transport-missie: passagiers afzetten
@@ -582,6 +611,7 @@ class GameState {
                     this.passagiers = Math.max(0, (this.passagiers ?? 0) - m.passagiersAanBoord);
                     this.speler.krediet += m.beloning;
                     this.voegBerichtToe(`🎯 Missie voltooid: ${m.naam}! ${m.passagiersAanBoord} passagier${m.passagiersAanBoord > 1 ? 's' : ''} afgeleverd op ${m.bestemmingNaam}. +${this.formatteerKrediet(m.beloning)}`, 'goud');
+                    if (m.templateId) this._missieCooldowns[m.templateId] = this.beurt + 7;
                     return false;
                 }
             }

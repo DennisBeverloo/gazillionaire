@@ -344,19 +344,28 @@ const App = {
     koopGoed(goedId) {
         const n = parseInt(document.getElementById(`koop-${goedId}`)?.value) || 1;
         const res = state.koopGoed(goedId, n);
-        if (!res.succes) this._fout(res.reden); else { Audio.koop(); UI.renderSpel(); }
+        if (!res.succes) this._fout(res.reden);
+        else {
+            Audio.koop();
+            const goed = GOEDEREN.find(g => g.id === goedId);
+            UI.toonToast({ icoon: goedIcoonHtml(goed?.icoon ?? '📦'), titel: `${n}× ${goed?.naam ?? goedId} gekocht`, winst: -res.totaal });
+            UI.renderSpel();
+        }
     },
 
     koopMax(goedId) {
-        const goed = GOEDEREN.find(g => g.id === goedId);
         const prijs = state.getPrijs(state.locatie, goedId);
-        const maxN = Math.min(
-            Math.floor((state.schip.laadruimte - state.getLadingGewicht()) / goed.gewicht),
-            Math.floor(state.speler.krediet / prijs)
-        );
+        const vrij = state.schip.laadruimte - state.getLadingGewicht();
+        const maxN = Math.min(vrij, Math.floor(state.speler.krediet / prijs));
         if (maxN <= 0) return;
         const res = state.koopGoed(goedId, maxN);
-        if (!res.succes) this._fout(res.reden); else { Audio.koop(); UI.renderSpel(); }
+        if (!res.succes) this._fout(res.reden);
+        else {
+            Audio.koop();
+            const goed = GOEDEREN.find(g => g.id === goedId);
+            UI.toonToast({ icoon: goedIcoonHtml(goed?.icoon ?? '📦'), titel: `${maxN}× ${goed?.naam ?? goedId} gekocht`, winst: -res.totaal });
+            UI.renderSpel();
+        }
     },
 
     verkoopGoed(goedId) {
@@ -392,7 +401,8 @@ const App = {
         if (!res.succes) this._fout(res.reden);
         else {
             Audio.koop();
-            if (evt?.target) UI.toonKoopToast(evt.target, res.totaal);
+            const goed = GOEDEREN.find(g => g.id === goedId);
+            UI.toonToast({ icoon: goedIcoonHtml(goed?.icoon ?? '📦'), titel: `${aantal}× ${goed?.naam ?? goedId} gekocht`, winst: -res.totaal });
             UI.renderSpel();
         }
     },
@@ -405,7 +415,8 @@ const App = {
         if (!res.succes) this._fout(res.reden);
         else {
             Audio.verkoop();
-            if (evt?.target) UI.toonVerkoopToast(evt.target, res.totaal, res.winst);
+            const goed = GOEDEREN.find(g => g.id === goedId);
+            UI.toonToast({ icoon: goedIcoonHtml(goed?.icoon ?? '📦'), titel: `${aantal}× ${goed?.naam ?? goedId} verkocht`, totaal: res.totaal, winst: res.winst });
             UI.renderSpel();
         }
     },
