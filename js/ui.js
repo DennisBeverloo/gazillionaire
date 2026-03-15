@@ -2517,76 +2517,124 @@ const UI = {
         const beschikbaar = state.beschikbareMissies ?? [];
         const maxActief = 3;
 
-        let html = '<div class="sectie-header">🎯 Missies</div>';
-        html += `<p class="kleur-dimmed" style="font-size:0.82em;margin:0 0 12px">Accepteer missies voor bonusbeloningen. Max ${maxActief} actieve missies tegelijk. Cargo-missies: koop zelf de lading en lever af bij bestemming.</p>`;
+        const catLabel = { spoed: '🚨 Spoed', levering: '📦 Levering', transport: '👤 Transport', onderzoek: '🔬 Onderzoek' };
 
-        // Actieve missies
-        if (actief.length > 0) {
-            html += '<div class="missie-sectie-titel">Actieve missies</div>';
-            actief.forEach(m => {
-                const resterend = m.deadline - beurt;
-                const urgentie = resterend <= 5 ? 'kleur-rood' : resterend <= 10 ? 'kleur-oranje' : 'kleur-dimmed';
-                if (m.type === 'cargo') {
+        const _missieIcoonHtml = (m) => {
+            if (m.goedId && m.goedIcoon) return goedIcoonHtml(m.goedIcoon, m.goedNaam);
+            return `<span>${m.icoon ?? '📋'}</span>`;
+        };
+
+        const _missieVoortgangHtml = (m) => {
+            if (m.type === 'ophalen' && !m.opgehaald && m.ophaalPlaneetId) {
+                const hier = m.ophaalPlaneetId === state.locatie;
+                if (m.goedId) {
                     const inHold = state.lading[m.goedId] || 0;
                     const heeftGenoeg = inHold >= m.hoeveelheid;
-                    const voortgang = heeftGenoeg
-                        ? `<span class="kleur-groen">✓ Lading aan boord</span>`
-                        : `<span class="kleur-rood">${inHold}/${m.hoeveelheid} ton aan boord</span>`;
-                    html += `<div class="missie-kaart missie-actief">
-                        <div class="missie-type-icoon">📦</div>
-                        <div class="missie-info">
-                            <div class="missie-titel">${goedIcoonHtml(m.goedIcoon, m.goedNaam)} Lever ${m.hoeveelheid}t ${m.goedNaam} af op <strong>${m.bestemmingNaam}</strong></div>
-                            <div class="missie-meta">${voortgang} &nbsp;·&nbsp; <span class="${urgentie}">Deadline: beurt ${m.deadline} (nog ${resterend})</span></div>
-                        </div>
-                        <div class="missie-beloning">+${state.formatteerKrediet(m.beloning)}<br><span class="kleur-dimmed" style="font-size:0.78em">bonus</span></div>
-                    </div>`;
-                } else {
-                    html += `<div class="missie-kaart missie-actief">
-                        <div class="missie-type-icoon">👤</div>
-                        <div class="missie-info">
-                            <div class="missie-titel">VIP-transport naar <strong>${m.bestemmingNaam}</strong></div>
-                            <div class="missie-meta"><span class="kleur-accent">VIP aan boord</span> &nbsp;·&nbsp; <span class="${urgentie}">Deadline: beurt ${m.deadline} (nog ${resterend})</span></div>
-                        </div>
-                        <div class="missie-beloning">+${state.formatteerKrediet(m.beloning)}</div>
-                    </div>`;
+                    return hier && heeftGenoeg
+                        ? `<span class="kleur-groen">✓ Klaar om op te halen — land op ${m.ophaalPlaneetNaam}</span>`
+                        : `<span class="kleur-oranje">Stap 1: ophalen op ${m.ophaalPlaneetNaam} (${inHold}/${m.hoeveelheid}t in ruim)</span>`;
                 }
-            });
-        }
+                return `<span class="kleur-oranje">Stap 1: ophalen op ${m.ophaalPlaneetNaam}</span>`;
+            }
+            if (m.type === 'ophalen' && m.opgehaald) {
+                return `<span class="kleur-groen">✓ Opgehaald — lever af op ${m.bestemmingNaam}</span>`;
+            }
+            if (m.goedId) {
+                const inHold = state.lading[m.goedId] || 0;
+                const heeftGenoeg = inHold >= m.hoeveelheid;
+                return heeftGenoeg
+                    ? `<span class="kleur-groen">✓ Lading aan boord</span>`
+                    : `<span class="kleur-rood">${inHold}/${m.hoeveelheid}t aan boord</span>`;
+            }
+            if (m.aantalPassagiers) {
+                return m.passagiersAanBoord > 0
+                    ? `<span class="kleur-groen">✓ ${m.passagiersAanBoord} passagier${m.passagiersAanBoord > 1 ? 's' : ''} aan boord</span>`
+                    : `<span class="kleur-rood">Passagiers niet aan boord</span>`;
+            }
+            if (m.missieLadingType) {
+                return m.missieLadingAanBoord
+                    ? `<span class="kleur-groen">✓ ${m.missieLadingNaam} aan boord</span>`
+                    : `<span class="kleur-rood">${m.missieLadingNaam} niet aan boord</span>`;
+            }
+            return '';
+        };
 
-        // Beschikbare missies
+        const _missieDeadlineHtml = (m) => {
+            const resterend = m.deadline - beurt;
+            const klasse = resterend <= 5 ? 'kleur-rood' : resterend <= 10 ? 'kleur-oranje' : 'kleur-dimmed';
+            const boeteTekst = m.boete > 0 ? ` · boete ${state.formatteerKrediet(m.boete)}` : '';
+            return `<span class="${klasse}">Deadline: beurt ${m.deadline} (nog ${resterend})${boeteTekst}</span>`;
+        };
+
+        const _renderMissieKaartActief = (m) => `
+            <div class="missie-kaart missie-actief">
+                <div class="missie-type-icoon">${_missieIcoonHtml(m)}</div>
+                <div class="missie-info">
+                    <div class="missie-titel">${m.naam}</div>
+                    <div class="missie-beschr kleur-dimmed" style="font-size:0.8em;margin:2px 0 4px">${m.beschrijving}</div>
+                    <div class="missie-meta">${_missieVoortgangHtml(m)} &nbsp;·&nbsp; ${_missieDeadlineHtml(m)}</div>
+                </div>
+                <div class="missie-beloning">+${state.formatteerKrediet(m.beloning)}<br><span class="kleur-dimmed" style="font-size:0.78em">bonus</span></div>
+            </div>`;
+
+        const _kanAccepteren = (m) => {
+            if (actief.length >= maxActief) return false;
+            if (m.aantalPassagiers) {
+                const cap = state.schip?.passagiersCapaciteit || 0;
+                if (cap === 0 || (state.passagiers ?? 0) + m.aantalPassagiers > cap) return false;
+            }
+            return true;
+        };
+
+        const _renderMissieKaartBeschikbaar = (m) => {
+            const kanAcc = _kanAccepteren(m);
+            const catHtml = m.categorie ? `<span class="missie-cat-badge missie-cat-${m.categorie}">${catLabel[m.categorie] ?? m.categorie}</span>` : '';
+            const resterend = m.deadline - beurt;
+            let vereistHtml = '';
+            if (m.goedId) vereistHtml = `<span>${goedIcoonHtml(m.goedIcoon, m.goedNaam)} ${m.hoeveelheid}t ${m.goedNaam}</span>`;
+            else if (m.aantalPassagiers) vereistHtml = `<span>👤 ${m.aantalPassagiers} passagier${m.aantalPassagiers > 1 ? 's' : ''}</span>`;
+            else if (m.missieLadingNaam) vereistHtml = `<span>${m.missieLadingIcoon ?? '📦'} ${m.missieLadingNaam}</span>`;
+            const ophaalHtml = m.ophaalPlaneetId ? `<span class="kleur-dimmed"> · Ophalen: ${m.ophaalPlaneetNaam}</span>` : '';
+            const boeteTekst = m.boete > 0 ? ` · Boete bij verlopen: ${state.formatteerKrediet(m.boete)}` : '';
+            return `<div class="missie-kaart">
+                <div class="missie-type-icoon">${_missieIcoonHtml(m)}</div>
+                <div class="missie-info">
+                    <div class="missie-titel">${m.naam} ${catHtml}</div>
+                    <div class="missie-beschr kleur-dimmed" style="font-size:0.8em;margin:2px 0 4px">${m.beschrijving}</div>
+                    <div class="missie-meta kleur-dimmed">${vereistHtml}${ophaalHtml} · Bestemming: <strong>${m.bestemmingNaam}</strong> · Deadline: ${resterend} beurten${boeteTekst}</div>
+                </div>
+                <div class="missie-beloning">+${state.formatteerKrediet(m.beloning)}<br><span class="kleur-dimmed" style="font-size:0.78em">bonus</span></div>
+                <button class="knop primair klein missie-knop" onclick="App.accepteerMissie(${m.id})" ${kanAcc ? '' : 'disabled'}>Accepteer</button>
+            </div>`;
+        };
+
+        let html = '<div class="sectie-header">🎯 Missies</div>';
+        html += `<p class="kleur-dimmed" style="font-size:0.82em;margin:0 0 12px">Opdrachten van galactische opdrachtgevers. Max ${maxActief} actieve missies tegelijk. Lever cargo af, vervoer passagiers of haal speciale items op.</p>`;
+
+        const planeetNaam = PLANETEN.find(p => p.id === state.locatie)?.naam ?? '';
+
+        // Twee-kolom layout: links beschikbaar, rechts actief
+        html += '<div class="missies-kolommen">';
+
+        // Linker kolom: beschikbare missies op huidige planeet
+        html += `<div class="missies-kolom"><div class="missie-sectie-titel">Opdrachten op ${planeetNaam}</div>`;
         if (beschikbaar.length > 0) {
-            html += '<div class="missie-sectie-titel" style="margin-top:16px">Beschikbare missies</div>';
-            const kanMeer = actief.length < maxActief;
-            beschikbaar.forEach(m => {
-                const resterend = m.deadline - beurt;
-                if (m.type === 'cargo') {
-                    html += `<div class="missie-kaart">
-                        <div class="missie-type-icoon">📦</div>
-                        <div class="missie-info">
-                            <div class="missie-titel">${goedIcoonHtml(m.goedIcoon, m.goedNaam)} Lever ${m.hoeveelheid}t ${m.goedNaam} af op <strong>${m.bestemmingNaam}</strong></div>
-                            <div class="missie-meta kleur-dimmed">Deadline: beurt ${m.deadline} (nog ${resterend} beurten)</div>
-                        </div>
-                        <div class="missie-beloning">+${state.formatteerKrediet(m.beloning)}<br><span class="kleur-dimmed" style="font-size:0.78em">bonus</span></div>
-                        <button class="knop primair klein missie-knop" onclick="App.accepteerMissie(${m.id})" ${kanMeer ? '' : 'disabled'}>Accepteer</button>
-                    </div>`;
-                } else {
-                    const capOk = (state.schip?.passagiersCapaciteit || 0) > 0 && state.passagiers < (state.schip?.passagiersCapaciteit || 0);
-                    html += `<div class="missie-kaart">
-                        <div class="missie-type-icoon">👤</div>
-                        <div class="missie-info">
-                            <div class="missie-titel">VIP-transport naar <strong>${m.bestemmingNaam}</strong></div>
-                            <div class="missie-meta kleur-dimmed">Behoeft vrije passagiersplaats &nbsp;·&nbsp; Deadline: beurt ${m.deadline} (nog ${resterend} beurten)</div>
-                        </div>
-                        <div class="missie-beloning">+${state.formatteerKrediet(m.beloning)}</div>
-                        <button class="knop primair klein missie-knop" onclick="App.accepteerMissie(${m.id})" ${kanMeer && capOk ? '' : 'disabled'}>Accepteer</button>
-                    </div>`;
-                }
-            });
+            beschikbaar.forEach(m => { html += _renderMissieKaartBeschikbaar(m); });
+        } else {
+            html += '<div class="kleur-dimmed" style="font-size:0.85em;padding:8px 0">Geen opdrachten beschikbaar.</div>';
         }
+        html += '</div>';
 
-        if (actief.length === 0 && beschikbaar.length === 0) {
-            html += '<div class="kleur-dimmed" style="text-align:center;padding:24px 0">Geen missies beschikbaar. Land op een planeet voor nieuwe missies.</div>';
+        // Rechter kolom: actieve missies
+        html += '<div class="missies-kolom"><div class="missie-sectie-titel">Actieve opdrachten</div>';
+        if (actief.length > 0) {
+            actief.forEach(m => { html += _renderMissieKaartActief(m); });
+        } else {
+            html += '<div class="kleur-dimmed" style="font-size:0.85em;padding:8px 0">Geen actieve opdrachten.</div>';
         }
+        html += '</div>';
+
+        html += '</div>'; // missies-kolommen
 
         container.innerHTML = html;
     },

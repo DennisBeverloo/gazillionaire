@@ -580,11 +580,29 @@ Items zijn alleen zichtbaar als de bijbehorende tutorial-feature unlocked is.
 
 ## 16. Missies
 
-Bij elke landing worden nieuwe beschikbare missies gegenereerd (maximaal 3 actieve tegelijk):
+Bij elke landing worden planeet-specifieke missies gegenereerd via een gewogen steekproef uit de `MISSIES` array (maximaal 3 actieve tegelijk). Tot 3 missies worden aangeboden op basis van de huidige planeet.
 
-- **Cargo-missies (2x):** Lever X ton van een specifiek goed af op een bepaalde planeet. Hoeveelheid: 5–20 ton. Beloning: variabel op basis van goedwaarde.
-- **VIP-missies (1x):** Transporteer een VIP-passagier naar een specifieke planeet. Vereist vrije passagiersruimte. Beloning: 800–2.000 cr.
-- **Deadline:** 20–31 beurten na acceptatie.
+### Missietypes
+
+- **Levering:** Koop de opgegeven lading zelf in en lever af op de bestemming. Beloning = marktwaarde + bonus.
+- **Transport:** Vervoer een opgegeven aantal passagiers naar de bestemming. Vereist vrije passagiersruimte. Passagiers gaan direct aan boord bij acceptatie.
+- **Ophalen:** Twee-staps missie: ga eerst naar de ophaalplaneet om het item/de lading op te halen, lever dan af op de bestemming.
+- **Special cargo:** Levering of ophalen van een uniek item (documenten, prototype, pakket, kunstobject, etc.) — geen handelsgoed maar een missie-specifiek object.
+
+### Categorieën
+- **Spoed:** Korte deadline (3–4 beurten), hoge beloning én hoge boete bij verlopen.
+- **Levering:** Standaard cargo-levering, deadline 5 beurten.
+- **Transport:** Passagiersvervoer naar specifieke bestemming.
+- **Onderzoek:** Ophaal-missies met prototype of uniek object, langere deadline.
+
+### Planeet-specifieke missies
+Elke planeet heeft eigen missies passend bij haar thema (bijv. medische leveringen op Aqueron, mijnbouwgerelateerde spoedmissies op Ferrum, verdachte zendingen op Mortex Station). Missies met `isVerdacht: true` betalen hoog maar hebben geen boete — wél risico op controles.
+
+### Twee-kolom UI
+Het missie-tabblad toont beschikbare opdrachten (links) en actieve opdrachten (rechts) naast elkaar. Categorie-badges tonen het type in kleur.
+
+### Deadline & boete
+Bij verlopen: passagiers worden vrijgelaten, verdachte lading wordt afgerekend, boete (indien > 0) wordt afgetrokken van krediet.
 
 ---
 
