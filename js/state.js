@@ -2346,8 +2346,8 @@ class GameState {
                 delen.push(delta < 0 ? `${delta}× ${naam}` : `+${delta}× ${naam}`);
             }
             const cd = resultaat.kredietDelta;
-            if (cd < 0) delen.push(`${this.formatteerKrediet(cd)} credits`);
-            else if (cd > 0) delen.push(`+${this.formatteerKrediet(cd)} credits`);
+            if (cd < 0) delen.push(`${this.formatteerKrediet(cd)}`);
+            else if (cd > 0) delen.push(`+${this.formatteerKrediet(cd)}`);
             if (delen.length > 0) resultaat.gevolg = delen.join(' · ');
         }
 

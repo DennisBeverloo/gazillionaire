@@ -2215,18 +2215,6 @@ const UI = {
         popup.classList.remove('verborgen');
     },
 
-    toonMarketingSummary(summary) {
-        Audio.eventPositief();
-        const popup = document.getElementById('marketing-summary-popup');
-        if (!popup) return;
-        document.getElementById('marketing-summary-passagiers').textContent = summary.extraPassagiers;
-        document.getElementById('marketing-summary-resources').textContent = summary.extraResources;
-        popup.classList.remove('verborgen');
-    },
-
-    verbergMarketingSummary() {
-        document.getElementById('marketing-summary-popup')?.classList.add('verborgen');
-    },
 
     toonConcurrentAankomstPopup(evt, callback) {
         Audio.negatief();

@@ -329,13 +329,7 @@ const App = {
         }
     },
 
-    _toonNaAankomstEvents() {
-        if (state._pendingMarketingSummary) {
-            const s = state._pendingMarketingSummary;
-            state._pendingMarketingSummary = null;
-            UI.toonMarketingSummary(s);
-        }
-    },
+    _toonNaAankomstEvents() {},
 
     // =========================================================================
     // HANDEL

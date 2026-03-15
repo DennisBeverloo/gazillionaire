@@ -83,7 +83,7 @@ const GOEDEREN = [
     { id: 'kristalliet',  naam: 'Kristalliet',  icoon: 'assets/kristalliet.png',  basisPrijs: 115, beschrijving: 'Energiekristallen voor reactoren en shields' },
     { id: 'nebulakorrels',naam: 'Nebulakorrels',icoon: 'assets/nebulakorrels.png',basisPrijs: 32,  beschrijving: 'Voedzame graankorrels; basisvoedsel voor kolonies' },
     { id: 'bioplasma',    naam: 'Bioplasma',    icoon: 'assets/bioplasma.png',    basisPrijs: 175, beschrijving: 'Medische basistof voor behandelingen' },
-    { id: 'technoware',   naam: 'Technoware',   icoon: '🔌',                      basisPrijs: 145, beschrijving: 'Elektronische componenten en modules' },
+    { id: 'technoware',   naam: 'Technoware',   icoon: 'assets/technoware.png',   basisPrijs: 145, beschrijving: 'Elektronische componenten en modules' },
     { id: 'quantumchips', naam: 'Quantumchips', icoon: 'assets/quantumchips.png', basisPrijs: 375, beschrijving: 'Geavanceerde kwantumprocessors' },
     { id: 'aquapure',     naam: 'Aquapure',     icoon: 'assets/aquapure.png',     basisPrijs: 42,  beschrijving: 'Gezuiverd water voor menselijke kolonies' },
     { id: 'pyrogel',      naam: 'Pyrogel',      icoon: 'assets/pyrogel.png',      basisPrijs: 82,  beschrijving: 'Hoogenergetische ruimtebrandstof' },
