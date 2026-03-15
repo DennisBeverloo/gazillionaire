@@ -79,17 +79,30 @@ const PLANETEN = [
 ];
 
 const GOEDEREN = [
-    { id: 'ferroiet',     naam: 'Ferroiet',     icoon: '🔩', basisPrijs: 50,  beschrijving: 'Basismetaal voor bouw en productie' },
-    { id: 'kristalliet',  naam: 'Kristalliet',  icoon: '💠', basisPrijs: 115, beschrijving: 'Energiekristallen voor reactoren en shields' },
-    { id: 'nebulakorrels',naam: 'Nebulakorrels',icoon: '🌾', basisPrijs: 32,  beschrijving: 'Voedzame graankorrels; basisvoedsel voor kolonies' },
-    { id: 'bioplasma',    naam: 'Bioplasma',    icoon: '💉', basisPrijs: 175, beschrijving: 'Medische basistof voor behandelingen' },
-    { id: 'technoware',   naam: 'Technoware',   icoon: '🔌', basisPrijs: 145, beschrijving: 'Elektronische componenten en modules' },
-    { id: 'quantumchips', naam: 'Quantumchips', icoon: '💾', basisPrijs: 375, beschrijving: 'Geavanceerde kwantumprocessors' },
-    { id: 'aquapure',     naam: 'Aquapure',     icoon: '💧', basisPrijs: 42,  beschrijving: 'Gezuiverd water voor menselijke kolonies' },
-    { id: 'pyrogel',      naam: 'Pyrogel',      icoon: '⛽', basisPrijs: 82,  beschrijving: 'Hoogenergetische ruimtebrandstof' },
-    { id: 'luxuriet',     naam: 'Luxuriet',     icoon: '👑', basisPrijs: 440, beschrijving: 'Allerhande luxe artikelen en statussymbolen' },
-    { id: 'lunasteen',    naam: 'Lunasteen',    icoon: '💎', basisPrijs: 310, beschrijving: 'Zeldzame edelstenen van buitenste manen' },
+    { id: 'ferroiet',     naam: 'Ferroiet',     icoon: 'assets/ferroiet.png',     basisPrijs: 50,  beschrijving: 'Basismetaal voor bouw en productie' },
+    { id: 'kristalliet',  naam: 'Kristalliet',  icoon: 'assets/kristalliet.png',  basisPrijs: 115, beschrijving: 'Energiekristallen voor reactoren en shields' },
+    { id: 'nebulakorrels',naam: 'Nebulakorrels',icoon: 'assets/nebulakorrels.png',basisPrijs: 32,  beschrijving: 'Voedzame graankorrels; basisvoedsel voor kolonies' },
+    { id: 'bioplasma',    naam: 'Bioplasma',    icoon: 'assets/bioplasma.png',    basisPrijs: 175, beschrijving: 'Medische basistof voor behandelingen' },
+    { id: 'technoware',   naam: 'Technoware',   icoon: '🔌',                      basisPrijs: 145, beschrijving: 'Elektronische componenten en modules' },
+    { id: 'quantumchips', naam: 'Quantumchips', icoon: 'assets/quantumchips.png', basisPrijs: 375, beschrijving: 'Geavanceerde kwantumprocessors' },
+    { id: 'aquapure',     naam: 'Aquapure',     icoon: 'assets/aquapure.png',     basisPrijs: 42,  beschrijving: 'Gezuiverd water voor menselijke kolonies' },
+    { id: 'pyrogel',      naam: 'Pyrogel',      icoon: 'assets/pyrogel.png',      basisPrijs: 82,  beschrijving: 'Hoogenergetische ruimtebrandstof' },
+    { id: 'luxuriet',     naam: 'Luxuriet',     icoon: 'assets/luxuriet.png',     basisPrijs: 440, beschrijving: 'Allerhande luxe artikelen en statussymbolen' },
+    { id: 'lunasteen',    naam: 'Lunasteen',    icoon: 'assets/lunasteen.png',    basisPrijs: 310, beschrijving: 'Zeldzame edelstenen van buitenste manen' },
 ];
+
+/**
+ * Renders a resource icon as an <img> for PNG assets, or a <span> for emoji fallbacks.
+ * @param {string} icoon - asset path (e.g. 'assets/ferroiet.png') or emoji
+ * @param {string} [alt] - alt text for the img
+ * @returns {string} HTML string
+ */
+function goedIcoonHtml(icoon, alt = '') {
+    if (typeof icoon === 'string' && icoon.startsWith('assets/')) {
+        return `<img src="${icoon}" class="res-icoon" alt="${alt}">`;
+    }
+    return `<span class="res-emoji">${icoon}</span>`;
+}
 
 const SCHEPEN = [
     // === VRACHTSCHIP ===

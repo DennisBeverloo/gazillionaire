@@ -2237,6 +2237,18 @@ body[data-planeet="mortex"]  { --planet-accent: #8b0000; }
     margin-right: 1px;
 }
 
+/* ===== RESOURCE ICONEN (PNG) ===== */
+.res-icoon {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    vertical-align: middle;
+    margin-right: 2px;
+}
+.res-emoji {
+    vertical-align: middle;
+}
+
 /* ===== MARKTMODIFIER INDICATOR ===== */
 .markt-mod {
     font-size: 0.72em;

@@ -447,7 +447,7 @@ const UI = {
                 return `<div class="tt-label">Vracht</div>
                     ${geladen.length === 0
                         ? '<div class="tt-leeg">Laadruimte is leeg</div>'
-                        : geladen.map(g => `<div class="tt-rij"><span>${g.icoon} ${g.naam}</span><span>${state.lading[g.id]}×</span></div>`).join('')}`;
+                        : geladen.map(g => `<div class="tt-rij"><span>${goedIcoonHtml(g.icoon, g.naam)} ${g.naam}</span><span>${state.lading[g.id]}×</span></div>`).join('')}`;
             }
             case 'passagiers-display': {
                 const pax = state.passagiers ?? 0;
@@ -692,7 +692,7 @@ const UI = {
             geladen.forEach(g => {
                 div.innerHTML += `
                     <div class="lading-item">
-                        <span>${g.icoon}</span>
+                        <span>${goedIcoonHtml(g.icoon, g.naam)}</span>
                         <span class="naam">${g.naam}</span>
                         <span class="aantal">${state.lading[g.id]}×</span>
                     </div>`;
@@ -784,7 +784,7 @@ const UI = {
             else if (mod < 0.97) modHtml = `<span class="markt-mod markt-mod-neer" title="Prijs gedaald door aanbod">▼</span>`;
 
             html += `<tr>
-                <td><span class="goed-icoon">${goed.icoon}</span><span class="goed-tip-wrap">${goed.naam}${marktLabelHtml}${tipHtml}</span></td>
+                <td><span class="goed-icoon">${goedIcoonHtml(goed.icoon, goed.naam)}</span><span class="goed-tip-wrap">${goed.naam}${marktLabelHtml}${tipHtml}</span></td>
                 <td class="handel-col-sec">${voorraadTd}</td>
                 <td style="font-family:var(--font-data)">${aanBoordTd}</td>
                 <td class="handel-col-sec" style="font-family:var(--font-data)">${prijsBetaaldTd}</td>
@@ -843,7 +843,7 @@ const UI = {
             const tipMax = Math.round(goed.basisPrijs * 2.2);
             const tipHtml2 = `<span class="goed-tip">${goed.beschrijving}</span>`;
 
-            html += `<tr><td class="galact-goed-col"><span>${goed.icoon}</span><span class="goed-tip-wrap"> ${goed.naam}${tipHtml2}</span></td>`;
+            html += `<tr><td class="galact-goed-col"><span>${goedIcoonHtml(goed.icoon, goed.naam)}</span><span class="goed-tip-wrap"> ${goed.naam}${tipHtml2}</span></td>`;
             html += `<td class="galact-prijsrange">${tipMin}–${tipMax}</td>`;
 
             PLANETEN.forEach(p => {
@@ -2236,7 +2236,7 @@ const UI = {
         const npc = evt.npc;
         const aankoopTekst = evt.aankopen.map(a => {
             const goed = GOEDEREN.find(g => g.id === a.goed.id) || a.goed;
-            return `${a.hoeveelheid} ton ${goed.icoon} ${goed.naam}`;
+            return `${a.hoeveelheid} ton ${goedIcoonHtml(goed.icoon, goed.naam)} ${goed.naam}`;
         }).join(' en ');
 
         document.getElementById('aankomst-event-icoon').textContent = npc.icoon;
@@ -2535,7 +2535,7 @@ const UI = {
                     html += `<div class="missie-kaart missie-actief">
                         <div class="missie-type-icoon">📦</div>
                         <div class="missie-info">
-                            <div class="missie-titel">${m.goedIcoon} Lever ${m.hoeveelheid}t ${m.goedNaam} af op <strong>${m.bestemmingNaam}</strong></div>
+                            <div class="missie-titel">${goedIcoonHtml(m.goedIcoon, m.goedNaam)} Lever ${m.hoeveelheid}t ${m.goedNaam} af op <strong>${m.bestemmingNaam}</strong></div>
                             <div class="missie-meta">${voortgang} &nbsp;·&nbsp; <span class="${urgentie}">Deadline: beurt ${m.deadline} (nog ${resterend})</span></div>
                         </div>
                         <div class="missie-beloning">+${state.formatteerKrediet(m.beloning)}<br><span class="kleur-dimmed" style="font-size:0.78em">bonus</span></div>
@@ -2563,7 +2563,7 @@ const UI = {
                     html += `<div class="missie-kaart">
                         <div class="missie-type-icoon">📦</div>
                         <div class="missie-info">
-                            <div class="missie-titel">${m.goedIcoon} Lever ${m.hoeveelheid}t ${m.goedNaam} af op <strong>${m.bestemmingNaam}</strong></div>
+                            <div class="missie-titel">${goedIcoonHtml(m.goedIcoon, m.goedNaam)} Lever ${m.hoeveelheid}t ${m.goedNaam} af op <strong>${m.bestemmingNaam}</strong></div>
                             <div class="missie-meta kleur-dimmed">Deadline: beurt ${m.deadline} (nog ${resterend} beurten)</div>
                         </div>
                         <div class="missie-beloning">+${state.formatteerKrediet(m.beloning)}<br><span class="kleur-dimmed" style="font-size:0.78em">bonus</span></div>

@@ -365,7 +365,7 @@ const App = {
         if (!res.succes) this._fout(res.reden);
         else {
             Audio.verkoop();
-            UI.toonTransactieToast({ icoon: res.goed?.icoon ?? '📦', titel: `${n}× ${res.goed?.naam ?? goedId} verkocht`, totaal: res.totaal, winst: res.winst });
+            UI.toonTransactieToast({ icoon: goedIcoonHtml(res.goed?.icoon ?? '📦'), titel: `${n}× ${res.goed?.naam ?? goedId} verkocht`, totaal: res.totaal, winst: res.winst });
             UI.renderSpel();
         }
     },
@@ -376,7 +376,7 @@ const App = {
         const res = state.verkoopGoed(goedId, n);
         if (res.succes) {
             Audio.verkoop();
-            UI.toonTransactieToast({ icoon: res.goed?.icoon ?? '📦', titel: `${n}× ${res.goed?.naam ?? goedId} verkocht`, totaal: res.totaal, winst: res.winst });
+            UI.toonTransactieToast({ icoon: goedIcoonHtml(res.goed?.icoon ?? '📦'), titel: `${n}× ${res.goed?.naam ?? goedId} verkocht`, totaal: res.totaal, winst: res.winst });
         }
         UI.renderSpel();
     },

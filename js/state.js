@@ -952,7 +952,7 @@ class GameState {
                 if (n > 0) {
                     const verlies = Math.max(1, Math.floor(n * eff.fractie));
                     this.lading[goed.id] = n - verlies;
-                    gestolen.push(`${verlies}× ${goed.icoon} ${goed.naam}`);
+                    gestolen.push(`${verlies}× ${goedIcoonHtml(goed.icoon, goed.naam)} ${goed.naam}`);
                 }
             });
             if (gestolen.length > 0) {
@@ -1317,7 +1317,7 @@ class GameState {
                             const goedId = gevuldeGoederen[Math.floor(Math.random() * gevuldeGoederen.length)];
                             const verloren = Math.ceil(this.lading[goedId] * 0.4);
                             const goedObj = GOEDEREN.find(g=>g.id===goedId);
-                            const goedNaam = `${goedObj.icoon} ${goedObj.naam}`;
+                            const goedNaam = `${goedIcoonHtml(goedObj.icoon, goedObj.naam)} ${goedObj.naam}`;
                             const piratenLadingPrijs = this.aankoopPrijzen[goedId] ?? goedObj.basisPrijs ?? 50;
                             const piratenLadingWaarde = Math.round(verloren * piratenLadingPrijs);
                             this.lading[goedId] = Math.max(0, this.lading[goedId] - verloren);
@@ -1359,7 +1359,7 @@ class GameState {
                         const aantal = Math.min(ruimteVrij, 5 + Math.floor(Math.random() * 8));
                         this.lading[gevonden.id] = (this.lading[gevonden.id] || 0) + aantal;
                         resultaat.ladingDelta[gevonden.id] = aantal;
-                        resultaat.bericht = `Je vindt ${aantal}× ${gevonden.icoon} ${gevonden.naam} in het wrak. Gratis lading!`;
+                        resultaat.bericht = `Je vindt ${aantal}× ${goedIcoonHtml(gevonden.icoon, gevonden.naam)} ${gevonden.naam} in het wrak. Gratis lading!`;
                     } else {
                         resultaat.bericht = 'Je vindt het wrak, maar je ruim is te vol voor de lading.';
                     }
@@ -1409,7 +1409,7 @@ class GameState {
                                 this.lading[goed.id] = (this.lading[goed.id] || 0) + maxAantal;
                                 resultaat.kredietDelta = -totaal;
                                 resultaat.ladingDelta[goed.id] = maxAantal;
-                                resultaat.bericht = `Deal! Je koopt ${maxAantal}× ${goed.icoon} ${goed.naam} voor slechts ${this.formatteerKrediet(kortingsPrijs)}/stuk.`;
+                                resultaat.bericht = `Deal! Je koopt ${maxAantal}× ${goedIcoonHtml(goed.icoon, goed.naam)} ${goed.naam} voor slechts ${this.formatteerKrediet(kortingsPrijs)}/stuk.`;
                             } else {
                                 resultaat.bericht = 'Je hebt geen krediet voor de deal.';
                             }
@@ -1536,7 +1536,7 @@ class GameState {
                     this.aankoopAantallen[goedId] = Math.max(0, (this.aankoopAantallen[goedId] || 0) - verloren);
                     if (this.lading[goedId] === 0) { delete this.aankoopPrijzen[goedId]; delete this.aankoopAantallen[goedId]; }
                     resultaat.ladingDelta[goedId] = -verloren;
-                    resultaat.bericht = `Koelsysteemstoring! ${verloren}× ${goed.icoon} ${goed.naam} zijn bedorven en verloren gegaan.`;
+                    resultaat.bericht = `Koelsysteemstoring! ${verloren}× ${goedIcoonHtml(goed.icoon, goed.naam)} ${goed.naam} zijn bedorven en verloren gegaan.`;
                     resultaat.verzekeringsInfo = this._verzekeringsUitkering(bederfWaarde);
                 } else {
                     resultaat.bericht = 'Koelsysteemstoring, maar je had geen kwetsbare lading. Mazzel!';
@@ -1786,7 +1786,7 @@ class GameState {
                         this.lading[goed.id] = (this.lading[goed.id] || 0) + aantal;
                         this.ladingVerdacht[goed.id] = (this.ladingVerdacht[goed.id] || 0) + aantal;
                         resultaat.ladingDelta[goed.id] = aantal;
-                        resultaat.bericht = `Je opent het krat: ${aantal}× ${goed.icoon} ${goed.naam}. Mogelijke herkomst onbekend — gemarkeerd als verdachte lading.`;
+                        resultaat.bericht = `Je opent het krat: ${aantal}× ${goedIcoonHtml(goed.icoon, goed.naam)} ${goed.naam}. Mogelijke herkomst onbekend — gemarkeerd als verdachte lading.`;
                     } else {
                         resultaat.bericht = 'Je opent het krat maar je ruim zit vol. Je dumpt het alsnog.';
                     }
@@ -1811,7 +1811,7 @@ class GameState {
                         this.aankoopAantallen[goedId] = Math.max(0, (this.aankoopAantallen[goedId] || 0) - verloren);
                         if (this.lading[goedId] === 0) { delete this.aankoopPrijzen[goedId]; delete this.aankoopAantallen[goedId]; }
                         resultaat.ladingDelta[goedId] = -verloren;
-                        berichten.push(`${verloren}× ${goed.icoon} ${goed.naam} bedorven`);
+                        berichten.push(`${verloren}× ${goedIcoonHtml(goed.icoon, goed.naam)} ${goed.naam} bedorven`);
                     });
                     resultaat.bericht = `Organische lading aangetast bij de bron: ${berichten.join(', ')}.`;
                     resultaat.verzekeringsInfo = this._verzekeringsUitkering(totaleWaardeSK);
@@ -2199,7 +2199,7 @@ class GameState {
             for (const [goedId, delta] of Object.entries(resultaat.ladingDelta)) {
                 if (!delta) continue;
                 const goed = GOEDEREN.find(g => g.id === goedId);
-                const naam = goed ? `${goed.icoon} ${goed.naam}` : goedId;
+                const naam = goed ? `${goedIcoonHtml(goed.icoon, goed.naam)} ${goed.naam}` : goedId;
                 delen.push(delta < 0 ? `${delta}× ${naam}` : `+${delta}× ${naam}`);
             }
             const cd = resultaat.kredietDelta;
