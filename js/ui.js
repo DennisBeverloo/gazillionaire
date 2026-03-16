@@ -92,8 +92,8 @@ const UI = {
     renderSpel() {
         this.updateTopBalk();
         this.renderPlaneetInfo();
-        this.renderKaart();
         this.renderBestemmingPaneel();
+        this.renderKaart();
         this.updateBerichten();
 
         // Tutorial: verberg/toon tabs op basis van unlock status
@@ -188,38 +188,13 @@ const UI = {
 
         const brandstofNodig = dest ? state.berekenBrandstofVerbruik(state.locatie, dest.id) : 0;
         const heeftGenoeg   = dest ? state.brandstof >= brandstofNodig : false;
-        const afstand        = dest ? Math.round(state.berekenAfstand(state.locatie, dest.id)) : 0;
-        const services       = dest ? this._getPlaneetServiceTags(dest) : [];
-        const servicesHtml   = services.length
-            ? `<div class="bestemming-services">${services.map(s => `<span class="planeet-tag">${s}</span>`).join('')}</div>`
-            : '<div class="bestemming-services"></div>';
-
-        // Inhoud altijd renderen maar verbergen als er geen bestemming is (behoudt hoogte)
-        const verbergStijl = dest ? '' : 'visibility:hidden';
         const preflightHtml = this._renderPreflightHtml(this._preflightItems(dest));
 
         container.innerHTML = `<div class="bestemming-paneel">
-            <div class="bestemming-inhoud" style="${verbergStijl}">
-                <div class="bestemming-paneel-naam">
-                    <span class="planeet-bol" style="background:${dest?.kleur ?? 'transparent'};width:13px;height:13px"></span>
-                    <strong>${dest?.naam ?? '—'}</strong>
-                    ${dest?.isGevaarlijk ? '<span class="kleur-rood" style="font-size:0.78em">⚠ Gevaarlijk</span>' : ''}
-                </div>
-                <div class="kleur-dimmed" style="font-size:0.82em;margin:4px 0 6px">${dest?.beschrijving ?? '—'}</div>
-                ${servicesHtml}
-                <div class="bestemming-meta-rij" style="margin-top:8px">
-                    <span>Afstand</span><span>${afstand} lj</span>
-                </div>
-                ${state.isUnlocked('brandstof') ? `<div class="brandstof-vereist ${heeftGenoeg ? '' : 'brandstof-tekort'}" style="margin-top:6px">
-                    <span class="bestemming-sub-label">Brandstofkosten</span>
-                    <div>${FUEL_IMG} ${brandstofNodig} l
-                    ${heeftGenoeg
-                        ? `<span class="kleur-groen">✓</span>`
-                        : dest ? `<span class="kleur-rood">✗ tekort: ${brandstofNodig - state.brandstof} l</span>` : ''}
-                    </div>
-                </div>` : ''}
-            </div>
             ${preflightHtml}
+            <div id="kaart-container" style="margin-top:10px;padding:0">
+                <svg id="galaxy-kaart" viewBox="0 0 290 195" preserveAspectRatio="xMidYMid meet" style="width:100%;display:block"></svg>
+            </div>
             <button class="knop ${dest && heeftGenoeg ? 'primair' : dest ? 'gevaar' : 'dimmed'}"
                     style="width:100%;padding:10px 0;margin-top:8px"
                     ${dest ? `onclick="App.reisNaar('${dest.id}')"` : 'disabled'}>
@@ -268,16 +243,17 @@ const UI = {
             const brandstof = state.brandstof ?? 0;
             const maxBrandstof = state.schip?.brandstofTank ?? 0;
             const pct = maxBrandstof > 0 ? brandstof / maxBrandstof : 1;
+            const hoeveelheidTekst = `(${brandstof}/${maxBrandstof} l)`;
             let fuelLabel, fuelStatus;
             if (dest) {
                 const nodig = state.berekenBrandstofVerbruik(state.locatie, dest.id);
-                if (brandstof < nodig)          { fuelLabel = 'Niet genoeg brandstof'; fuelStatus = 'rood'; }
-                else if (pct < 0.75)            { fuelLabel = 'Voldoende brandstof';   fuelStatus = 'oranje'; }
-                else                            { fuelLabel = 'Genoeg brandstof';      fuelStatus = 'groen'; }
+                if (brandstof < nodig)          { fuelLabel = `Niet genoeg brandstof ${hoeveelheidTekst}`; fuelStatus = 'rood'; }
+                else if (pct < 0.75)            { fuelLabel = `Voldoende brandstof ${hoeveelheidTekst}`;   fuelStatus = 'oranje'; }
+                else                            { fuelLabel = `Genoeg brandstof ${hoeveelheidTekst}`;      fuelStatus = 'groen'; }
             } else {
-                if (pct < 0.3)      { fuelLabel = 'Niet genoeg brandstof'; fuelStatus = 'rood'; }
-                else if (pct < 0.75){ fuelLabel = 'Voldoende brandstof';   fuelStatus = 'oranje'; }
-                else                { fuelLabel = 'Genoeg brandstof';      fuelStatus = 'groen'; }
+                if (pct < 0.3)      { fuelLabel = `Niet genoeg brandstof ${hoeveelheidTekst}`; fuelStatus = 'rood'; }
+                else if (pct < 0.75){ fuelLabel = `Voldoende brandstof ${hoeveelheidTekst}`;   fuelStatus = 'oranje'; }
+                else                { fuelLabel = `Genoeg brandstof ${hoeveelheidTekst}`;      fuelStatus = 'groen'; }
             }
             items.push({ label: fuelLabel, status: fuelStatus });
         }
@@ -628,6 +604,26 @@ const UI = {
             g.appendChild(text);
 
             g.addEventListener('click', () => App.klikPlaneet(planeet.id));
+
+            // Hover tooltip
+            g.addEventListener('mouseenter', () => {
+                const tooltip = document.getElementById('top-tooltip');
+                if (!tooltip) return;
+                const afstand = Math.round(state.berekenAfstand(state.locatie, planeet.id));
+                const isSel = planeet.id === state.geselecteerdePlaneet;
+                const isHier = planeet.id === state.locatie;
+                const afstandRij = isSel && !isHier
+                    ? `<div class="tt-rij"><span>Afstand</span><span class="tt-prijs">${afstand} lj</span></div>`
+                    : '';
+                tooltip.innerHTML = `<div class="tt-label">${planeet.naam}</div><div class="tt-beschr">${planeet.beschrijving}</div>${afstandRij}`;
+                tooltip.classList.remove('verborgen');
+                this._positioneerTooltip(tooltip, g);
+            });
+            g.addEventListener('mouseleave', () => {
+                const tooltip = document.getElementById('top-tooltip');
+                if (tooltip) tooltip.classList.add('verborgen');
+            });
+
             svg.appendChild(g);
         });
     },

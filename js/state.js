@@ -482,14 +482,14 @@ class GameState {
             missie.passagiersAanBoord = missie.aantalPassagiers;
         }
 
-        // Levering met goed: lading wordt gratis geleverd bij acceptatie
-        if (missie.goedId && missie.type === 'levering') {
+        // Transport-missie met goed: lading direct aan boord
+        if (missie.goedId && missie.type === 'transport') {
             const ruimte = this.schip.laadruimte - this.getLadingGewicht();
             if (ruimte < missie.hoeveelheid) return { succes: false, reden: `Niet genoeg laadruimte (nodig: ${missie.hoeveelheid} ton vrij).` };
             this.lading[missie.goedId] = (this.lading[missie.goedId] || 0) + missie.hoeveelheid;
             missie.goedGratisGeleverd = true;
             if (missie.isVerdacht) this.ladingVerdacht[missie.goedId] = (this.ladingVerdacht[missie.goedId] || 0) + missie.hoeveelheid;
-            this.voegBerichtToe(`📦 ${missie.hoeveelheid}t ${goedIcoonHtml(missie.goedIcoon, missie.goedNaam)} ${missie.goedNaam} geladen als missielading.`, 'goud');
+            this.voegBerichtToe(`📦 ${missie.hoeveelheid}t ${goedIcoonHtml(missie.goedIcoon, missie.goedNaam)} ${missie.goedNaam} geladen als transportlading.`, 'goud');
         }
 
         // Special cargo (levering, niet ophalen): direct aan boord
