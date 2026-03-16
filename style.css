@@ -1844,8 +1844,8 @@ body[data-planeet="mortex"]  { --planet-accent: #8b0000; }
 
 /* ===== GESELECTEERDE BESTEMMING PANEEL ===== */
 #bestemming-paneel-container {
-    flex: 1;
-    overflow-y: auto;
+    margin-top: auto;
+    flex-shrink: 0;
     border-top: 1px solid var(--planet-accent, var(--accent));
 }
 .bestemming-paneel {
@@ -1854,6 +1854,55 @@ body[data-planeet="mortex"]  { --planet-accent: #8b0000; }
     display: flex;
     flex-direction: column;
 }
+
+/* Destination info blok — verschijnt met fade+slide animatie */
+.dest-info-blok {
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: max-height 0.32s ease, opacity 0.28s ease, transform 0.28s ease;
+    margin-top: 0;
+}
+.dest-info-blok.zichtbaar {
+    max-height: 160px;
+    opacity: 1;
+    transform: translateY(0);
+    margin-top: 10px;
+}
+.dest-info-leeg {
+    max-height: 0 !important;
+    margin-top: 0 !important;
+}
+.dest-info-naam {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-data);
+    font-size: 1em;
+    margin-bottom: 3px;
+}
+.dest-info-beschr {
+    font-size: 0.8em;
+    color: var(--tekst-dim);
+    line-height: 1.35;
+    margin-bottom: 6px;
+}
+.dest-info-meta {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-data);
+    font-size: 0.83em;
+    padding: 4px 7px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 4px;
+    margin-bottom: 3px;
+}
+.dest-info-tekort {
+    background: rgba(255,56,85,0.10);
+    border: 1px solid rgba(255,56,85,0.25);
+}
+
 .bestemming-paneel-naam {
     display: flex;
     align-items: center;

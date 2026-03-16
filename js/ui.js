@@ -188,19 +188,44 @@ const UI = {
 
         const brandstofNodig = dest ? state.berekenBrandstofVerbruik(state.locatie, dest.id) : 0;
         const heeftGenoeg   = dest ? state.brandstof >= brandstofNodig : false;
-        const preflightHtml = this._renderPreflightHtml(this._preflightItems(dest));
+        const afstand        = dest ? Math.round(state.berekenAfstand(state.locatie, dest.id)) : 0;
+        const preflightHtml  = this._renderPreflightHtml(this._preflightItems(dest));
+
+        const destInfoHtml = dest ? `
+            <div class="dest-info-blok">
+                <div class="dest-info-naam">
+                    <span class="planeet-bol" style="background:${dest.kleur};width:10px;height:10px;border-radius:50%;display:inline-block;flex-shrink:0"></span>
+                    <strong>${dest.naam}</strong>
+                    ${dest.isGevaarlijk ? '<span class="kleur-rood" style="font-size:0.75em">⚠ Gevaarlijk</span>' : ''}
+                </div>
+                <div class="dest-info-beschr">${dest.beschrijving}</div>
+                <div class="dest-info-meta">
+                    <span class="kleur-dimmed">Afstand</span><span>${afstand} lj</span>
+                </div>
+                ${state.isUnlocked('brandstof') ? `<div class="dest-info-meta ${heeftGenoeg ? '' : 'dest-info-tekort'}">
+                    <span class="kleur-dimmed">Brandstof</span>
+                    <span>${brandstofNodig} l ${heeftGenoeg ? '<span class="kleur-groen">✓</span>' : `<span class="kleur-rood">✗ tekort</span>`}</span>
+                </div>` : ''}
+            </div>` : `<div class="dest-info-blok dest-info-leeg"></div>`;
 
         container.innerHTML = `<div class="bestemming-paneel">
             ${preflightHtml}
             <div id="kaart-container" style="margin-top:10px;padding:0">
                 <svg id="galaxy-kaart" viewBox="0 0 290 195" preserveAspectRatio="xMidYMid meet" style="width:100%;display:block"></svg>
             </div>
+            ${destInfoHtml}
             <button class="knop ${dest && heeftGenoeg ? 'primair' : dest ? 'gevaar' : 'dimmed'}"
                     style="width:100%;padding:10px 0;margin-top:8px"
                     ${dest ? `onclick="App.reisNaar('${dest.id}')"` : 'disabled'}>
                 ${dest ? `🚀 Reis naar ${dest.naam} →` : 'Selecteer bestemming'}
             </button>
         </div>`;
+
+        // Animeer dest-info-blok in
+        if (dest) {
+            const blok = container.querySelector('.dest-info-blok');
+            if (blok) requestAnimationFrame(() => blok.classList.add('zichtbaar'));
+        }
     },
 
     // =========================================================================
@@ -243,17 +268,16 @@ const UI = {
             const brandstof = state.brandstof ?? 0;
             const maxBrandstof = state.schip?.brandstofTank ?? 0;
             const pct = maxBrandstof > 0 ? brandstof / maxBrandstof : 1;
-            const hoeveelheidTekst = `(${brandstof}/${maxBrandstof} l)`;
             let fuelLabel, fuelStatus;
             if (dest) {
                 const nodig = state.berekenBrandstofVerbruik(state.locatie, dest.id);
-                if (brandstof < nodig)          { fuelLabel = `Niet genoeg brandstof ${hoeveelheidTekst}`; fuelStatus = 'rood'; }
-                else if (pct < 0.75)            { fuelLabel = `Voldoende brandstof ${hoeveelheidTekst}`;   fuelStatus = 'oranje'; }
-                else                            { fuelLabel = `Genoeg brandstof ${hoeveelheidTekst}`;      fuelStatus = 'groen'; }
+                if (brandstof < nodig) { fuelLabel = 'Niet genoeg brandstof'; fuelStatus = 'rood'; }
+                else if (pct < 0.75)   { fuelLabel = 'Voldoende brandstof';   fuelStatus = 'oranje'; }
+                else                   { fuelLabel = 'Genoeg brandstof';      fuelStatus = 'groen'; }
             } else {
-                if (pct < 0.3)      { fuelLabel = `Niet genoeg brandstof ${hoeveelheidTekst}`; fuelStatus = 'rood'; }
-                else if (pct < 0.75){ fuelLabel = `Voldoende brandstof ${hoeveelheidTekst}`;   fuelStatus = 'oranje'; }
-                else                { fuelLabel = `Genoeg brandstof ${hoeveelheidTekst}`;      fuelStatus = 'groen'; }
+                if (pct < 0.3)      { fuelLabel = 'Niet genoeg brandstof'; fuelStatus = 'rood'; }
+                else if (pct < 0.75){ fuelLabel = 'Voldoende brandstof';   fuelStatus = 'oranje'; }
+                else                { fuelLabel = 'Genoeg brandstof';      fuelStatus = 'groen'; }
             }
             items.push({ label: fuelLabel, status: fuelStatus });
         }
@@ -604,26 +628,6 @@ const UI = {
             g.appendChild(text);
 
             g.addEventListener('click', () => App.klikPlaneet(planeet.id));
-
-            // Hover tooltip
-            g.addEventListener('mouseenter', () => {
-                const tooltip = document.getElementById('top-tooltip');
-                if (!tooltip) return;
-                const afstand = Math.round(state.berekenAfstand(state.locatie, planeet.id));
-                const isSel = planeet.id === state.geselecteerdePlaneet;
-                const isHier = planeet.id === state.locatie;
-                const afstandRij = isSel && !isHier
-                    ? `<div class="tt-rij"><span>Afstand</span><span class="tt-prijs">${afstand} lj</span></div>`
-                    : '';
-                tooltip.innerHTML = `<div class="tt-label">${planeet.naam}</div><div class="tt-beschr">${planeet.beschrijving}</div>${afstandRij}`;
-                tooltip.classList.remove('verborgen');
-                this._positioneerTooltip(tooltip, g);
-            });
-            g.addEventListener('mouseleave', () => {
-                const tooltip = document.getElementById('top-tooltip');
-                if (tooltip) tooltip.classList.add('verborgen');
-            });
-
             svg.appendChild(g);
         });
     },
