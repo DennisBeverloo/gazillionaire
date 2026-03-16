@@ -1861,18 +1861,17 @@ body[data-planeet="mortex"]  { --planet-accent: #8b0000; }
     max-height: 0;
     opacity: 0;
     transform: translateY(6px);
-    transition: max-height 0.32s ease, opacity 0.28s ease, transform 0.28s ease;
+    transition: max-height 0.3s ease, opacity 0.25s ease, transform 0.25s ease, margin-top 0.3s ease;
     margin-top: 0;
+}
+.dest-info-blok.geen-animatie {
+    transition: none !important;
 }
 .dest-info-blok.zichtbaar {
     max-height: 160px;
     opacity: 1;
     transform: translateY(0);
     margin-top: 10px;
-}
-.dest-info-leeg {
-    max-height: 0 !important;
-    margin-top: 0 !important;
 }
 .dest-info-naam {
     display: flex;

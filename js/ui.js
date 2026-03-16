@@ -182,19 +182,62 @@ const UI = {
         const container = document.getElementById('bestemming-paneel-container');
         if (!container) return;
 
+        // Als er al een animatie loopt, sla de volgende render op en wacht
+        if (this._destTransitie) { this._destPending = true; return; }
+
         const dest = state.geselecteerdePlaneet
             ? PLANETEN.find(p => p.id === state.geselecteerdePlaneet)
             : null;
 
+        const vorigeId = this._vorigeBestemmingId; // undefined=nooit geladen, null=geen dest, string=planeet.id
+        const nieuwId  = dest?.id ?? null;
+        const wisselend = vorigeId != null && nieuwId != null && vorigeId !== nieuwId;
+
+        if (wisselend) {
+            // Fase 1: animeer huidig blok uit
+            const oudeBlok = container.querySelector('.dest-info-blok.zichtbaar');
+            if (oudeBlok) {
+                this._destTransitie = true;
+                oudeBlok.classList.remove('zichtbaar');
+                setTimeout(() => {
+                    this._destTransitie = false;
+                    this._vorigeBestemmingId = nieuwId;
+                    this._schrijfBestemmingPaneelHtml(container, dest);
+                    // Fase 3: animeer nieuw blok in
+                    const nieuwBlok = container.querySelector('.dest-info-blok');
+                    if (nieuwBlok) requestAnimationFrame(() => requestAnimationFrame(() => nieuwBlok.classList.add('zichtbaar')));
+                    if (this._destPending) { this._destPending = false; this.renderBestemmingPaneel(); }
+                }, 300); // match CSS transition
+                return;
+            }
+        }
+
+        this._vorigeBestemmingId = nieuwId;
+        this._schrijfBestemmingPaneelHtml(container, dest);
+
+        const blok = container.querySelector('.dest-info-blok');
+        if (!blok || !dest) return;
+
+        if (vorigeId === undefined) {
+            // Eerste page load: direct tonen, géén animatie
+            blok.classList.add('geen-animatie', 'zichtbaar');
+            requestAnimationFrame(() => blok.classList.remove('geen-animatie'));
+        } else {
+            // Eerste selectie na geen bestemming: animeer in
+            requestAnimationFrame(() => requestAnimationFrame(() => blok.classList.add('zichtbaar')));
+        }
+    },
+
+    _schrijfBestemmingPaneelHtml(container, dest) {
         const brandstofNodig = dest ? state.berekenBrandstofVerbruik(state.locatie, dest.id) : 0;
-        const heeftGenoeg   = dest ? state.brandstof >= brandstofNodig : false;
+        const heeftGenoeg    = dest ? state.brandstof >= brandstofNodig : false;
         const afstand        = dest ? Math.round(state.berekenAfstand(state.locatie, dest.id)) : 0;
         const preflightHtml  = this._renderPreflightHtml(this._preflightItems(dest));
 
         const destInfoHtml = dest ? `
             <div class="dest-info-blok">
                 <div class="dest-info-naam">
-                    <span class="planeet-bol" style="background:${dest.kleur};width:10px;height:10px;border-radius:50%;display:inline-block;flex-shrink:0"></span>
+                    <span style="background:${dest.kleur};width:10px;height:10px;border-radius:50%;display:inline-block;flex-shrink:0"></span>
                     <strong>${dest.naam}</strong>
                     ${dest.isGevaarlijk ? '<span class="kleur-rood" style="font-size:0.75em">⚠ Gevaarlijk</span>' : ''}
                 </div>
@@ -204,9 +247,9 @@ const UI = {
                 </div>
                 ${state.isUnlocked('brandstof') ? `<div class="dest-info-meta ${heeftGenoeg ? '' : 'dest-info-tekort'}">
                     <span class="kleur-dimmed">Brandstof</span>
-                    <span>${brandstofNodig} l ${heeftGenoeg ? '<span class="kleur-groen">✓</span>' : `<span class="kleur-rood">✗ tekort</span>`}</span>
+                    <span>${brandstofNodig} l ${heeftGenoeg ? '<span class="kleur-groen">✓</span>' : '<span class="kleur-rood">✗ tekort</span>'}</span>
                 </div>` : ''}
-            </div>` : `<div class="dest-info-blok dest-info-leeg"></div>`;
+            </div>` : `<div class="dest-info-blok"></div>`;
 
         container.innerHTML = `<div class="bestemming-paneel">
             ${preflightHtml}
@@ -220,12 +263,7 @@ const UI = {
                 ${dest ? `🚀 Reis naar ${dest.naam} →` : 'Selecteer bestemming'}
             </button>
         </div>`;
-
-        // Animeer dest-info-blok in
-        if (dest) {
-            const blok = container.querySelector('.dest-info-blok');
-            if (blok) requestAnimationFrame(() => blok.classList.add('zichtbaar'));
-        }
+        this.renderKaart();
     },
 
     // =========================================================================
