@@ -90,6 +90,7 @@ const UI = {
     },
 
     renderSpel() {
+        this._vorigeBestemmingId = undefined; // reset animatie-state bij nieuwe beurt
         this.updateTopBalk();
         this.renderPlaneetInfo();
         this.renderBestemmingPaneel();
