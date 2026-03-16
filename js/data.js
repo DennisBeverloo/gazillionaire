@@ -69,7 +69,7 @@ const PLANETEN = [
     {
         id: 'mortex',
         naam: 'Mortex Station',
-        beschrijving: 'Een vervallen ruimtestation op de rand van het systeem. Hier gelden andere regels — hoge risico\'s en hoge beloningen. De zwarte markt bloeit.',
+        beschrijving: 'Vervallen station aan de rand van het systeem. Andere regels, hoge risico\'s, hoge beloningen — de zwarte markt bloeit.',
         kleur: '#8b0000',
         x: 48, y: 12,
         specialiteit: [],

@@ -182,9 +182,6 @@ const UI = {
         const container = document.getElementById('bestemming-paneel-container');
         if (!container) return;
 
-        // Als er al een animatie loopt, sla de volgende render op en wacht
-        if (this._destTransitie) { this._destPending = true; return; }
-
         const dest = state.geselecteerdePlaneet
             ? PLANETEN.find(p => p.id === state.geselecteerdePlaneet)
             : null;
@@ -194,22 +191,12 @@ const UI = {
         const wisselend = vorigeId != null && nieuwId != null && vorigeId !== nieuwId;
 
         if (wisselend) {
-            // Fase 1: animeer huidig blok uit
-            const oudeBlok = container.querySelector('.dest-info-blok.zichtbaar');
-            if (oudeBlok) {
-                this._destTransitie = true;
-                oudeBlok.classList.remove('zichtbaar');
-                setTimeout(() => {
-                    this._destTransitie = false;
-                    this._vorigeBestemmingId = nieuwId;
-                    this._schrijfBestemmingPaneelHtml(container, dest);
-                    // Fase 3: animeer nieuw blok in
-                    const nieuwBlok = container.querySelector('.dest-info-blok');
-                    if (nieuwBlok) requestAnimationFrame(() => requestAnimationFrame(() => nieuwBlok.classList.add('zichtbaar')));
-                    if (this._destPending) { this._destPending = false; this.renderBestemmingPaneel(); }
-                }, 300); // match CSS transition
-                return;
-            }
+            // Blok al zichtbaar: gewoon content vervangen, geen animatie
+            this._vorigeBestemmingId = nieuwId;
+            this._schrijfBestemmingPaneelHtml(container, dest);
+            const blokNa = container.querySelector('.dest-info-blok');
+            if (blokNa) blokNa.classList.add('geen-animatie', 'zichtbaar');
+            return;
         }
 
         this._vorigeBestemmingId = nieuwId;
