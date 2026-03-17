@@ -544,7 +544,7 @@ const UI = {
         const planeet = PLANETEN.find(p => p.id === state.locatie);
         if (!planeet) { container.innerHTML = ''; return; }
 
-        const imgSrc = `assets/planet-${planeet.id}.png`;
+        const imgSrc = `assets/${planeet.id}.png`;
         const tags = this._getPlaneetServiceTags(planeet).map(s => `<span class="planeet-tag">${s}</span>`);
 
         container.innerHTML = `
@@ -2458,7 +2458,7 @@ const UI = {
             const img    = document.getElementById(`reis-planeet-${prefix}-img`);
             const kleur  = document.getElementById(`reis-planeet-${prefix}-kleur`);
             const naam   = document.getElementById(`reis-${prefix}-naam`);
-            if (img)   { img.src = `assets/planet-${pl.id}.png`; img.alt = pl.naam; img.style.display = ''; }
+            if (img)   { img.src = `assets/${pl.id}.png`; img.alt = pl.naam; img.style.display = ''; }
             if (kleur) kleur.style.background = `radial-gradient(circle at 35% 35%, ${pl.kleur}cc, ${pl.kleur}44 60%, transparent)`;
             if (naam)  naam.textContent = pl.naam;
         });
@@ -2580,11 +2580,20 @@ const UI = {
             return `<span class="${klasse}">Deadline: beurt ${m.deadline} (nog ${resterend})${boeteTekst}</span>`;
         };
 
+        const _missieSamenvattingHtml = (m) => {
+            if (m.type === 'levering' && m.goedId)   return `Breng ${m.hoeveelheid}t ${goedIcoonHtml(m.goedIcoon, m.goedNaam)} ${m.goedNaam} naar ${m.bestemmingNaam}`;
+            if (m.type === 'transport' && m.goedId)  return `Vervoer ${m.hoeveelheid}t ${goedIcoonHtml(m.goedIcoon, m.goedNaam)} ${m.goedNaam} naar ${m.bestemmingNaam}`;
+            if (m.aantalPassagiers)                  return `Breng ${m.aantalPassagiers} passagier${m.aantalPassagiers > 1 ? 's' : ''} naar ${m.bestemmingNaam}`;
+            if (m.missieLadingNaam)                  return `Vervoer ${m.missieLadingIcoon ?? '📦'} ${m.missieLadingNaam} naar ${m.bestemmingNaam}`;
+            return '';
+        };
+
         const _renderMissieKaartActief = (m) => `
             <div class="missie-kaart missie-actief">
                 <div class="missie-type-icoon">${_missieIcoonHtml(m)}</div>
                 <div class="missie-info">
                     <div class="missie-titel">${m.naam}</div>
+                    <div class="missie-samenvatting">${_missieSamenvattingHtml(m)}</div>
                     <div class="missie-beschr kleur-dimmed" style="font-size:0.8em;margin:2px 0 4px">${m.beschrijving}</div>
                     <div class="missie-meta">${_missieVoortgangHtml(m)} &nbsp;·&nbsp; ${_missieDeadlineHtml(m)}</div>
                 </div>
@@ -2614,8 +2623,9 @@ const UI = {
                 <div class="missie-type-icoon">${_missieIcoonHtml(m)}</div>
                 <div class="missie-info">
                     <div class="missie-titel">${m.naam} ${catHtml}</div>
+                    <div class="missie-samenvatting">${_missieSamenvattingHtml(m)}</div>
                     <div class="missie-beschr kleur-dimmed" style="font-size:0.8em;margin:2px 0 4px">${m.beschrijving}</div>
-                    <div class="missie-meta kleur-dimmed">${vereistHtml}${ophaalHtml} · Bestemming: <strong>${m.bestemmingNaam}</strong> · Deadline: ${resterend} beurten${boeteTekst}</div>
+                    <div class="missie-meta kleur-dimmed">${vereistHtml}${ophaalHtml} · Deadline: ${resterend} beurt${resterend === 1 ? '' : 'en'}${boeteTekst}</div>
                 </div>
                 <div class="missie-beloning">+${state.formatteerKrediet(m.beloning)}<br><span class="kleur-dimmed" style="font-size:0.78em">bonus</span></div>
                 <button class="knop primair klein missie-knop" onclick="App.accepteerMissie(${m.id})" ${kanAcc ? '' : 'disabled'}>Accepteer</button>

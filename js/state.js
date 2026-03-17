@@ -446,6 +446,11 @@ class GameState {
                 deadline: this.beurt + tmpl.deadlineBeurten,
                 actief: false,
             };
+        }).filter(m => {
+            // Verberg missies waarvoor base-capaciteit van het schip onvoldoende is
+            if (m.aantalPassagiers && (this.schip?.passagiersCapaciteit ?? 0) < m.aantalPassagiers) return false;
+            if (m.goedId && m.hoeveelheid && (this.schip?.laadruimte ?? 0) < m.hoeveelheid) return false;
+            return true;
         });
     }
 
